@@ -4,12 +4,12 @@
   "description": "Mot tro choi an vai tro va suy luan xa hoi.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js", // <-- QUAN TRỌNG
+    "start": "node server.js", 
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.19.2", // Phiên bản có thể khác
-    "socket.io": "^4.7.5" // Phiên bản có thể khác
+    "express": "^4.19.2", 
+    "socket.io": "^4.7.5"
   },
   "keywords": [],
   "author": "",
