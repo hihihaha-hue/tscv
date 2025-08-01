@@ -16,100 +16,186 @@ const GAME_CONSTANTS = {
 // Key: ID duy nhất của Tiếng Vọng.
 // Value: Object chứa các thuộc tính. Các hàm trong này là "logic hooks".
 const DECREES = {
-    "VONG_AM": { 
-        name: "Đêm Vọng Âm", 
-        description: "Mọi Tiến Độ nhận được hoặc mất đi trong đêm nay sẽ được NHÂN ĐÔI!", 
+    'VONG_AM_KHUECH_DAI': { 
+        name: "Vọng Âm Khuếch Đại", 
+        description: "Mọi thanh âm trong đền thờ đều được khuếch đại. Tất cả Tiến Độ nhận được hoặc mất đi trong đêm nay sẽ được nhân đôi!", 
         getPointMultiplier: () => 2 
     },
-    "VE_BINH_TUAN_TRA": { 
-        name: "Vệ Binh Tuần Tra", 
-        description: "Đêm nay, Vệ Binh tuần tra gắt gao. Cấm mọi hành vi Vạch Trần và Phối Hợp.", 
+    'DEM_TINH_LANG': { 
+        name: "Đêm Tĩnh Lặng", 
+        description: "Một sự im lặng đáng sợ bao trùm. Đêm nay, cấm mọi hành vi Vạch Trần và Phối Hợp.", 
         isChaosDisabled: true 
     },
-    "LOI_NGUYEN_DAO_NGUOC": { 
-        name: "Lời Nguyền Đảo Ngược", 
-        description: "Lời nguyền khiến ngôi đền hỗn loạn! Phe có ít người hơn sẽ thành công.", 
-        determineWinner: (giaiMaCount, phaHoaiCount) => (giaiMaCount === phaHoaiCount ? null : (giaiMaCount < phaHoaiCount ? 'Giải Mã' : 'Phá Hoại')) 
-    },
-    "CONG_NAP": { 
-        name: "Cống Nạp Cho Vệ Binh", 
-        description: "Cuối đêm, mỗi người có Tiến Độ cao nhất phải cống nạp 2 điểm cho mỗi người có Tiến Độ thấp nhất.", 
-        // Hook này chạy sau khi điểm đã được tính xong
-        endOfRoundEffect: (gs, results, pointMultiplier) => { 
-            const highestPlayers = getPlayersByScore(gs.players, 'highest'); 
-            const lowestPlayers = getPlayersByScore(gs.players, 'lowest'); 
-            if (highestPlayers.length > 0 && lowestPlayers.length > 0 && highestPlayers[0].id !== lowestPlayers[0].id) { 
-                const tax = 2 * pointMultiplier;
-                highestPlayers.forEach(h => {
-                    h.score -= tax * lowestPlayers.length;
-                });
-                lowestPlayers.forEach(l => {
-                    l.score += tax * highestPlayers.length;
-                });
-                results.messages.push(`📜 **Sự cống nạp** đã được thực hiện!`); 
-            } 
-        } 
-    },
-    "AO_GIAC": { 
-        name: "Ảo Giác", 
-        description: "Mọi người hoán đổi hành động cho người bên cạnh (theo chiều kim đồng hồ).", 
-        isChaosDisabled: true, 
-        // Hook này chạy ngay khi Tiếng Vọng được công bố
-        onReveal: (gs, io, roomCode) => { 
-            const activePlayers = gs.players.filter(p => !p.isDefeated && p.chosenAction); 
-            if (activePlayers.length < 2) return; 
-            const chosenActions = activePlayers.map(p => p.chosenAction); 
-            for (let i = 0; i < activePlayers.length; i++) { 
-                const nextActionIndex = (i + 1) % activePlayers.length;
-                activePlayers[i].chosenAction = chosenActions[nextActionIndex]; 
-            } 
-            io.to(roomCode).emit('logMessage', { type: 'warning', message: "🌀 Mọi hành động đã bị hoán đổi trong cơn ảo giác!" }); 
-        } 
-    },
-    "BUA_LU_LAN": { 
+    'BUA_LU_LAN': { 
         name: "Bùa Lú Lẫn", 
-        description: "Người có Tiến Độ thấp nhất được hoán đổi hành động của 2 người bất kỳ.", 
-        onReveal: (gs, io, roomCode, drawerId, rooms) => {
-            const drawer = gs.players.find(p => p.id === drawerId);
-            if (!drawer) return;
-
-            if (drawer.isBot) {
-                // logic.js sẽ cần import hàm này
-                handleBotAmnesia(roomCode, drawerId, rooms, io);
-            } else {
-                gs.phase = 'special_action'; // Chuyển game sang trạng thái đặc biệt
-                io.to(drawerId).emit('promptAmnesiaAction', { players: gs.players.map(p => ({ id: p.id, name: p.name })) }); 
-                io.to(roomCode).except(drawerId).emit('logMessage', { type: 'warning', message: `🧠 Đang chờ ${drawer.name} yểm bùa...`}); 
-            }
-        } 
+        description: "Người có Tiến Độ thấp nhất bị ảnh hưởng bởi ảo giác và có thể hoán đổi hành động của 2 người bất kỳ. Hai người bị hoán đổi sẽ không thể Vạch Trần hay Phối Hợp với nhau trong đêm nay.", 
+        onReveal: (gs, io, roomCode, drawerId, rooms) => { /* Logic sẽ được gọi trong logic.js */ } 
     },
-    // TIẾNG VỌNG MỚI ĐÃ THÊM
-    "DEM_CAM_LANG": {
-        name: "Đêm Câm Lặng",
-        description: "Một sức mạnh cổ xưa bao trùm ngôi đền, mọi kỹ năng đặc biệt đều bị vô hiệu hóa trong đêm nay."
+    'AO_GIAC_DICH_CHUYEN': { 
+        name: "Ảo Giác Dịch Chuyển", 
+        description: "Không gian trong đền thờ bị bóp méo! Tất cả người chơi đổi hành động của mình cho người bên cạnh theo vòng tròn. Vạch Trần và Phối Hợp bị vô hiệu hóa.", 
+        isChaosDisabled: true, 
+        onReveal: (gs, io, roomCode) => { /* Logic sẽ được gọi trong logic.js */ } 
     },
+    'PHAN_XET_DAO_NGUOC': { 
+        name: "Phán Xét Đảo Ngược", 
+        description: "Luật lệ của ngôi đền bị đảo lộn! Phe thường thắng trong đêm nay sẽ thua, và phe thường thua sẽ thắng.", 
+        determineWinner: (giaiMaCount, phaHoaiCount) => (giaiMaCount <= phaHoaiCount ? 'Giải Mã' : 'Phá Hoại') 
+    },
+    'GIAO_UOC_BAT_BUOC': { 
+        name: "Giao Ước Bắt Buộc", 
+        description: "Mọi người phải công khai thảo luận về hành động của mình. Sau đó, tất cả phải thực hiện Vạch Trần hoặc Phối Hợp. Một người có thể được Phối Hợp nhiều lần, tạo thành một liên minh lớn với một lá phiếu duy nhất.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'CONG_NAP': { 
+        name: "Cống Nạp", 
+        description: "Vào cuối đêm, người có Tiến Độ cao nhất phải cống nạp 2 điểm. Số điểm đó sẽ được ban cho người có Tiến Độ thấp nhất.", 
+        endOfRoundEffect: (gs, results, pointMultiplier) => { /* Logic sẽ được gọi trong logic.js */ } 
+    },
+    'LOI_NGUYEN_HI_HA': {
+        name: "Lời Nguyền Hỉ Hả",
+        description: "Đêm nay, nếu có người bị mất điểm và rơi xuống mức âm, điểm của họ sẽ được hồi về 0. Tuy nhiên, TẤT CẢ những người chơi khác sẽ bị -1 điểm.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'LUA_CHON_CUA_KE_YEU': {
+        name: "Lựa Chọn Của Kẻ Yếu",
+        description: "Đêm nay, hành động 'Quan Sát' sẽ không theo phe thắng. Thay vào đó, nó sẽ tự động cộng thêm 1 phiếu cho phe đang có số lượng ít hơn trước khi tính kết quả.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'GIA_CUA_SU_THO_O': {
+        name: "Cái Giá Của Sự Thờ Ơ",
+        description: "Đêm nay, những người chọn 'Quan Sát' sẽ không nhận điểm theo phe thắng. Thay vào đó, họ sẽ bị trừ số điểm bằng với số phiếu 'Phá Hoại' có trên bàn.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'VU_DIEU_HON_LOAN': {
+        name: "Vũ Điệu Hỗn Loạn",
+        description: "Tất cả các lựa chọn hành động sẽ được thu thập lại, xáo trộn và chia ngẫu nhiên lại cho mọi người. Lựa chọn bạn nhận được mới là hành động cuối cùng của bạn trong đêm nay.",
+        onReveal: (gs, io, roomCode) => { /* Logic sẽ được gọi trong logic.js */ }
+    },
+    'DEM_SUY_TAN': {
+        name: "Đêm Suy Tàn",
+        description: "Đêm nay, phe thua cuộc sẽ bị chia đôi Tiến Độ hiện tại (làm tròn xuống). Nếu kết quả là hòa, tất cả mọi người bị chia đôi Tiến Độ.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'VU_NO_HU_VO': {
+        name: "Vụ Nổ Hư Vô",
+        description: "Nếu kết quả đêm nay là hòa, thay vì mỗi người +1 điểm, Tiến Độ của tất cả mọi người sẽ bị reset về 0.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'THACH_THUC_KE_DAN_DAU': {
+        name: "Thách Thức Kẻ Dẫn Đầu",
+        description: "Đêm nay, nếu bạn 'Vạch Trần' đúng người chơi đang có điểm cao nhất, bạn sẽ tráo đổi toàn bộ Tiến Độ của mình với họ.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'DI_SAN_KE_TIEN_PHONG': {
+        name: "Di Sản Kẻ Tiên Phong",
+        description: "Người chiến thắng trong đêm đấu này sẽ được quyền chọn Tiếng Vọng cho đêm kế tiếp từ ba lá được bốc ngẫu nhiên.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'DAU_TRUONG_SINH_TU': {
+        name: "Đấu Trường Sinh Tử",
+        description: "Người thấp điểm nhất chọn ra hai 'Đấu Sĩ'. Những người còn lại là 'Khán Giả'. Hai Đấu Sĩ buộc phải 'Vạch Trần' lẫn nhau. Khán Giả sẽ đặt cược tối đa 2 Tiến Độ vào Đấu Sĩ mà họ tin sẽ thắng. Cược đúng được nhân đôi số điểm đã cược.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    },
+    'DEM_SONG_TRUNG': {
+        name: "Đêm Song Trùng",
+        description: "Khi rút phải Tiếng Vọng này, người thấp điểm nhất sẽ rút thêm một Tiếng Vọng nữa. Đêm nay sẽ có hai luật chơi được áp dụng cùng lúc.",
+        // Cần logic đặc biệt trong logic.js để xử lý
+    }
 };
 
 // --- III. DỮ LIỆU CÁC VAI TRÒ (ROLES) ---
-// Key: ID duy nhất của vai trò.
-// Value: Object chứa các thuộc tính.
 const ROLES = {
-    'SURVIVOR': { name: "Kẻ Sống Sót", description: "Thắng nếu bạn là người cuối cùng chưa từng bị âm Tiến Độ." },
-    'PROPHET': { name: "Nhà Tiên Tri", description: "Thắng nếu bạn Vạch Trần đúng 3 lần. Dùng kỹ năng để nhìn thấy lựa chọn của 1 người.", hasActiveSkill: true, skillName: "Thiên Lý Nhãn" },
-    'PEACEMAKER': { name: "Người Gìn Giữ Hòa Bình", description: "Thắng nếu có 3 đêm HÒA liên tiếp." },
-    'SAINT': { name: "Thánh Sống", description: "Thắng nếu đạt 10 Tiến Độ mà chưa từng chọn 'Phá Hoại'. Lá phiếu 'Giải Mã' của bạn được tính là 2 phiếu.", hasActiveSkill: false /* Kỹ năng bị động */ },
-    'TURNCOAT': { name: "Kẻ Lật Mặt", description: "Thắng nếu đạt 12 Tiến Độ và đã dùng đủ 3 hành động (Giải Mã, Phá Hoại, Quan Sát) trong 3 đêm gần nhất." },
-    'PUPPETEER': { name: "Kẻ Thao Túng", description: "Thắng nếu 'Con Rối' bí mật của bạn thắng. Dùng kỹ năng để hoán đổi lựa chọn của 'Con Rối' với 1 người khác.", hasActiveSkill: true, skillName: "Giật Dây" },
-    'GAMBLER': { name: "Kẻ Đánh Cược", description: "Thắng nếu đã từng đạt chính xác 7 và -7 Tiến Độ." },
-    'INQUISITOR': { name: "Kẻ Phán Xử", description: "Thắng ở 15 Tiến Độ. Dùng kỹ năng để trừng phạt tất cả những kẻ đã chọn 'Phá Hoại' trong đêm, khiến họ bị -3 Tiến Độ.", hasActiveSkill: true, skillName: "Phán Quyết" },
-    'MAGNATE': { name: "Nhà Tài Phiệt", description: "Nhận +1 Tiến Độ mỗi đêm nếu điểm của bạn > 0, và -1 nếu điểm < 0. Thắng nếu đạt 20 Tiến Độ." },
-    'JEALOUS': { name: "Kẻ Ganh Ghét", description: "Thắng nếu vào cuối đêm, tất cả người chơi có Tiến Độ cao hơn bạn đều bị trừ điểm." },
-    'BALANCER': { name: "Người Cân Bằng", description: "Thắng nếu cuối đêm, số người có Tiến Độ dương bằng số người có Tiến Độ âm (và phải > 0)." },
-    'REBEL': { name: "Kẻ Nổi Loạn", description: "Thắng nếu bạn thắng 3 đêm với tư cách là thành viên duy nhất của phe thắng." },
-    'OUTLAW': { name: "Kẻ Ngoại Pháp", description: "Miễn nhiễm với việc bị trừ Tiến Độ từ Tiếng Vọng. Thắng ở 15 Tiến Độ." },
-    'ASSASSIN': { name: "Sát Thủ", description: "Thắng ở 15 Tiến Độ và phải ám sát thành công. Dùng kỹ năng để đoán đúng vai trò của 1 người và chia đôi Tiến Độ của họ.", hasActiveSkill: true, skillName: "Ám Sát" },
-    // VAI TRÒ MỚI ĐÃ THÊM
-    'PRIEST': { name: "Thầy Tế", description: "Mỗi đêm, dùng kỹ năng để ban phước cho 1 người. Người được ban phước sẽ không bị mất Tiến Độ trong đêm đó.", hasActiveSkill: true, skillName: "Thánh Nữ Ban Phước" },
+    'PROPHET': {
+        name: "Nhà Tiên Tri",
+        description: "Thắng nếu Vạch Trần thành công 3 lần LIÊN TIẾP VÀ điểm >= 2/3 mốc thắng. Nội tại: Vạch Trần sai chỉ bị -1 điểm. Kĩ năng: Xem hành động của 1 người.",
+        hasActiveSkill: true,
+        skillName: "Thiên Lý Nhãn"
+    },
+    'PEACEMAKER': {
+        name: "Người Gìn Giữ Hòa Bình",
+        description: "Thắng nếu có 3 đêm HÒA liên tiếp. Nội tại: Nhận +1 điểm mỗi khi HÒA. Kĩ năng: Vô hiệu hóa phiếu của 1 người.",
+        hasActiveSkill: true,
+        skillName: "Hòa Giải"
+    },
+    'GAMBLER': {
+        name: "Kẻ Đánh Cược",
+        description: "Thắng nếu đã từng đạt chính xác +7 và -7 điểm. Nội tại: Mọi điểm bị mất có 50% bị chia đôi, 50% bị nhân đôi. Kĩ năng: Nếu phe bạn chọn thắng nhận +8 điểm, thua bị -4 điểm.",
+        hasActiveSkill: true,
+        skillName: "Tất Tay"
+    },
+    'INQUISITOR': {
+        name: "Kẻ Phán Xử",
+        description: "Thắng khi đạt 15 điểm. Nội tại: Vạch Trần thành công kẻ 'Phá Hoại', nhận thêm +1 điểm. Kĩ năng: Tất cả người chọn 'Phá Hoại' bị trừ điểm bằng số người đã Phá Hoại.",
+        hasActiveSkill: true,
+        skillName: "Phán Quyết"
+    },
+    'MAGNATE': {
+        name: "Nhà Tài Phiệt",
+        description: "Thắng khi đạt mốc điểm cao nhất (20, 25, hoặc 30). Nội tại: Cuối đêm, nếu điểm > 0 nhận +1, nếu điểm < 0 bị -1. Kĩ năng: Chọn 1 người, nếu phe họ thắng, cả hai cùng nhận thêm +2 điểm.",
+        hasActiveSkill: true,
+        skillName: "Đầu Tư"
+    },
+    'BALANCER': {
+        name: "Người Cân Bằng",
+        description: "Thắng nếu tổng điểm dương = giá trị đối của tổng điểm âm. Nội tại: Nhận +1 điểm nếu số người điểm dương = số người điểm âm. Kĩ năng: Điểm của người cao nhất và thấp nhất được tính trung bình cộng.",
+        hasActiveSkill: true,
+        skillName: "Tái Phân Bố"
+    },
+    'REBEL': {
+        name: "Kẻ Nổi Loạn",
+        description: "Thắng nếu bạn thắng 3 đêm là người duy nhất của phe thắng. Nội tại: Hành động của bạn không thể bị thay đổi. Kĩ năng: Tuyên bố 1 hành động, nếu là người duy nhất làm, chọn 1 người để trừ điểm bằng chi phí kỹ năng đã trả.",
+        hasActiveSkill: true,
+        skillName: "Khiêu Khích"
+    },
+    'PRIEST': {
+        name: "Thầy Tế",
+        description: "Thắng khi đạt điểm cơ bản. Nội tại: Ban phước đúng người bị mất điểm, bạn được +1 điểm. Kĩ năng: Chọn 1 người để họ không bị mất điểm trong đêm đó.",
+        hasActiveSkill: true,
+        skillName: "Thánh Nữ Ban Phước"
+    },
+    'THIEF': {
+        name: "Kẻ Trộm",
+        description: "Thắng khi đạt 15 điểm. Nội tại: Nếu >= 2 người mất điểm, bạn nhận thêm điểm. Kĩ năng: Chọn 1 người, nếu họ được cộng điểm, bạn cắp một nửa số điểm đó.",
+        hasActiveSkill: true,
+        skillName: "Móc Túi"
+    },
+    'MIND_BREAKER': {
+        name: "Kẻ Tẩy Não",
+        description: "Thắng nếu có 5 đêm Vạch Trần thất bại. Nội tại: Mỗi lần có Vạch Trần thất bại, bạn nhận +2 điểm. Kĩ năng: Chọn 1 người, hành động của họ trong đêm đó do BẠN quyết định.",
+        hasActiveSkill: true,
+        skillName: "Điều Khiển"
+    },
+    'CULTIST': {
+        name: "Kẻ Hiến Tế",
+        description: "Thắng nếu đạt -15 điểm. Nội tại: Mỗi khi mất điểm, được giảm 1 điểm mất mát. Kĩ năng: Tự mất 2 điểm để nhận 1 trong 3 hiệu ứng ngẫu nhiên.",
+        hasActiveSkill: true,
+        skillName: "Nghi Thức Hắc Ám"
+    },
+    'DOUBLE_AGENT': {
+        name: "Kẻ Hai Mang",
+        description: "Thắng khi đạt mốc điểm cao nhất (20, 25, hoặc 30). Nội tại: Nếu bạn không thuộc phe thắng, được +1 điểm. Kĩ năng: Tất cả phiếu 'Quan Sát' trở thành phiếu cho phe đối nghịch với hành động của bạn.",
+        hasActiveSkill: true,
+        skillName: "Xuyên Tạc"
+    },
+    'ASSASSIN': {
+        name: "Sát Thủ",
+        description: "Thắng khi đạt 15 điểm. Nội tại: Ai Vạch Trần/Phối Hợp với bạn, bạn biết hành động của họ đêm sau. Kĩ năng: Được giao 1 'Mục Tiêu', Vạch Trần đúng họ sẽ chia đôi điểm của họ.",
+        hasActiveSkill: false, // Kỹ năng chính là bị động
+        skillName: "Đánh Dấu"
+    },
+    'PHANTOM': {
+        name: "Bóng Ma",
+        description: "Thắng khi Ám Quẻ thành công 5 lần. Nội tại: Phiếu của bạn không được tính, thay vào đó bạn luôn nhận +1 điểm. Kĩ năng: Ám 1 người. Nếu họ được cộng điểm, bạn cắp 1 điểm và lần ám tiếp theo miễn phí.",
+        hasActiveSkill: true,
+        skillName: "Ám Quẻ"
+    },
+    'MIMIC': {
+        name: "Kẻ Bắt Chước",
+        description: "Thắng khi đạt điểm cơ bản. Nội tại: Tự động sao chép hành động của 1 người ngẫu nhiên. Kĩ năng: Trả 2 điểm để dùng ké kỹ năng của người bạn đang bắt chước.",
+        hasActiveSkill: true,
+        skillName: "Đánh Cắp Năng Lực"
+    },
 };
 
 // --- IV. EXPORTS ---

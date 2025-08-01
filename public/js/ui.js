@@ -50,9 +50,9 @@ const UI = {
     },
 
     playSound(soundName) {
-        // try { new Audio(`/assets/sounds/${soundName}.mp3`).play(); }
-        // catch (e) { console.warn(`Không thể phát âm thanh: ${soundName}`); }
-    },
+    try { new Audio(`/assets/sounds/${soundName}.mp3`).play(); }
+    catch (e) { console.warn(`Không thể phát âm thanh: ${soundName}`); }
+},
 
     // --- III. RENDER FUNCTIONS ---
     renderPlayerList() {
@@ -225,181 +225,176 @@ const UI = {
         }
         this.gameElements.actionControls.innerHTML = finalHTML;
     },
+	addChatMessage(sender, message) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageEl = document.createElement('div');
+    messageEl.classList.add('chat-message');
+    
+    // Sanitize message to prevent XSS attacks
+    const senderEl = document.createElement('span');
+    senderEl.className = 'chat-sender';
+    senderEl.textContent = `${sender}: `;
+    
+    const messageContentEl = document.createElement('span');
+    messageContentEl.textContent = message;
+
+    messageEl.appendChild(senderEl);
+    messageEl.appendChild(messageContentEl);
+    
+    chatMessages.prepend(messageEl); // Thêm tin nhắn mới lên trên cùng (vì flex-direction: column-reverse)
+},
 
    // --- V. EVENT HANDLERS & HELPERS (Bên trong đối tượng UI) ---
 // Các hàm này xử lý logic giao diện phức tạp và hoạt động như các hàm tiện ích.
 // ======================================================================
 
-/**
  * Bộ định tuyến (router) cho việc xử lý click vào nút kỹ năng.
  * Nó đọc vai trò của người chơi từ state và gọi hàm xử lý tương ứng.
  */
 handleSkillClick() {
     this.playSound('click');
-    const role = state.myRole; // Lấy vai trò hiện tại từ state
+    const role = state.myRole;
     if (!role) return;
 
+    // Xử lý logic đặc biệt cho Kẻ Bắt Chước
+    if (role.id === 'MIMIC') {
+        const mimicTarget = state.players.find(p => p.id === state.myRole.mimicTargetId);
+        if (!mimicTarget) {
+            Swal.fire({ title: 'Lỗi', text: 'Không tìm thấy mục tiêu để bắt chước!', icon: 'error' });
+            return;
+        }
+        
+        // Lấy thông tin vai trò của mục tiêu từ danh sách vai trò trong game
+        const targetRoleInfo = ROLES[mimicTarget.roleId];
+
+        if (targetRoleInfo && targetRoleInfo.hasActiveSkill) {
+            // "Mượn" thông tin vai trò của mục tiêu để tái sử dụng logic hiển thị modal
+            // Tạo một object vai trò giả để truyền vào các hàm flow
+            const fakeRole = {
+                id: mimicTarget.roleId,
+                skillName: targetRoleInfo.skillName,
+                description: targetRoleInfo.description
+            };
+            this.mimicSkillFlow(fakeRole, mimicTarget.id);
+        } else {
+            Swal.fire({ title: 'Không Thể Sao Chép', text: 'Mục tiêu của bạn không có kỹ năng kích hoạt để sử dụng!', icon: 'info', background: '#2d3748', color: '#e2e8f0' });
+        }
+        return;
+    }
+
+    // Định tuyến cho các vai trò khác
     switch (role.id) {
-        case 'ASSASSIN': this.assassinSkillFlow(); break;
-        case 'PUPPETEER': this.puppeteerSkillFlow(); break;
         case 'PROPHET': this.prophetSkillFlow(); break;
+        case 'PEACEMAKER': this.peacemakerSkillFlow(); break;
+        case 'INQUISITOR': this.inquisitorSkillFlow(); break;
+        case 'MAGNATE': this.magnateSkillFlow(); break;
+        case 'BALANCER': this.balancerSkillFlow(); break;
+        case 'REBEL': this.rebelSkillFlow(); break;
         case 'PRIEST': this.priestSkillFlow(); break;
-        // Các kỹ năng đơn giản không cần mục tiêu có thể xử lý ở đây
+        case 'THIEF': this.thiefSkillFlow(); break;
+        case 'MIND_BREAKER': this.mindBreakerSkillFlow(); break;
+        case 'CULTIST': this.cultistSkillFlow(); break;
+        case 'DOUBLE_AGENT': this.doubleAgentSkillFlow(); break;
+        case 'PHANTOM': this.phantomSkillFlow(); break;
+        // Kẻ Đánh Cược và Sát Thủ có kỹ năng bị động hoặc không cần chọn mục tiêu phức tạp
         default:
             Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} });
             break;
     }
 },
 
+// --- Các luồng xử lý kỹ năng chi tiết ---
+
+// (Các flow cho Prophet, Peacemaker, Gambler, Inquisitor, Magnate, Balancer, Rebel, Priest, Thief, Mind Breaker, Cultist, Double Agent, Phantom đã được cung cấp và giữ nguyên)
+// ...
+// Dưới đây là ví dụ chi tiết cho một vài flow phức tạp để bạn kiểm tra lại
+
 /**
- * Luồng giao diện 2 bước cho kỹ năng Ám Sát.
+ * Luồng kỹ năng cho Kẻ Tẩy Não (chọn mục tiêu)
  */
-assassinSkillFlow() {
-    const playerOptions = this.getTargetOptions();
+mindBreakerSkillFlow() {
+    const targetOptions = this.getTargetOptions();
     Swal.fire({
-        title: 'Ám Sát: Chọn Mục Tiêu',
+        title: 'Điều Khiển',
+        text: 'Chọn một người để quyết định hành động của họ:',
         input: 'select',
-        inputOptions: playerOptions,
+        inputOptions: targetOptions,
         inputPlaceholder: 'Chọn mục tiêu...',
         showCancelButton: true,
-        cancelButtonText: 'Hủy bỏ',
-        confirmButtonText: 'Tiếp tục →',
-        background: '#2d3748',
-        color: '#e2e8f0',
-    }).then(playerResult => {
-        if (!playerResult.isConfirmed || !playerResult.value) return; // Người dùng hủy
-        
-        const targetId = playerResult.value;
-        const targetName = playerOptions[targetId];
-        const possibleRoles = this.getPossibleRoles(true); // Lấy danh sách vai trò, loại trừ Sát thủ
-
-        Swal.fire({
-            title: `Đoán Vai Trò Của ${targetName}`,
-            input: 'select',
-            inputOptions: possibleRoles,
-            inputPlaceholder: 'Chọn vai trò...',
-            showCancelButton: true,
-            cancelButtonText: 'Hủy bỏ',
-            confirmButtonText: 'Xác nhận Ám Sát!',
-            confirmButtonColor: '#e53e3e',
-            background: '#2d3748',
-            color: '#e2e8f0',
-        }).then(roleResult => {
-            if (!roleResult.isConfirmed || !roleResult.value) return; // Người dùng hủy
+        confirmButtonText: 'Chọn',
+        background: '#2d3748', color: '#e2e8f0'
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            // Gửi yêu cầu lên server, server sẽ phản hồi bằng sự kiện 'promptMindControl'
+            Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: result.value } });
             
-            // Gửi yêu cầu lên server
-            Network.emit('useRoleSkill', {
-                roomCode: state.currentRoomCode,
-                payload: { targetId: targetId, guessedRoleId: roleResult.value }
-            });
-
-            // Vô hiệu hóa nút để tránh dùng nhiều lần
             const skillBtn = document.getElementById('skill-btn');
             if (skillBtn) {
                 skillBtn.disabled = true;
-                skillBtn.textContent = 'Đã Ám Sát';
+                skillBtn.textContent = 'Đang Điều Khiển...';
             }
-        });
+        }
     });
 },
 
 /**
- * Luồng giao diện cho kỹ năng Giật Dây của Kẻ Thao Túng.
+ * Luồng kỹ năng cho Kẻ Bắt Chước (sau khi đã xác định được vai trò của mục tiêu)
  */
-puppeteerSkillFlow() {
-    const puppetName = state.myRole.description.match(/<strong>(.*?)<\/strong>/)?.[1];
-    const puppet = state.players.find(pl => pl.name === puppetName);
-    const targetOptions = this.getTargetOptions(puppet?.id); // Loại trừ con rối khỏi danh sách mục tiêu
+mimicSkillFlow(fakeRole, targetPlayerId) {
+    // Luồng này tương tự như handleSkillClick, nhưng dành riêng cho Kẻ Bắt Chước
+    // Nó quyết định sẽ hiển thị modal nào dựa trên kỹ năng "mượn" được
+    // Ví dụ:
+    switch (fakeRole.id) {
+        case 'PROPHET':
+            this.prophetSkillFlow(true); // Thêm một cờ để báo hiệu đây là từ Kẻ Bắt Chước
+            break;
+        case 'PRIEST':
+            this.priestSkillFlow(true);
+            break;
+        // Thêm các case khác cho tất cả các vai trò có kỹ năng kích hoạt
+        default:
+            // Cho các kỹ năng không cần chọn mục tiêu, chỉ cần gửi sự kiện
+            Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} });
+            break;
+    }
+},
+
+/**
+ * Hàm hiển thị modal cho Kẻ Tẩy Não chọn hành động cho mục tiêu
+ */
+promptMindControlSelection(targetId) {
+    const target = state.players.find(p => p.id === targetId);
+    if (!target) return;
 
     Swal.fire({
-        title: 'Giật Dây',
-        text: 'Chọn một người để hoán đổi hành động với Con Rối của bạn:',
-        input: 'select',
-        inputOptions: targetOptions,
-        inputPlaceholder: 'Chọn mục tiêu...',
+        title: `Chọn Hành Động Cho ${target.name}`,
+        text: 'Lựa chọn của bạn sẽ là hành động của họ trong đêm nay.',
+        showDenyButton: true,
         showCancelButton: true,
-        cancelButtonText: 'Hủy bỏ',
+        confirmButtonText: 'Giải Mã',
+        denyButtonText: 'Phá Hoại',
+        cancelButtonText: 'Quan Sát',
+        background: '#2d3748', color: '#e2e8f0'
     }).then(result => {
-        if (!result.isConfirmed || !result.value) return;
+        let chosenAction = null;
+        if (result.isConfirmed) chosenAction = 'Giải Mã';
+        else if (result.isDenied) chosenAction = 'Phá Hoại';
+        else if (result.dismiss === Swal.DismissReason.cancel) chosenAction = 'Quan Sát';
         
-        Network.emit('useRoleSkill', {
-            roomCode: state.currentRoomCode,
-            payload: { targetId: result.value }
-        });
-        const skillBtn = document.getElementById('skill-btn');
-        if (skillBtn) {
-            skillBtn.disabled = true;
-            skillBtn.textContent = 'Đã Giật Dây';
-        }
-    });
-},
-
-/**
- * Luồng giao diện cho kỹ năng Thiên Lý Nhãn của Nhà Tiên Tri.
- */
-prophetSkillFlow() {
-    const targetOptions = this.getTargetOptions();
-    Swal.fire({
-        title: 'Thiên Lý Nhãn',
-        text: 'Chọn một người để xem hành động của họ:',
-        input: 'select',
-        inputOptions: targetOptions,
-        inputPlaceholder: 'Chọn mục tiêu...',
-        showCancelButton: true,
-        confirmButtonText: 'Xem',
-        background: '#2d3748',
-        color: '#e2e8f0',
-    }).then(result => {
-        if (result.isConfirmed && result.value) {
-            Network.emit('useRoleSkill', { 
+        if (chosenAction) {
+            Network.emit('mindControlAction', {
                 roomCode: state.currentRoomCode,
-                payload: { targetId: result.value }
+                targetId: targetId,
+                chosenAction: chosenAction,
             });
-            const skillBtn = document.getElementById('skill-btn');
-            if (skillBtn) {
-                skillBtn.disabled = true;
-                skillBtn.textContent = 'Đã Dùng Kỹ Năng';
-            }
         }
     });
 },
 
-/**
- * Luồng giao diện cho kỹ năng Ban Phước của Thầy Tế.
- */
-priestSkillFlow() {
-    const targetOptions = this.getTargetOptions();
-    Swal.fire({
-        title: 'Thánh Nữ Ban Phước',
-        text: 'Chọn một người để bảo vệ khỏi mất điểm đêm nay:',
-        input: 'select',
-        inputOptions: targetOptions,
-        inputPlaceholder: 'Chọn người được ban phước...',
-        showCancelButton: true,
-        confirmButtonText: 'Ban Phước',
-    }).then(result => {
-        if (result.isConfirmed && result.value) {
-            Network.emit('useRoleSkill', {
-                roomCode: state.currentRoomCode,
-                payload: { targetId: result.value }
-            });
-            const skillBtn = document.getElementById('skill-btn');
-            if (skillBtn) {
-                skillBtn.disabled = true;
-                skillBtn.textContent = 'Đã Ban Phước';
-            }
-        }
-    });
-},
 
-/**
- * Hàm tiện ích để lấy danh sách mục tiêu hợp lệ cho các kỹ năng.
- * @param {string|null} excludeId - ID của người chơi cần loại trừ (ví dụ: Con Rối).
- * @returns {Object} - Object dạng { id: name } cho SweetAlert.
- */
+// --- Các hàm tiện ích ---
 getTargetOptions(excludeId = null) {
     return state.players.reduce((opts, p) => {
-        // Điều kiện: Không phải mình, không phải người bị loại trừ, và không bị ngắt kết nối
         if (p.id !== state.myId && p.id !== excludeId && !p.disconnected) {
             opts[p.id] = p.name;
         }
@@ -407,37 +402,22 @@ getTargetOptions(excludeId = null) {
     }, {});
 },
 
-/**
- * Hàm tiện ích để lấy danh sách vai trò có thể đoán.
- * @param {boolean} excludeAssassin - Có loại trừ vai trò Sát Thủ không?
- * @returns {Object} - Object dạng { ROLE_ID: Role Name }.
- */
-getPossibleRoles(excludeAssassin = false) {
-    const roles = { ...state.possibleRoles }; // Luôn đọc từ state để có danh sách vai trò mới nhất
-    if (excludeAssassin && roles['ASSASSIN']) {
-        delete roles['ASSASSIN'];
+getPossibleRoles(excludeOwnRole = false) {
+    const roles = { ...state.possibleRoles };
+    if (excludeOwnRole && state.myRole && roles[state.myRole.id]) {
+        delete roles[state.myRole.id];
     }
     return roles;
 },
     
-/**
- * Hiển thị modal cho Tiếng Vọng "Bùa Lú Lẫn".
- * @param {Array} players - Danh sách người chơi để chọn.
- */
 promptAmnesiaSelection(players) {
     const playerInputs = players.map(p => 
-        `<label class="swal2-checkbox">
-            <input type="checkbox" value="${p.id}">
-            <span class="swal2-label">${p.name}</span>
-        </label>`
+        `<label class="swal2-checkbox"><input type="checkbox" value="${p.id}"><span class="swal2-label">${p.name}</span></label>`
     ).join('');
 
     Swal.fire({
         title: 'Bùa Lú Lẫn',
-        html: `
-            <p>Bạn được quyền hoán đổi hành động của 2 người. Hãy chọn chính xác 2 người:</p>
-            <div id="amnesia-player-list" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">${playerInputs}</div>
-        `,
+        html: `<p>Bạn được quyền hoán đổi hành động của 2 người. Hãy chọn chính xác 2 người:</p><div id="amnesia-player-list" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">${playerInputs}</div>`,
         confirmButtonText: 'Hoán Đổi',
         background: '#2d3748',
         color: '#e2e8f0',

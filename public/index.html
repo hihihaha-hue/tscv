@@ -20,19 +20,20 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <!-- Container chính bao bọc toàn bộ nội dung, giúp căn giữa và tạo hiệu ứng nền -->
-    <div class="container">
+    <!-- NÚT SÁCH LUẬT -->
+    <button id="rulebook-btn">?</button>
 
-        <!-- ==================================================================== -->
-        <!-- ======================= MÀN HÌNH CHÍNH (HOME) ====================== -->
-        <!-- ==================================================================== -->
-        <div id="home-screen">
-            <h1>Thợ Săn Cổ Vật</h1>
             <div class="menu">
                 <!-- Chú ý: Việc không dùng <label> ở đây là một lựa chọn thiết kế.
                      Để tăng tính truy cập, bạn có thể thêm <label for="player-name-input">Tên của bạn:</label> -->
                 <input type="text" id="player-name-input" placeholder="NHẬP TÊN THỢ SĂN..." maxlength="15">
                 <button id="create-room-btn">Mở Cuộc Thám Hiểm Mới</button>
+    <div class="container">
+        <!-- ==================================================================== -->
+        <!-- ======================= MÀN HÌNH CHÍNH (HOME) ====================== -->
+        <!-- ==================================================================== -->
+        <div id="home-screen">
+            <h1>Thợ Săn Cổ Vật</h1>
                 
                 <hr>
                 
@@ -66,6 +67,7 @@
         <!-- ==================================================================== -->
         <!-- Ban đầu được ẩn, JavaScript sẽ hiển thị nó khi game bắt đầu -->
         <div id="game-screen" style="display: none;">
+		
 
             <!-- KHU VỰC HIỂN THỊ VAI TRÒ BÍ MẬT & KỸ NĂNG -->
             <!-- Được ẩn ban đầu, JS sẽ điền nội dung và hiển thị khi nhận được vai trò -->
@@ -102,6 +104,14 @@
             <div id="message-area">
                 <p class="info">Đang chờ Trưởng Đoàn bắt đầu cuộc thám hiểm...</p>
             </div>
+			<!-- GIAO DIỆN CHAT MỚI -->
+        <div id="chat-container">
+            <div id="chat-messages">
+                <!-- Các tin nhắn sẽ hiện ở đây -->
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
+                <button id="send-chat-btn">Gửi</button>
         </div>
     </div>
     

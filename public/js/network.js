@@ -1,32 +1,15 @@
-// public/js/network.js
-// ======================================================================
-// MODULE MẠNG (NETWORK - "The Nervous System")
-// Nhiệm-vụ: Xử lý mọi giao tiếp với Socket.IO server.
-// Lắng nghe sự kiện (socket.on) và gửi sự kiện (socket.emit).
-// ======================================================================
+
 
 const Network = {
     socket: null,
-    state: null, // Sẽ lưu trữ tham chiếu đến state chung từ client.js
+    state: null,
 
-    /**
-     * Khởi tạo kết nối và thiết lập tất cả các trình lắng nghe sự kiện.
-     * @param {Object} clientState - Object trạng thái chung của client.
-     */
     initialize(clientState) {
         this.state = clientState;
         this.socket = io();
-
-        // Gói tất cả các trình lắng nghe sự kiện vào một hàm cho gọn.
         this.setupEventListeners();
     },
 
-    /**
-     * Hàm bao bọc (wrapper) để gửi sự kiện lên server.
-     * Đây là hàm DUY NHẤT mà các module khác nên dùng để gửi dữ liệu.
-     * @param {string} eventName - Tên sự kiện.
-     * @param {Object} data - Dữ liệu cần gửi.
-     */
     emit(eventName, data) {
         if (this.socket) {
             this.socket.emit(eventName, data);
@@ -35,11 +18,10 @@ const Network = {
         }
     },
 
-    /**
-     * Nơi tập trung tất cả các trình lắng nghe sự kiện từ server.
-     */
     setupEventListeners() {
-        const state = this.state; // Tạo một tham chiếu ngắn gọn để dùng bên trong
+        const state = this.state;
+		
+		
 
         // --- A. Sự kiện Kết nối & Phòng chờ ---
         this.socket.on('connect', () => {
@@ -72,14 +54,12 @@ const Network = {
         });
 
         // --- B. Sự kiện Luồng Game Chính ---
-        this.socket.on('gameStarted', (data) => {
+     this.socket.on('gameStarted', (data) => {
             UI.showScreen('game');
             UI.gameElements.messageArea.innerHTML = '';
-            
             if (data && data.rolesInGame) {
                 state.possibleRoles = data.rolesInGame.reduce((obj, role) => {
-                    obj[role.id] = role.name;
-                    return obj;
+                    obj[role.id] = role.name; return obj;
                 }, {});
             }
         });
@@ -91,8 +71,8 @@ const Network = {
 
         this.socket.on('newRound', data => {
             state.gamePhase = 'choice';
-            state.players = data.players; // Cập nhật state với dữ liệu người chơi mới nhất
-            UI.renderPlayerCards(); // Vẽ lại thẻ bài cho vòng mới
+            state.players = data.players;
+            UI.renderPlayerCards();
             UI.updateNewRoundUI(data);
         });
 
@@ -166,10 +146,13 @@ const Network = {
             UI.logMessage('error', `Thợ săn ${data.newName} đã mất tích trong đền thờ.`);
             UI.updatePlayerCard(data.playerId, { disconnected: true, newName: data.newName });
         });
+		this.socket.on('newMessage', (data) => {
+        UI.playSound('new-message');
+        UI.addChatMessage(data.senderName, data.message);
+    });
 
         // --- D. Sự kiện Kỹ năng & Đặc biệt ---
-        this.socket.on('logMessage', data => UI.logMessage(data.type, data.message));
-
+       this.socket.on('logMessage', data => UI.logMessage(data.type, data.message));
         this.socket.on('privateInfo', data => {
             Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' });
         });
@@ -177,5 +160,11 @@ const Network = {
         this.socket.on('promptAmnesiaAction', (data) => {
             UI.promptAmnesiaSelection(data.players);
         });
+
+        // SỰ KIỆN MỚI CHO KẺ TẨY NÃO
+        this.socket.on('promptMindControl', (data) => {
+            UI.promptMindControlSelection(data.targetId);
+        });
     }
 };
+ 
