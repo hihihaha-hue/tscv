@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thợ Săn Cổ Vật - Multiplayer</title>
+    <!-- [NÂNG CẤP] Thêm Google Fonts để có phông chữ đẹp -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- ======================= MÀN HÌNH CHÍNH ======================= -->
+        <div id="home-screen">
+            <h1>Thợ Săn Cổ Vật</h1>
+            <div class="menu">
+                <input type="text" id="player-name-input" placeholder="NHẬP TÊN THỢ SĂN..." maxlength="15">
+                <button id="create-room-btn">Mở Cuộc Thám Hiểm</button>
+                <hr>
+                <input type="text" id="room-code-input" placeholder="NHẬP MÃ ĐOÀN..." maxlength="4">
+                <button id="join-room-btn">Tham Gia Đoàn</button>
+            </div>
+        </div>
+
+        <!-- ======================= MÀN HÌNH PHÒNG CHỜ ======================= -->
+        <div id="room-screen" style="display: none;">
+            <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
+            <h3>Các Thợ Săn Trong Đoàn:</h3>
+            <ul id="player-list"></ul>
+            <div id="host-controls" class="controls-wrapper" style="display: none;">
+                <button id="add-bot-btn">Thêm Thợ Săn AI</button>
+                <button id="start-game-btn" disabled>Bắt Đầu Thám Hiểm</button>
+            </div>
+        </div>
+
+        <!-- ======================= KHU VỰC CHƠI GAME ======================= -->
+        <div id="game-screen" style="display: none;">
+            <!-- [NÂNG CẤP] Vùng hiển thị Vai Trò Bí Mật -->
+             <div id="role-display" style="display: none;">
+        <!-- Javascript sẽ điền nội dung vai trò vào đây -->
+    </div>
+
+    <p class="round-indicator">Đêm Thứ: <span id="current-round">1</span></p>
+    
+            
+            <div id="decree-display" style="display: none;">
+                <!-- Javascript sẽ điền nội dung Tiếng Vọng vào đây -->
+            </div>
+
+            <div id="players-container"></div>
+
+            <div id="round-phase">
+                 <h2 id="phase-title"></h2>
+                 <div id="action-controls">
+                    <!-- Javascript sẽ điền các nút hành động vào đây -->
+                 </div>
+            </div>
+
+            <div id="message-area">
+                <p class="info">Cuộc thám hiểm sắp bắt đầu...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- [NÂNG CẤP] Sử dụng file socket.io client tự host để đảm bảo tương thích -->
+        <!-- THAY THẾ BẰNG 2 DÒNG NÀY -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/client.js"></script>
+</body>
+</html>
