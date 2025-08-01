@@ -19,7 +19,6 @@ const io = new Server(server, {
 
 // --- 2. Cấu hình Express ---
 app.use(express.static(path.join(__dirname, 'public')));
-// Dòng này để server có thể tìm thấy các file trong thư mục /assets
 app.use('/assets', express.static(path.join(__dirname, 'public', 'assets')));
 
 app.get('/', (req, res) => {

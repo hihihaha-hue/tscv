@@ -7,7 +7,7 @@
 
 // Khai báo biến state ở phạm vi toàn cục của file để các hàm helper có thể truy cập
 // Biến này sẽ được gán giá trị thực trong file client.js
-let state; .
+llet state;
 
 const UI = {
     // --- I. DOM ELEMENTS ---
@@ -15,20 +15,20 @@ const UI = {
         home: document.getElementById('home-screen'),
         room: document.getElementById('room-screen'),
         game: document.getElementById('game-screen')
-    },
+    }, 
     homeElements: {
         createRoomBtn: document.getElementById('create-room-btn'),
         joinRoomBtn: document.getElementById('join-room-btn'),
         roomCodeInput: document.getElementById('room-code-input'),
         nameInput: document.getElementById('player-name-input')
-    },
+    }, 
     roomElements: {
         roomCodeDisplay: document.getElementById('room-code-display'),
         playerList: document.getElementById('player-list'),
         hostControls: document.getElementById('host-controls'),
         addBotBtn: document.getElementById('add-bot-btn'),
         startGameBtn: document.getElementById('start-game-btn')
-    },
+    }, 
     gameElements: {
         roundIndicator: document.getElementById('current-round'),
         decreeDisplay: document.getElementById('decree-display'),
@@ -37,12 +37,9 @@ const UI = {
         actionControls: document.getElementById('action-controls'),
         messageArea: document.getElementById('message-area'),
         roleDisplay: document.getElementById('role-display')
-    },
+    }, 
 
-    /**
-     * Hàm khởi tạo, nhận trạng thái từ client.js
-     * @param {Object} clientState 
-     */
+    // Hàm initialize bắt đầu ở đây
     initialize(clientState) {
         state = clientState;
     },
