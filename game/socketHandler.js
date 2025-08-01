@@ -1,8 +1,4 @@
-// game/socketHandler.js
-// ======================================================================
-// SOCKET EVENT HANDLER ("The Nervous System") - Phiên bản Gameplay Hoàn Chỉnh
-// Nhiệm vụ: Lắng nghe các sự kiện từ client và gọi các hàm logic tương ứng.
-// ======================================================================
+
 
 const gameLogic = require('./logic.js');
 const { ROLES } = require('./config.js');
@@ -14,18 +10,7 @@ const { ROLES } = require('./config.js');
  */
 function initialize(io, rooms) {
     io.on('connection', (socket) => {
-          
-	     socket.on('sendMessage', (data) => {
-        const room = rooms[data.roomCode];
-        const player = room?.players.find(p => p.id === socket.id);
-        if (room && player) {
-            // Phát lại tin nhắn cho tất cả mọi người trong phòng
-            io.to(data.roomCode).emit('newMessage', {
-                senderName: player.name,
-                message: data.message.substring(0, 200) // Giới hạn độ dài tin nhắn
-            });
-        }
-    });
+
         // --- HÀM NỘI BỘ (HELPER) ---
         function handleJoinRoom(code, name) {
             const room = rooms[code];
@@ -89,11 +74,9 @@ function initialize(io, rooms) {
             if (room && socket.id === room.hostId && room.players.length >= 2) {
                 room.gameState = gameLogic.createGameState(room.players);
                 
-                // Gửi vai trò và thông tin đặc biệt cho từng người chơi
                 room.gameState.players.forEach(p => {
                     if (!p.isBot) {
                         const roleData = { ...ROLES[p.roleId], id: p.roleId };
-                        // Gửi thông tin riêng cho Sát Thủ
                         if (p.roleId === 'ASSASSIN' && p.bountyTargetId) {
                             const target = room.gameState.players.find(t => t.id === p.bountyTargetId);
                             if (target) {
@@ -114,7 +97,6 @@ function initialize(io, rooms) {
         socket.on('playAgain', (roomCode) => {
              const room = rooms[roomCode];
             if (room && socket.id === room.hostId && room.gameState?.phase === 'gameover') {
-                 // Logic tương tự startGame
                  room.gameState = gameLogic.createGameState(room.players);
                  room.gameState.players.forEach(p => {
                      if (!p.isBot) {
@@ -135,6 +117,16 @@ function initialize(io, rooms) {
         socket.on('playerChoice', data => gameLogic.handlePlayerChoice(data.roomCode, socket.id, data.choice, rooms, io));
         socket.on('requestChaosAction', data => gameLogic.handleChaosAction(data.roomCode, socket.id, data.targetId, data.actionType, data.guess, rooms, io));
         socket.on('useRoleSkill', data => gameLogic.handleUseSkill(socket, data.roomCode, data.payload, rooms, io));
+        socket.on('sendMessage', (data) => {
+            const room = rooms[data.roomCode];
+            const player = room?.players.find(p => p.id === socket.id);
+            if (room && player) {
+                io.to(data.roomCode).emit('newMessage', {
+                    senderName: player.name,
+                    message: data.message.substring(0, 200)
+                });
+            }
+        });
 
         // 4. Các sự kiện tương tác đặc biệt
         socket.on('amnesiaAction', data => {
@@ -209,7 +201,7 @@ function initialize(io, rooms) {
             }
         });
 
-    }); // Kết thúc io.on('connection')
-} // Kết thúc hàm initialize
+    });
+}
 
 module.exports = { initialize };
