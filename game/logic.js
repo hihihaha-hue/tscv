@@ -655,9 +655,15 @@ function handleBotAmnesia(roomCode, botId, rooms, io) {
 
 // --- VI. EXPORTS ---
 module.exports = {
+    // Khởi tạo và cài đặt
     createGameState,
+    // Luồng chơi
     startNewRound,
+    // Hành động người chơi & Bot
     handlePlayerChoice,
     handleChaosAction,
-    handleUseSkill
+    handleUseSkill,
+    // Tiện ích và kiểm tra
+    checkRoleVictory,
+    handleBotAmnesia
 };
