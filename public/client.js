@@ -22,10 +22,8 @@ const state = {
 };
 
 // --- II. KHỞI TẠO CÁC MODULE ---
-// "Đưa bộ não vào các bộ phận khác"
-// Cung cấp (inject) object `state` cho UI và Network để chúng có thể truy cập và sửa đổi.
-// Thứ tự khởi tạo ở đây không quá quan trọng, nhưng logic là UI cần có trước để Network có thể gọi.
-UI.initialize(state);
+// Khởi chạy module mạng và truyền 'state' vào cho nó.
+// Module UI không cần initialize vì nó chỉ là một object chứa các hàm.
 Network.initialize(state);
 
 // --- III. GÁN CÁC SỰ KIỆN TĨNH BAN ĐẦU ---
@@ -50,10 +48,9 @@ UI.homeElements.joinRoomBtn.addEventListener('click', () => {
     }
 });
 
-// Sự kiện cho các nút ở phòng chờ (Room Screen) - Chỉ Host mới thấy và tương tác được
+// Sự kiện cho các nút ở phòng chờ (Room Screen)
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
-
     Network.emit('addBot', state.currentRoomCode);
 });
 
@@ -63,5 +60,4 @@ UI.roomElements.startGameBtn.addEventListener('click', () => {
 });
 
 // Ghi log ra console để xác nhận client đã được khởi tạo thành công
-// Rất hữu ích cho việc debug.
 console.log("Client application initialized successfully. Waiting for connection...");
