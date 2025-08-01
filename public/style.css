@@ -1,31 +1,38 @@
 /*======================================================================
-// THỢ SĂN CỔ VẬT - STYLESHEET (PHIÊN BẢN CHỦ ĐỀ)
+// THỢ SĂN CỔ VẬT - STYLESHEET (PHIÊN BẢN CHỦ ĐỀ & PHẢN HỒI)
 //======================================================================*/
 
-/* --- I. Cài đặt chung & Theme --- */
+/* --- I. Cài Đặt Chung & Biến Màu (Theme) --- */
 :root {
-    --bg-dark: #1a202c; /* Tím than đậm */
-    --bg-medium: #2d3748; /* Xám đậm */
-    --bg-light: #4a5568; /* Xám sáng */
-    --text-light: #e2e8f0;
-    --text-medium: #a0aec0;
-    --primary-gold: #f6e05e; /* Vàng cổ vật */
-    --accent-blue: #63b3ed; /* Xanh băng giá */
-    --accent-red: #e53e3e; /* Đỏ máu */
-    --success-green: #48bb78;
-    --neutral-gray: #718096;
+    --bg-dark: #1a202c;          /* Tím than đậm, nền chính */
+    --bg-medium: #2d3748;        /* Xám đậm, nền cho các card */
+    --bg-light: #4a5568;         /* Xám sáng, viền hoặc nền khi hover */
+    --text-light: #e2e8f0;       /* Màu chữ chính */
+    --text-medium: #a0aec0;      /* Màu chữ phụ, mô tả */
+    
+    --primary-gold: #f6e05e;     /* Vàng cổ vật, màu nhấn chính */
+    --accent-blue: #63b3ed;      /* Xanh băng giá, cho phe Giải Mã */
+    --accent-red: #e53e3e;       /* Đỏ máu, cho phe Phá Hoại */
+    --success-green: #48bb78;    /* Xanh lá cho thành công, tăng điểm */
+    --neutral-gray: #718096;     /* Xám trung tính cho hành động Quan Sát */
+
+    --font-main: "Playfair Display", serif; /* Phông chữ chủ đề */
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 
 body {
     background-color: var(--bg-dark);
-    background-image: url('/assets/images/background.jpg'); /* Đặt link ảnh nền của bạn ở đây */
+    /* Thay 'background.jpg' bằng link ảnh nền của bạn. Ảnh nền tối và có họa tiết sẽ đẹp hơn. */
+    background-image: url('/assets/images/background.jpg'); 
     background-size: cover;
     background-position: center;
-    background-attachment: fixed;
+    background-attachment: fixed; /* Giữ ảnh nền cố định khi cuộn trang */
+
     color: var(--text-light);
-    font-family: "Playfair Display", serif; /* Phông chữ mới */
+    font-family: var(--font-main);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -35,79 +42,127 @@ body {
 }
 
 .container {
-    background-color: rgba(45, 55, 72, 0.9); /* Hiệu ứng kính mờ */
+    background-color: rgba(45, 55, 72, 0.92); /* Hiệu ứng kính mờ, độ mờ cao hơn một chút */
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* Hỗ trợ Safari */
     padding: 20px 40px;
     border-radius: 12px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     width: 95%;
     max-width: 900px;
     text-align: center;
     border: 1px solid var(--bg-light);
+    transition: all 0.5s ease;
 }
+
 
 /* --- II. Typography & Các Thành Phần Chung --- */
-h1 { color: var(--primary-gold); font-size: 2.5em; text-shadow: 0 0 10px rgba(246, 224, 94, 0.5); }
-h2 { color: var(--text-light); border-bottom: 1px solid var(--bg-light); padding-bottom: 10px; }
-h3 { color: var(--text-light); margin-top: 0; }
-hr { border: none; border-top: 1px solid var(--bg-light); margin: 20px 0; }
+h1 {
+    color: var(--primary-gold);
+    font-size: 2.8em;
+    text-shadow: 0 0 15px rgba(246, 224, 94, 0.6);
+    margin-bottom: 25px;
+}
+h2 {
+    color: var(--text-light);
+    border-bottom: 1px solid var(--bg-light);
+    padding-bottom: 10px;
+    margin-top: 0;
+    font-size: 1.8em;
+}
+h3 {
+    color: var(--text-light);
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+hr {
+    border: none;
+    border-top: 1px solid var(--bg-light);
+    margin: 25px 0;
+}
 
 button {
-    cursor: pointer; transition: all 0.2s; border: 1px solid var(--text-medium); border-radius: 6px;
-    font-size: 1.1em; padding: 12px 20px; font-weight: bold; font-family: inherit;
-    background-color: var(--bg-light); color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+    border: 1px solid var(--text-medium);
+    border-radius: 6px;
+    font-size: 1.1em;
+    padding: 12px 20px;
+    font-weight: bold;
+    font-family: inherit;
+    background-color: var(--bg-light);
+    color: var(--text-light);
 }
-button:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--primary-gold); }
-button:disabled { background-color: #2d3748 !important; color: #718096 !important; cursor: not-allowed; }
+button:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    border-color: var(--primary-gold);
+}
+button:disabled {
+    background-color: #2d3748 !important;
+    color: #718096 !important;
+    cursor: not-allowed;
+    filter: grayscale(50%);
+    transform: none;
+    box-shadow: none;
+}
+
 input[type="text"] {
-    width: 100%; margin: 15px 0; padding: 12px; font-size: 1.2em; font-weight: bold;
-    background-color: var(--bg-dark); color: var(--text-light); border: 1px solid var(--bg-light);
-    border-radius: 6px; text-align: center; font-family: inherit;
+    width: 100%;
+    margin: 15px 0;
+    padding: 12px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    border: 1px solid var(--bg-light);
+    border-radius: 6px;
+    text-align: center;
+    font-family: inherit;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 10px rgba(246, 224, 94, 0.3);
 }
 
-/* --- III. Phòng Chờ & Game --- */
-#player-list { list-style-type: none; padding: 0; margin: 20px auto; max-width: 500px; }
+/* --- III. Cấu Trúc Giao Diện (Layout & Screens) --- */
+
+/* Phòng chờ */
+#player-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 20px auto;
+    max-width: 500px;
+}
 #player-list li {
-    background-color: rgba(74, 85, 104, 0.5); margin: 8px 0; padding: 12px 15px;
-    border-radius: 6px; border-left: 5px solid var(--primary-gold); display: flex;
-    justify-content: space-between; align-items: center;
+    background-color: rgba(74, 85, 104, 0.6);
+    margin: 8px 0;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border-left: 5px solid var(--primary-gold);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
 }
-#player-list li > div { display: flex; align-items: center; }
-.host-tag { color: var(--primary-gold); }
-.disconnected-tag { color: var(--accent-red); font-style: italic;}
-.kick-btn { background-color: var(--accent-red); color: white; padding: 5px 10px; font-size: 0.8em; margin-left: 15px; }
+.kick-btn {
+    background-color: var(--accent-red);
+    color: white;
+    padding: 5px 10px;
+    font-size: 0.8em;
+    margin-left: 15px;
+}
 
-#role-display { background: rgba(0,0,0,0.3); border: 1px solid var(--primary-gold); border-radius: 8px; padding: 10px 15px; margin: 0 auto 20px auto; max-width: 400px; text-align: center; }
-#role-display h4 { margin: 0 0 5px 0; color: var(--text-medium); font-size: 0.9em; }
-#role-display strong { color: var(--accent-blue); font-size: 1.2em; }
-#role-display p { margin: 5px 0 0 0; font-style: italic; font-size: 0.9em; }
-
-#decree-display { background: rgba(0,0,0,0.3); border: 1px solid var(--primary-gold); border-radius: 8px; padding: 15px; margin: 20px auto; max-width: 80%;}
-.decree-title { font-weight: bold; color: var(--primary-gold); }
-
-#players-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 30px 0; }
-.player-card { background-color: var(--bg-medium); padding: 15px; border-radius: 8px; width: 180px; border-top: 5px solid var(--neutral-gray); transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
-.player-score { font-size: 2em; font-weight: 700; color: var(--primary-gold); }
-.chosen-action-wrapper { min-height: 24px; margin-top: 10px; font-weight: 700; }
-
-#timer-display { font-size: 3em; font-weight: bold; color: var(--accent-red); margin-bottom: 15px; text-shadow: 0 0 8px rgba(229, 62, 62, 0.5); }
-.choice-buttons.loyal { background-color: #38a169; } .choice-buttons.corrupt { background-color: #c53030; } .choice-buttons.blank { background-color: var(--neutral-gray); }
-
-#message-area { background-color: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-top: 25px; min-height: 100px; text-align: left; overflow-y: auto; max-height: 250px; display: flex; flex-direction: column-reverse; }
-#message-area p { margin: 8px 0; border-left: 3px solid; padding-left: 10px; animation: fadeIn 0.5s; }
-#message-area .info { border-color: var(--accent-blue); } #message-area .success { border-color: var(--success-green); } #message-area .error { border-color: var(--accent-red); } #message-area .warning { border-color: var(--primary-gold); }
-
-/* --- IV. Animations --- */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scoreUp { from { transform: scale(1.6); color: var(--success-green); } to { transform: scale(1); color: var(--primary-gold); } } .score-up { animation: scoreUp 0.5s ease-out; }
-@keyframes scoreDown { from { transform: scale(1.6); color: var(--accent-red); } to { transform: scale(1); color: var(--primary-gold); } } .score-down { animation: scoreDown 0.5s ease-out; }
+/* Khu vực chơi game */
 #role-display {
-    background: rgba(0,0,0,0.3);
+    background: rgba(0,0,0,0.35);
     border: 1px solid var(--primary-gold);
     border-radius: 8px;
-    padding: 10px 15px;
-    margin: 0 auto 20px auto;
-    max-width: 450px;
+    padding: 15px 20px;
+    margin: 0 auto 25px auto;
+    max-width: 500px;
     text-align: center;
 }
 #role-display h4 {
@@ -116,12 +171,170 @@ input[type="text"] {
     font-size: 0.9em;
     font-weight: normal;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 #role-display strong {
     color: var(--accent-blue);
-    font-size: 1.2em;
+    font-size: 1.3em;
 }
 #role-display p {
-    margin: 5px 0 0 0;
+    margin: 8px 0 0 0;
     font-style: italic;
-    font-size: 0.9em;
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+#decree-display {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--accent-red);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px auto;
+    max-width: 80%;
+}
+.decree-title {
+    font-weight: bold;
+    color: var(--accent-red);
+    text-shadow: 0 0 8px var(--accent-red);
+}
+
+#players-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin: 30px 0;
+}
+.player-card {
+    background-color: var(--bg-medium);
+    padding: 15px;
+    border-radius: 8px;
+    width: 180px;
+    border-top: 5px solid var(--neutral-gray);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+.player-score {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: var(--primary-gold);
+}
+.chosen-action-wrapper {
+    min-height: 24px;
+    margin-top: 10px;
+    font-weight: 700;
+}
+
+#timer-display {
+    font-size: 3em;
+    font-weight: bold;
+    color: var(--accent-red);
+    margin-bottom: 15px;
+    text-shadow: 0 0 8px rgba(229, 62, 62, 0.5);
+}
+
+.choice-buttons.loyal { background-color: var(--accent-blue); }
+.choice-buttons.corrupt { background-color: var(--accent-red); }
+.choice-buttons.blank { background-color: var(--neutral-gray); }
+
+.skill-button {
+    background-color: var(--success-green);
+    border-color: #2f855a;
+    margin-top: 15px;
+}
+
+#message-area {
+    background-color: rgba(0,0,0,0.45);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 25px;
+    min-height: 100px;
+    text-align: left;
+    overflow-y: auto;
+    max-height: 250px;
+    display: flex;
+    flex-direction: column-reverse; /* Tin mới nhất luôn ở trên cùng */
+    border-top: 1px solid var(--bg-light);
+}
+#message-area p {
+    margin: 8px 0;
+    border-left: 3px solid;
+    padding-left: 10px;
+    animation: fadeIn 0.5s ease-out;
+}
+#message-area .info { border-color: var(--accent-blue); }
+#message-area .success { border-color: var(--success-green); }
+#message-area .error { border-color: var(--accent-red); }
+#message-area .warning { border-color: var(--primary-gold); }
+
+
+/* --- IV. Animations --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scoreUp {
+    0% { transform: scale(1); color: var(--primary-gold); }
+    50% { transform: scale(1.8); color: var(--success-green); text-shadow: 0 0 15px var(--success-green); }
+    100% { transform: scale(1); color: var(--primary-gold); }
+}
+.score-up { animation: scoreUp 0.8s ease-out; }
+
+@keyframes scoreDown {
+    0% { transform: scale(1); color: var(--primary-gold); }
+    50% { transform: scale(1.8); color: var(--accent-red); text-shadow: 0 0 15px var(--accent-red); }
+    100% { transform: scale(1); color: var(--primary-gold); }
+}
+.score-down { animation: scoreDown 0.8s ease-out; }
+
+
+/* --- V. Trạng Thái Động Của Giao Diện --- */
+
+/* Trạng thái người chơi bị ngắt kết nối */
+.player-card.disconnected {
+    opacity: 0.5;
+    background-color: #2d3748;
+    border-top-color: var(--accent-red);
+    filter: grayscale(80%);
+}
+
+/* Hiệu ứng khi đang trong chế độ chọn mục tiêu (cho Chaos Phase) */
+body.selecting-target {
+    /* box-shadow: inset 0 0 20px 10px rgba(246, 224, 94, 0.2); */
+}
+body.selecting-target .player-card:not(.disconnected) {
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+body.selecting-target .player-card:not(.disconnected):hover {
+    transform: translateY(-5px) scale(1.05);
+    border-top-color: var(--primary-gold);
+    box-shadow: 0 4px 20px rgba(246, 224, 94, 0.4);
+}
+body.selecting-target .player-card.is-self { /* Dành cho trường hợp bạn muốn vô hiệu hóa chọn chính mình */
+    cursor: not-allowed;
+    filter: grayscale(80%);
+    pointer-events: none; /* Ngăn chặn click */
+}
+
+/* Phản hồi trực quan cho các nút bị vô hiệu hóa */
+.skill-button:disabled, #skip-chaos-btn:disabled {
+    background-color: var(--neutral-gray) !important;
+    color: var(--text-medium) !important;
+    cursor: not-allowed;
+    transform: none;
+    border-color: var(--bg-light);
+    box-shadow: none;
+}
+.choice-buttons:disabled {
+     filter: grayscale(100%);
+}
+
+/* Các lớp màu cho text (được JS thêm vào) */
+.success-text { color: var(--success-green); }
+.error-text { color: var(--accent-red); }
+.warning-text { color: var(--primary-gold); }
+.loyal-text { color: var(--accent-blue); }
+.corrupt-text { color: var(--accent-red); }
+.blank-text { color: var(--neutral-gray); }
