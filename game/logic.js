@@ -94,14 +94,17 @@ function startNewRound(roomCode, rooms, io) {
 
     gs.currentRound++;
     gs.phase = 'choice';
+    
     // Kẻ Bắt Chước nhận mục tiêu mới
     const mimic = gs.players.find(p => p.roleId === 'MIMIC' && !p.isDefeated);
     if (mimic) {
         const potentialTargets = gs.players.filter(p => p.id !== mimic.id && !p.isDefeated);
         if (potentialTargets.length > 0) {
             mimic.mimicTargetId = potentialTargets[Math.floor(Math.random() * potentialTargets.length)].id;
-            const targetName = potentialTargets.find(p=>p.id === mimic.mimicTargetId).name;
-            io.to(mimic.id).emit('privateInfo', {title: "Mô Phỏng", text: `Đêm nay bạn sẽ sao chép hành động của **${targetName}**.`});
+            const targetPlayer = potentialTargets.find(p => p.id === mimic.mimicTargetId);
+            if(targetPlayer) {
+                io.to(mimic.id).emit('privateInfo', {title: "Mô Phỏng", text: `Đêm nay bạn sẽ sao chép hành động của **${targetPlayer.name}**.`});
+            }
         }
     }
 
@@ -110,14 +113,56 @@ function startNewRound(roomCode, rooms, io) {
             p.chosenAction = null;
             p.isBlessed = false;
             p.skillUsedThisRound = false;
-            // Kẻ Bắt Chước không được chọn
-            if(p.roleId === 'MIMIC') p.chosenAction = 'mimicking';
+            if (p.roleId === 'MIMIC') p.chosenAction = 'mimicking';
         }
- });
-    }, CHOICE_DURATION * 1000);
-    triggerBotChoices(roomCode, rooms, io);
-}
+    });
+    
+    gs.roundData = {
+        decrees: null,
+        chaosResult: null,
+        votesToSkip: new Set(),
+        choiceTimer: null,
+        chaosTimer: null,
+    };
 
+    io.to(roomCode).emit('newRound', {
+        roundNumber: gs.currentRound,
+        players: gs.players,
+        duration: CHOICE_DURATION
+    });
+
+    gs.roundData.choiceTimer = setTimeout(() => {
+        gs.players.forEach(p => {
+            if (!p.chosenAction && !p.isDefe-ated) {
+                const choices = ['Giải Mã', 'Phá Hoại', 'Quan Sát'];
+                handlePlayerChoice(roomCode, p.id, choices[Math.floor(Math.random() * 3)], rooms, io);
+            }
+        });
+    }, CHOICE_DURATION * 1000); // Dấu ngoặc đóng của setTimeout ở đây là đúng
+
+    triggerBotChoices(roomCode, rooms, io); // Hàm này phải nằm ngoài setTimeout
+}
+function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
+    const gs = rooms[roomCode]?.gameState;
+    if (!gs || gs.phase !== 'choice') return;
+    const player = gs.players.find(p => p.id === playerId);
+    if (player && !player.chosenAction) {
+        player.chosenAction = choice;
+        if (choice === 'Phá Hoại') player.neverSabotaged = false;
+        player.recentActions.push(choice);
+        if (player.recentActions.length > 3) player.recentActions.shift();
+        io.to(roomCode).emit('playerChose', playerId);
+    }
+    if (gs.players.filter(p => !p.isDefeated && !p.disconnected).every(p => p.chosenAction)) {
+        const mimic = gs.players.find(p => p.roleId === 'MIMIC');
+        if (mimic) {
+            const target = gs.players.find(p => p.id === mimic.mimicTargetId);
+            mimic.chosenAction = target?.chosenAction || ['Giải Mã', 'Phá Hoại', 'Quan Sát'][Math.floor(Math.random() * 3)];
+        }
+        clearTimeout(gs.roundData.choiceTimer);
+        revealDecreeAndContinue(roomCode, rooms, io);
+    }
+}
 function revealDecreeAndContinue(roomCode, rooms, io) {
     const gs = rooms[roomCode].gameState;
     gs.phase = 'decree';
@@ -786,15 +831,12 @@ function handleBotAmnesia(roomCode, botId, rooms, io) {
 
 // --- VI. EXPORTS ---
 module.exports = {
-    // Khởi tạo và cài đặt
     createGameState,
-    // Luồng chơi
     startNewRound,
-    // Hành động người chơi & Bot
-    handlePlayerChoice,
+    handlePlayerChoice, 
+    revealDecreeAndContinue,
     handleChaosAction,
     handleUseSkill,
-    // Tiện ích và kiểm tra
     checkRoleVictory,
     handleBotAmnesia
 };
