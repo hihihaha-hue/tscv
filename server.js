@@ -23,6 +23,9 @@ const io = new Server(server, {
 // --- 3. CẤU HÌNH EXPRESS ĐỂ PHỤC VỤ CÁC FILE CHO CLIENT ---
 // Cung cấp các file trong thư mục 'public' (client.js, style.css, index.html, assets)
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(path.join(__dirname, 'public', 'assets')));
+
+app.get('/', (req, res) => {
 
 // Route mặc định sẽ trả về file index.html
 app.get('/', (req, res) => {

@@ -7,7 +7,7 @@
 
 // Khai báo biến state ở phạm vi toàn cục của file để các hàm helper có thể truy cập
 // Biến này sẽ được gán giá trị thực trong file client.js
-let state = {};
+let state; .
 
 const UI = {
     // --- I. DOM ELEMENTS ---
