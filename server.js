@@ -1,50 +1,41 @@
+// server.js
 // ======================================================================
-// THỢ SĂN CỔ VẬT - SERVER ENTRY POINT
-// Nhiệm vụ: Khởi tạo server, Express, Socket.IO và kết nối các module game.
+// THỢ SĂN CỔ VẬT - SERVER BOOTSTRAP
+// Nhiệm vụ chính: Khởi tạo server, Express, Socket.IO và kết nối các module.
 // ======================================================================
 
-// --- 1. IMPORT CÁC MODULE CẦN THIẾT ---
 const express = require('express');
 const http = require('http');
 const path = require('path');
 const { Server } = require("socket.io");
-const socketHandler = require('./game/socketHandler'); // Import module xử lý socket
+const socketHandler = require('./game/socketHandler'); // <-- Import module xử lý socket
 
-// --- 2. KHỞI TẠO SERVER VÀ EXPRESS ---
+// --- 1. Khởi tạo Server ---
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: "*", // Cho phép kết nối từ mọi nguồn
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-// --- 3. CẤU HÌNH EXPRESS ĐỂ PHỤC VỤ CÁC FILE CHO CLIENT ---
-// Cung cấp các file trong thư mục 'public' (client.js, style.css, index.html, assets)
+// --- 2. Cấu hình Express ---
 app.use(express.static(path.join(__dirname, 'public')));
+// Dòng này để server có thể tìm thấy các file trong thư mục /assets
 app.use('/assets', express.static(path.join(__dirname, 'public', 'assets')));
 
-app.get('/', (req, res) => {
-
-// Route mặc định sẽ trả về file index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// --- 4. KHAI BÁO TRẠNG THÁI TOÀN CỤC ---
-// Biến `rooms` là trạng thái cốt lõi, lưu trữ dữ liệu của tất cả các phòng chơi.
-// Nó sẽ được truyền vào và chỉnh sửa bởi các module khác.
+// --- 3. Trạng thái toàn cục của Server ---
+// Biến rooms là trạng thái cốt lõi, cần được các module khác truy cập.
 const rooms = {};
 
-// --- 5. KHỞI CHẠY BỘ ĐIỀU KHIỂN SOCKET ---
-// Gọi hàm `initialize` từ module `socketHandler` và
-// truyền vào instance `io` và object `rooms` để nó có thể bắt đầu hoạt động.
+// --- 4. Khởi chạy Trình xử lý Socket ---
+// Truyền instance `io` và object `rooms` vào module xử lý.
 socketHandler.initialize(io, rooms);
 
-// --- 6. CHẠY SERVER VÀ LẮNG NGHE TRÊN PORT ---
+// --- 5. Lắng nghe trên Port ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`[SERVER] Máy chủ "Thợ Săn Cổ Vật" đang lắng nghe trên cổng ${PORT}`);
-    console.log(`[SERVER] Mở trình duyệt và truy cập http://localhost:${PORT} để bắt đầu.`);
-});
+    console.log(`[SERVER] Máy chủ đang lắng nghe trên cổng ${PORT}`);
+}); // <-- Dấu ngoặc đóng của hàm callback server.listen
