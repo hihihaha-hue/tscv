@@ -1,13 +1,13 @@
 // public/js/network.js
 // ======================================================================
 // MODULE MẠNG (NETWORK - "The Nervous System")
-// Nhiệm vụ: Xử lý mọi giao tiếp với Socket.IO server.
+// Nhiệm-vụ: Xử lý mọi giao tiếp với Socket.IO server.
 // Lắng nghe sự kiện (socket.on) và gửi sự kiện (socket.emit).
 // ======================================================================
 
 const Network = {
     socket: null,
-    state: null, // Sẽ lưu trữ tham chiếu đến state chung
+    state: null, // Sẽ lưu trữ tham chiếu đến state chung từ client.js
 
     /**
      * Khởi tạo kết nối và thiết lập tất cả các trình lắng nghe sự kiện.
@@ -17,14 +17,13 @@ const Network = {
         this.state = clientState;
         this.socket = io();
 
-        // ==========================================================
-        // --- I. LẮNG NGHE SỰ KIỆN TỪ SERVER (socket.on) ---
-        // ==========================================================
+        // Gói tất cả các trình lắng nghe sự kiện vào một hàm cho gọn.
         this.setupEventListeners();
     },
 
     /**
      * Hàm bao bọc (wrapper) để gửi sự kiện lên server.
+     * Đây là hàm DUY NHẤT mà các module khác nên dùng để gửi dữ liệu.
      * @param {string} eventName - Tên sự kiện.
      * @param {Object} data - Dữ liệu cần gửi.
      */
@@ -37,12 +36,14 @@ const Network = {
     },
 
     /**
-     * Gói tất cả các trình lắng nghe sự kiện vào một hàm cho gọn.
+     * Nơi tập trung tất cả các trình lắng nghe sự kiện từ server.
      */
     setupEventListeners() {
-        // --- A. Connection & Lobby Events ---
+        const state = this.state; // Tạo một tham chiếu ngắn gọn để dùng bên trong
+
+        // --- A. Sự kiện Kết nối & Phòng chờ ---
         this.socket.on('connect', () => {
-            this.state.myId = this.socket.id;
+            state.myId = this.socket.id;
             UI.showScreen('home');
         });
 
@@ -51,17 +52,17 @@ const Network = {
         });
 
         this.socket.on('joinedRoom', data => {
-            this.state.currentRoomCode = data.roomCode;
-            this.state.currentHostId = data.hostId;
-            this.state.players = data.players;
-            UI.roomElements.roomCodeDisplay.textContent = this.state.currentRoomCode;
+            state.currentRoomCode = data.roomCode;
+            state.currentHostId = data.hostId;
+            state.players = data.players;
+            UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
             UI.showScreen('room');
             UI.renderPlayerList();
         });
         
         this.socket.on('updatePlayerList', (players, hostId) => {
-            this.state.players = players;
-            this.state.currentHostId = hostId;
+            state.players = players;
+            state.currentHostId = hostId;
             UI.renderPlayerList();
         });
 
@@ -70,73 +71,74 @@ const Network = {
             UI.showScreen('home');
         });
 
-        // --- B. Game Flow Events ---
-       this.socket.on('gameStarted', (data) => {
-        UI.showScreen('game');
-        UI.gameElements.messageArea.innerHTML = '';
-        // Dòng ẩn vai trò đã được xóa
-        if (data && data.rolesInGame) {
-            this.state.possibleRoles = data.rolesInGame.reduce((obj, role) => {
-                obj[role.id] = role.name;
-                return obj;
-            }, {});
-        }
-    });
+        // --- B. Sự kiện Luồng Game Chính ---
+        this.socket.on('gameStarted', (data) => {
+            UI.showScreen('game');
+            UI.gameElements.messageArea.innerHTML = '';
+            
+            if (data && data.rolesInGame) {
+                state.possibleRoles = data.rolesInGame.reduce((obj, role) => {
+                    obj[role.id] = role.name;
+                    return obj;
+                }, {});
+            }
+        });
 
         this.socket.on('yourRoleIs', (role) => {
-            this.state.myRole = role;
+            state.myRole = role;
             UI.displayRole();
         });
 
         this.socket.on('newRound', data => {
-            this.state.gamePhase = 'choice';
-            this.state.players = data.players;
-            UI.renderPlayerCards();
+            state.gamePhase = 'choice';
+            state.players = data.players; // Cập nhật state với dữ liệu người chơi mới nhất
+            UI.renderPlayerCards(); // Vẽ lại thẻ bài cho vòng mới
             UI.updateNewRoundUI(data);
         });
 
         this.socket.on('decreeRevealed', data => {
             UI.playSound('decree');
-            let decreeHTML = `<h3>📜 Tiếng Vọng Của Đền Thờ 📜</h3><div class="decree-item"><p class="decree-title warning">${data.decrees[0].name}</p><p class="decree-description">${data.decrees[0].description}</p></div>`;
+            const decree = data.decrees[0];
+            let decreeHTML = `<h3>📜 Tiếng Vọng Của Đền Thờ 📜</h3><div class="decree-item"><p class="decree-title warning">${decree.name}</p><p class="decree-description">${decree.description}</p></div>`;
             UI.gameElements.decreeDisplay.innerHTML = decreeHTML;
             UI.gameElements.decreeDisplay.style.display = 'block';
             UI.logMessage('warning', `📜 **${data.drawerName}** đã nghe thấy một Tiếng Vọng!`);
         });
 
         this.socket.on('roundResult', data => {
-            this.state.gamePhase = 'reveal';
-            this.state.players = data.players; // Cập nhật state với điểm số mới
+            state.gamePhase = 'reveal';
+            state.players = data.players; // Cập nhật state với điểm số mới
             UI.renderRoundResults(data);
         });
 
         this.socket.on('gameOver', data => {
-            this.state.gamePhase = 'gameover';
+            state.gamePhase = 'gameover';
             UI.renderGameOver(data);
         });
         
         this.socket.on('promptNextRound', () => {
-            if (this.state.myId === this.state.currentHostId) {
+            if (state.myId === state.currentHostId) {
                  UI.gameElements.actionControls.innerHTML = `<button class="skip-button" onclick="Network.emit('nextRound', state.currentRoomCode)">Đêm Tiếp Theo</button>`;
             } else {
                  UI.gameElements.actionControls.innerHTML = `<p class="info">Đang chờ Trưởng Đoàn bắt đầu đêm tiếp theo...</p>`;
             }
         });
 
-        // --- C. In-Game Action Events ---
+        // --- C. Sự kiện Hành động Trong Game ---
         this.socket.on('playerChose', playerId => {
-            const player = this.state.players.find(p => p.id === playerId);
+            const player = state.players.find(p => p.id === playerId);
             if (player) player.chosenAction = true;
             UI.updatePlayerCard(playerId, { actionText: '<span class="success-text">✅ Đã hành động</span>' });
         });
 
         this.socket.on('chaosPhaseStarted', data => {
-            this.state.gamePhase = 'chaos';
+            state.gamePhase = 'chaos';
             UI.renderChaosPhase(data);
         });
 
         this.socket.on('chaosActionResolved', data => {
-            this.state.gamePhase = 'reveal_pending';
-            clearInterval(this.state.countdownTimer);
+            state.gamePhase = 'reveal_pending';
+            clearInterval(state.countdownTimer);
             UI.gameElements.actionControls.innerHTML = '';
             UI.gameElements.phaseTitle.textContent = "Bình minh lên...";
             UI.logMessage('warning', data.message);
@@ -149,14 +151,14 @@ const Network = {
 
         this.socket.on('updatePlayerCards', (updatedPlayers) => {
             updatedPlayers.forEach(p_update => {
-                const player_state = this.state.players.find(p => p.id === p_update.id);
+                const player_state = state.players.find(p => p.id === p_update.id);
                 if (player_state) player_state.score = p_update.score;
                 UI.updatePlayerCard(p_update.id, { score: p_update.score });
             });
         });
 
         this.socket.on('playerDisconnected', data => {
-            const player = this.state.players.find(p => p.id === data.playerId);
+            const player = state.players.find(p => p.id === data.playerId);
             if(player) {
                 player.disconnected = true;
                 player.name = data.newName;
@@ -165,11 +167,15 @@ const Network = {
             UI.updatePlayerCard(data.playerId, { disconnected: true, newName: data.newName });
         });
 
-        // --- D. Miscellaneous Events ---
+        // --- D. Sự kiện Kỹ năng & Đặc biệt ---
         this.socket.on('logMessage', data => UI.logMessage(data.type, data.message));
 
         this.socket.on('privateInfo', data => {
             Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' });
+        });
+        
+        this.socket.on('promptAmnesiaAction', (data) => {
+            UI.promptAmnesiaSelection(data.players);
         });
     }
 };

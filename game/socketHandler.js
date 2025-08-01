@@ -169,7 +169,7 @@ function initialize(io, rooms) {
 
         socket.on('amnesiaAction', data => {
             const gs = rooms[data.roomCode]?.gameState;
-            if (!gs || gs.phase !== 'special_action') return;
+            if (!gs || gs.phase !== 'special_action' || socket.id !== gs.roundData.drawerId) return;
             const p1 = gs.players.find(p => p.id === data.player1Id);
             const p2 = gs.players.find(p => p.id === data.player2Id);
             if (p1 && p2) {
