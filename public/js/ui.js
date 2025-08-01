@@ -1,34 +1,30 @@
 // public/js/ui.js
 // ======================================================================
-// MODULE GIAO DIỆN (USER INTERFACE)
-// Nhiệm vụ: Chịu trách nhiệm cho mọi thao tác với DOM (Document Object Model).
-// Đọc, ghi, tạo, xóa các phần tử HTML.
+// MODULE GIAO DIỆN (USER INTERFACE - "The Painter")
+// Nhiệm vụ: Chịu trách nhiệm cho mọi thao tác với DOM.
+// Nó đọc dữ liệu từ biến 'state' toàn cục và "vẽ" lên màn hình.
 // ======================================================================
 
-// Khai báo biến state ở phạm vi toàn cục của file để các hàm helper có thể truy cập
-// Biến này sẽ được gán giá trị thực trong file client.js
-llet state;
-
 const UI = {
-    // --- I. DOM ELEMENTS ---
+    // --- I. DOM ELEMENTS (Đã sửa lỗi cú pháp thiếu dấu phẩy) ---
     screens: {
         home: document.getElementById('home-screen'),
         room: document.getElementById('room-screen'),
         game: document.getElementById('game-screen')
-    }, 
+    },
     homeElements: {
         createRoomBtn: document.getElementById('create-room-btn'),
         joinRoomBtn: document.getElementById('join-room-btn'),
         roomCodeInput: document.getElementById('room-code-input'),
         nameInput: document.getElementById('player-name-input')
-    }, 
+    },
     roomElements: {
         roomCodeDisplay: document.getElementById('room-code-display'),
         playerList: document.getElementById('player-list'),
         hostControls: document.getElementById('host-controls'),
         addBotBtn: document.getElementById('add-bot-btn'),
         startGameBtn: document.getElementById('start-game-btn')
-    }, 
+    },
     gameElements: {
         roundIndicator: document.getElementById('current-round'),
         decreeDisplay: document.getElementById('decree-display'),
@@ -37,11 +33,6 @@ const UI = {
         actionControls: document.getElementById('action-controls'),
         messageArea: document.getElementById('message-area'),
         roleDisplay: document.getElementById('role-display')
-    }, 
-
-    // Hàm initialize bắt đầu ở đây
-    initialize(clientState) {
-        state = clientState;
     },
 
     // --- II. CORE UI METHODS ---
@@ -59,7 +50,6 @@ const UI = {
     },
 
     playSound(soundName) {
-        // Bỏ comment nếu bạn có thư mục /assets/sounds/
         // try { new Audio(`/assets/sounds/${soundName}.mp3`).play(); }
         // catch (e) { console.warn(`Không thể phát âm thanh: ${soundName}`); }
     },
@@ -88,80 +78,73 @@ const UI = {
         this.roomElements.hostControls.style.display = isHost ? 'block' : 'none';
         this.roomElements.startGameBtn.disabled = state.players.length < 2;
     },
-renderPlayerCards() {
-    this.gameElements.playersContainer.innerHTML = '';
-    state.players.forEach(player => {
-        const card = document.createElement('div');
-        card.className = 'player-card';
-        card.id = `player-card-${player.id}`;
-        
-        // Xác định trạng thái ban đầu của hành động
-        let actionStatusHTML = '<p class="chosen-action info">Đang hành động...</p>';
-        if (player.disconnected) {
-            actionStatusHTML = '<p class="chosen-action error-text">Mất tích</p>';
-        } else if (player.chosenAction) { // Kiểm tra nếu người chơi đã chọn trong state
-             actionStatusHTML = '<p class="chosen-action success-text">✅ Đã hành động</p>';
-        }
 
-        card.innerHTML = `
-            <h3>${player.name}</h3>
-            <p>Tiến Độ: <span class="player-score">${player.score}</span></p>
-            <div class="chosen-action-wrapper">
-                ${actionStatusHTML}
-            </div>`;
+    renderPlayerCards() {
+        this.gameElements.playersContainer.innerHTML = '';
+        state.players.forEach(player => {
+            const card = document.createElement('div');
+            card.className = 'player-card';
+            card.id = `player-card-${player.id}`;
+            if (player.id === state.myId) {
+                card.classList.add('is-self');
+            }
             
-        if (player.disconnected) {
-            card.classList.add('disconnected');
-            card.querySelector('h3').textContent = player.name; // Cập nhật tên mới "(Mất tích)"
-        }
-        this.gameElements.playersContainer.appendChild(card);
-    });
-},
+            let actionStatusHTML = '<p class="chosen-action info">Đang hành động...</p>';
+            if (player.disconnected) {
+                actionStatusHTML = '<p class="chosen-action error-text">Mất tích</p>';
+            } else if (player.chosenAction) {
+                 actionStatusHTML = '<p class="chosen-action success-text">✅ Đã hành động</p>';
+            }
 
-  // ... (Phần đầu của file ui.js: khai báo state, UI.elements, initialize, showScreen, logMessage, playSound, renderPlayerList) ...
-
-// --- III. RENDER FUNCTIONS (Tiếp theo) ---
-
-/**
- * Hiển thị thông tin vai trò và nút kỹ năng (nếu có).
- * @param {Object} role - Dữ liệu vai trò từ server.
- */
-displayRole(role) {
-    if (!this.gameElements.roleDisplay || !role || !role.name) return;
-    
-    let skillButtonHTML = '';
-    // Nếu vai trò có kỹ năng có thể kích hoạt, tạo nút
-    if (role.hasActiveSkill) {
-        skillButtonHTML = `<button id="skill-btn" class="skill-button">${role.skillName || 'Dùng Kỹ Năng'}</button>`;
-    }
-
-    this.gameElements.roleDisplay.innerHTML = `
-        <h4>Thiên Mệnh Của Bạn</h4>
-        <strong>${role.name}</strong>
-        <p>${role.description}</p>
-        ${skillButtonHTML}`;
-    this.gameElements.roleDisplay.style.display = 'block';
-
-    // Gán sự kiện click cho nút kỹ năng nếu nó tồn tại
-    if (role.hasActiveSkill) {
-        document.getElementById('skill-btn').addEventListener('click', () => {
-            // Gọi hàm xử lý logic click kỹ năng
-            this.handleSkillClick(role);
+            card.innerHTML = `
+                <h3>${player.name}</h3>
+                <p>Tiến Độ: <span class="player-score">${player.score}</span></p>
+                <div class="chosen-action-wrapper">
+                    ${actionStatusHTML}
+                </div>`;
+                
+            if (player.disconnected) {
+                card.classList.add('disconnected');
+            }
+            this.gameElements.playersContainer.appendChild(card);
         });
-    }
-},
-    
-// --- IV. UPDATE FUNCTIONS ---
+    },
+
+    displayRole() {
+        const role = state.myRole;
+        if (!this.gameElements.roleDisplay || !role || !role.name) return;
+        
+        let skillButtonHTML = '';
+        if (role.hasActiveSkill) {
+            skillButtonHTML = `<button id="skill-btn" class="skill-button">${role.skillName || 'Dùng Kỹ Năng'}</button>`;
+        }
+
+        this.gameElements.roleDisplay.innerHTML = `
+            <h4>Thiên Mệnh Của Bạn</h4>
+            <strong>${role.name}</strong>
+            <p>${role.description}</p>
+            ${skillButtonHTML}`;
+        this.gameElements.roleDisplay.style.display = 'block';
+
+        if (role.hasActiveSkill) {
+            document.getElementById('skill-btn').addEventListener('click', () => this.handleSkillClick());
+        }
+    },
+
+// ==========================================================
+// --- IV. UPDATE FUNCTIONS (Hàm cập nhật giao diện) ---
+// ==========================================================
 
 /**
  * Cập nhật giao diện cho một vòng chơi mới.
- * @param {Object} data - Dữ liệu từ sự kiện 'newRound'.
+ * @param {Object} data - Dữ liệu từ sự kiện 'newRound' của server.
  */
 updateNewRoundUI(data) {
     this.gameElements.roundIndicator.textContent = data.roundNumber;
     this.gameElements.phaseTitle.textContent = 'Hành Động Trong Đêm';
     this.gameElements.decreeDisplay.style.display = 'none';
     
+    // Tạo lại các nút lựa chọn hành động
     let phaseHTML = `
         <div id="timer-display">${data.duration}</div>
         <div id="player-choice-buttons-wrapper">
@@ -183,7 +166,7 @@ updateNewRoundUI(data) {
 
 /**
  * Cập nhật giao diện cho giai đoạn Hoàng Hôn.
- * @param {Object} data - Dữ liệu từ sự kiện 'chaosPhaseStarted'.
+ * @param {Object} data - Dữ liệu từ sự kiện 'chaosPhaseStarted' của server.
  */
 renderChaosPhase(data) {
     this.gameElements.phaseTitle.textContent = "Giờ Hoàng Hôn";
@@ -207,7 +190,7 @@ renderChaosPhase(data) {
  */
 startCountdown(duration) {
     let timeLeft = duration;
-    clearInterval(state.countdownTimer);
+    clearInterval(state.countdownTimer); // Luôn xóa timer cũ trước khi tạo timer mới
     state.countdownTimer = setInterval(() => {
         timeLeft--;
         const timerEl = document.getElementById('timer-display');
@@ -233,13 +216,14 @@ updatePlayerCard(playerId, updates) {
             scoreEl.textContent = newScore;
             const animationClass = newScore > oldScore ? 'score-up' : 'score-down';
             scoreEl.classList.add(animationClass);
+            this.playSound(newScore > oldScore ? 'score-up' : 'error');
             setTimeout(() => scoreEl.classList.remove(animationClass), 1000);
         }
     }
 
     if (updates.hasOwnProperty('actionText')) {
         const actionEl = card.querySelector('.chosen-action');
-        actionEl.innerHTML = updates.actionText;
+        actionEl.innerHTML = updates.actionText; // Dùng innerHTML để render các thẻ span với class màu
     }
     
     if (updates.hasOwnProperty('disconnected')) {
@@ -266,13 +250,8 @@ renderRoundResults(data) {
 
     players.forEach(p => {
         const change = results.scoreChanges[p.id] || 0;
-        if (change > 0) {
-            this.playSound('score-up');
-            this.logMessage('success', `👍 ${p.name} nhận được +${change} Tiến Độ.`);
-        } else if (change < 0) {
-            this.playSound('error');
-            this.logMessage('error', `👎 ${p.name} mất ${change} Tiến Độ.`);
-        }
+        if (change > 0) this.logMessage('success', `👍 ${p.name} nhận được +${change} Tiến Độ.`);
+        else if (change < 0) this.logMessage('error', `👎 ${p.name} mất ${change} Tiến Độ.`);
         
         const choiceClass = { 'Giải Mã': 'loyal-text', 'Phá Hoại': 'corrupt-text', 'Quan Sát': 'blank-text' }[p.chosenAction] || 'info';
         this.updatePlayerCard(p.id, {
@@ -313,26 +292,22 @@ renderGameOver(data) {
 },
 
 
-// --- V. EVENT HANDLERS & HELPERS ---
+// ==========================================================
+// --- V. EVENT HANDLERS & HELPERS (Hàm xử lý sự kiện và tiện ích) ---
+// ==========================================================
 
 /**
  * Bộ định tuyến (router) cho việc xử lý click vào nút kỹ năng.
- * @param {Object} role - Vai trò của người chơi.
  */
-handleSkillClick(role) {
+handleSkillClick() {
     this.playSound('click');
+    const role = state.myRole;
     switch (role.id) {
-        case 'ASSASSIN':
-            this.assassinSkillFlow();
-            break;
-        case 'PUPPETEER':
-            this.puppeteerSkillFlow();
-            break;
-        case 'PROPHET':
-             this.prophetSkillFlow();
-             break;
+        case 'ASSASSIN': this.assassinSkillFlow(); break;
+        case 'PUPPETEER': this.puppeteerSkillFlow(); break;
+        case 'PROPHET': this.prophetSkillFlow(); break;
+        case 'PRIEST': this.priestSkillFlow(); break;
         default:
-            // Các kỹ năng đơn giản không cần mục tiêu có thể xử lý ở đây
             Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} });
             break;
     }
@@ -414,6 +389,26 @@ prophetSkillFlow() {
     });
 },
 
+priestSkillFlow() {
+    const targetOptions = this.getTargetOptions();
+    Swal.fire({
+        title: 'Thánh Nữ Ban Phước', text: 'Chọn một người để bảo vệ khỏi mất điểm đêm nay:',
+        input: 'select', inputOptions: targetOptions, inputPlaceholder: 'Chọn người được ban phước...',
+        showCancelButton: true, confirmButtonText: 'Ban Phước',
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            Network.emit('useRoleSkill', {
+                roomCode: state.currentRoomCode, payload: { targetId: result.value }
+            });
+            const skillBtn = document.getElementById('skill-btn');
+            if (skillBtn) {
+                skillBtn.disabled = true;
+                skillBtn.textContent = 'Đã Ban Phước';
+            }
+        }
+    });
+},
+
 // Hàm tiện ích để lấy danh sách mục tiêu hợp lệ
 getTargetOptions(excludeId = null) {
     return state.players.reduce((opts, p) => {
@@ -426,15 +421,117 @@ getTargetOptions(excludeId = null) {
 
 // Hàm tiện ích để lấy danh sách vai trò có thể đoán
 getPossibleRoles(excludeAssassin = false) {
-    const roles = { ...state.possibleRoles }; // Sử dụng danh sách vai trò từ state
+    const roles = { ...state.possibleRoles }; // Luôn đọc từ state để có danh sách vai trò mới nhất
     if (excludeAssassin && roles['ASSASSIN']) {
         delete roles['ASSASSIN'];
-    }
-    // Xóa vai trò của chính người đoán nếu có trong danh sách
-    if (state.myRole && roles[state.myRole.id]) {
-       // delete roles[state.myRole.id]; // Có thể cân nhắc xóa hoặc không
     }
     return roles;
 },
 
 }; // Kết thúc đối tượng UI
+
+
+// ==========================================================
+// --- VI. GLOBAL EVENT HANDLERS (Hàm xử lý sự kiện toàn cục) ---
+// ==========================================================
+// Các hàm này phải được định nghĩa ở phạm vi toàn cục để onclick trong HTML có thể tìm thấy.
+
+function handleKickPlayer(playerId) {
+    UI.playSound('click');
+    Swal.fire({
+        title: 'Trục Xuất Thợ Săn?', text: "Bạn có chắc muốn trục xuất người này khỏi đoàn?",
+        icon: 'warning', showCancelButton: true, confirmButtonColor: '#e53e3e',
+        cancelButtonColor: '#718096', confirmButtonText: 'Đúng, trục xuất!', cancelButtonText: 'Hủy'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId });
+        }
+    });
+}
+
+function handleSendPlayerChoice(choice) {
+    UI.playSound('click');
+    UI.gameElements.actionControls.innerHTML = '<p class="info">Đã hành động... Chờ đợi trong bóng tối...</p>';
+    Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice });
+}
+
+function handleStartTargetSelection(actionType) {
+    UI.playSound('click');
+    document.body.classList.add('selecting-target');
+    UI.logMessage('info', `Hãy chọn một người chơi trên màn hình để ${actionType}. Nhấn Esc hoặc click ra ngoài để hủy.`);
+
+    const cards = document.querySelectorAll('.player-card:not(.disconnected)');
+    
+    const cleanup = () => {
+        document.body.classList.remove('selecting-target');
+        cards.forEach(card => card.onclick = null);
+        window.removeEventListener('keydown', handleEscape);
+        document.removeEventListener('click', handleOutsideClick);
+    };
+
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            cleanup();
+            UI.logMessage('info', 'Đã hủy hành động.');
+        }
+    };
+
+    const handleOutsideClick = (e) => {
+        // Nếu click không phải là vào một player-card thì hủy
+        if (!e.target.closest('.player-card')) {
+             cleanup();
+             UI.logMessage('info', 'Đã hủy hành động.');
+        }
+    };
+
+    window.addEventListener('keydown', handleEscape, { once: true });
+    // Dùng setTimeout để event click hiện tại không kích hoạt handleOutsideClick ngay lập tức
+    setTimeout(() => document.addEventListener('click', handleOutsideClick), 0);
+
+    cards.forEach(card => {
+        const cardPlayerId = card.id.replace('player-card-', '');
+        if (cardPlayerId === state.myId) return; // Không cho phép tự chọn
+
+        card.onclick = (e) => {
+            e.stopPropagation(); // Ngăn event click này kích hoạt handleOutsideClick
+            const targetId = card.id.replace('player-card-', '');
+            cleanup();
+            handleChaosActionSelection(targetId, actionType);
+        };
+    });
+}
+
+function handleChaosActionSelection(targetId, actionType) {
+    const targetName = state.players.find(p => p.id === targetId)?.name || 'Không rõ';
+    
+    if (actionType === 'Vạch Trần') {
+        Swal.fire({
+            title: `Đoán Hành Động Của ${targetName}`,
+            text: 'Bạn đoán hành động của họ là:',
+            showDenyButton: true, showCancelButton: true, confirmButtonText: 'Giải Mã',
+            denyButtonText: 'Phá Hoại', cancelButtonText: 'Quan Sát', background: '#2d3748',
+            color: '#e2e8f0', confirmButtonColor: '#48bb78', denyButtonColor: '#e53e3e'
+        }).then(result => {
+            let guess = null;
+            if (result.isConfirmed) guess = 'Giải Mã';
+            else if (result.isDenied) guess = 'Phá Hoại';
+            else if (result.dismiss === Swal.DismissReason.cancel) guess = 'Quan Sát';
+            
+            if (guess) {
+                Network.emit('requestChaosAction', { roomCode: state.currentRoomCode, targetId, actionType: 'Vạch Trần', guess });
+            }
+        });
+    } else { // Phối Hợp
+        Network.emit('requestChaosAction', { roomCode: state.currentRoomCode, targetId, actionType: 'Phối Hợp' });
+    }
+}
+
+function handleVoteToSkipChaos() {
+    UI.playSound('click');
+    const btn = document.getElementById('skip-chaos-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đã bỏ phiếu...';
+    }
+    Network.emit('playerVotedToSkip', state.currentRoomCode);
+}
