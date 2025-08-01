@@ -50,7 +50,6 @@ const UI = {
     },
 
     playSound(soundName) {
-        // Bỏ comment và đảm bảo bạn có các file âm thanh trong /public/assets/sounds/
         // try { new Audio(`/assets/sounds/${soundName}.mp3`).play(); }
         // catch (e) { console.warn(`Không thể phát âm thanh: ${soundName}`); }
     },
@@ -84,13 +83,21 @@ const UI = {
             card.id = `player-card-${player.id}`;
             if (player.id === state.myId) card.classList.add('is-self');
             
-            let actionStatusHTML = '<p class.chosen-action info">Đang hành động...</p>';
+            let actionStatusHTML = '<p class="chosen-action info">Đang hành động...</p>';
             if (player.disconnected) {
                 actionStatusHTML = '<p class="chosen-action error-text">Mất tích</p>';
             } else if (player.chosenAction) {
                  actionStatusHTML = '<p class="chosen-action success-text">✅ Đã hành động</p>';
             }
-            card.innerHTML = `<h3_>${player.name}</h3><p>Tiến Độ: <span class="player-score">${player.score}</span></p><div class="chosen-action-wrapper">${actionStatusHTML}</div>`;
+
+            // Phiên bản HTML đúng, không có lỗi đánh máy
+            card.innerHTML = `
+                <h3>${player.name}</h3>
+                <p>Tiến Độ: <span class="player-score">${player.score}</span></p>
+                <div class="chosen-action-wrapper">
+                    ${actionStatusHTML}
+                </div>`;
+                
             if (player.disconnected) card.classList.add('disconnected');
             this.gameElements.playersContainer.appendChild(card);
         });
@@ -147,28 +154,34 @@ const UI = {
 
     updatePlayerCard(playerId, updates) {
         const card = document.getElementById(`player-card-${playerId}`);
-        if (!card) return;
+        if (!card) return; // Guard clause
         if (updates.hasOwnProperty('score')) {
             const scoreEl = card.querySelector('.player-score');
-            const oldScore = parseInt(scoreEl.textContent);
-            const newScore = updates.score;
-            if (oldScore !== newScore) {
-                scoreEl.textContent = newScore;
-                const animationClass = newScore > oldScore ? 'score-up' : 'score-down';
-                scoreEl.classList.add(animationClass);
-                setTimeout(() => scoreEl.classList.remove(animationClass), 1000);
+            if(scoreEl) { // Safety check
+                const oldScore = parseInt(scoreEl.textContent);
+                const newScore = updates.score;
+                if (oldScore !== newScore) {
+                    scoreEl.textContent = newScore;
+                    const animationClass = newScore > oldScore ? 'score-up' : 'score-down';
+                    scoreEl.classList.add(animationClass);
+                    setTimeout(() => scoreEl.classList.remove(animationClass), 1000);
+                }
             }
         }
         if (updates.hasOwnProperty('actionText')) {
             const actionEl = card.querySelector('.chosen-action');
-            actionEl.innerHTML = updates.actionText;
+            if (actionEl) { // Safety check
+                actionEl.innerHTML = updates.actionText;
+            }
         }
         if (updates.hasOwnProperty('disconnected')) {
              card.classList.add('disconnected');
              card.querySelector('h3').textContent = updates.newName;
              const actionEl = card.querySelector('.chosen-action');
-             actionEl.className = 'chosen-action error-text';
-             actionEl.textContent = 'Mất tích';
+             if(actionEl) {
+                actionEl.className = 'chosen-action error-text';
+                actionEl.textContent = 'Mất tích';
+             }
         }
     },
 
@@ -213,132 +226,304 @@ const UI = {
         this.gameElements.actionControls.innerHTML = finalHTML;
     },
 
-    // --- V. EVENT HANDLERS & HELPERS ---
-    handleSkillClick() {
-        this.playSound('click');
-        const role = state.myRole;
-        switch (role.id) {
-            case 'ASSASSIN': this.assassinSkillFlow(); break;
-            case 'PUPPETEER': this.puppeteerSkillFlow(); break;
-            case 'PROPHET': this.prophetSkillFlow(); break;
-            case 'PRIEST': this.priestSkillFlow(); break;
-            default: Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} }); break;
-        }
-    },
-    
-    assassinSkillFlow() {
-        const playerOptions = this.getTargetOptions();
-        Swal.fire({ title: 'Ám Sát: Chọn Mục Tiêu', input: 'select', inputOptions: playerOptions, inputPlaceholder: 'Chọn mục tiêu...', showCancelButton: true, cancelButtonText: 'Hủy bỏ', confirmButtonText: 'Tiếp tục →', background: '#2d3748', color: '#e2e8f0' }).then(playerResult => {
-            if (!playerResult.isConfirmed || !playerResult.value) return;
-            const targetId = playerResult.value;
-            const targetName = playerOptions[targetId];
-            const possibleRoles = this.getPossibleRoles(true);
-            Swal.fire({ title: `Đoán Vai Trò Của ${targetName}`, input: 'select', inputOptions: possibleRoles, inputPlaceholder: 'Chọn vai trò...', showCancelButton: true, cancelButtonText: 'Hủy bỏ', confirmButtonText: 'Xác nhận Ám Sát!', confirmButtonColor: '#e53e3e', background: '#2d3748', color: '#e2e8f0' }).then(roleResult => {
-                if (!roleResult.isConfirmed || !roleResult.value) return;
-                Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: targetId, guessedRoleId: roleResult.value } });
-                const skillBtn = document.getElementById('skill-btn');
-                if (skillBtn) { skillBtn.disabled = true; skillBtn.textContent = 'Đã Ám Sát'; }
+   // --- V. EVENT HANDLERS & HELPERS (Bên trong đối tượng UI) ---
+// Các hàm này xử lý logic giao diện phức tạp và hoạt động như các hàm tiện ích.
+// ======================================================================
+
+/**
+ * Bộ định tuyến (router) cho việc xử lý click vào nút kỹ năng.
+ * Nó đọc vai trò của người chơi từ state và gọi hàm xử lý tương ứng.
+ */
+handleSkillClick() {
+    this.playSound('click');
+    const role = state.myRole; // Lấy vai trò hiện tại từ state
+    if (!role) return;
+
+    switch (role.id) {
+        case 'ASSASSIN': this.assassinSkillFlow(); break;
+        case 'PUPPETEER': this.puppeteerSkillFlow(); break;
+        case 'PROPHET': this.prophetSkillFlow(); break;
+        case 'PRIEST': this.priestSkillFlow(); break;
+        // Các kỹ năng đơn giản không cần mục tiêu có thể xử lý ở đây
+        default:
+            Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} });
+            break;
+    }
+},
+
+/**
+ * Luồng giao diện 2 bước cho kỹ năng Ám Sát.
+ */
+assassinSkillFlow() {
+    const playerOptions = this.getTargetOptions();
+    Swal.fire({
+        title: 'Ám Sát: Chọn Mục Tiêu',
+        input: 'select',
+        inputOptions: playerOptions,
+        inputPlaceholder: 'Chọn mục tiêu...',
+        showCancelButton: true,
+        cancelButtonText: 'Hủy bỏ',
+        confirmButtonText: 'Tiếp tục →',
+        background: '#2d3748',
+        color: '#e2e8f0',
+    }).then(playerResult => {
+        if (!playerResult.isConfirmed || !playerResult.value) return; // Người dùng hủy
+        
+        const targetId = playerResult.value;
+        const targetName = playerOptions[targetId];
+        const possibleRoles = this.getPossibleRoles(true); // Lấy danh sách vai trò, loại trừ Sát thủ
+
+        Swal.fire({
+            title: `Đoán Vai Trò Của ${targetName}`,
+            input: 'select',
+            inputOptions: possibleRoles,
+            inputPlaceholder: 'Chọn vai trò...',
+            showCancelButton: true,
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonText: 'Xác nhận Ám Sát!',
+            confirmButtonColor: '#e53e3e',
+            background: '#2d3748',
+            color: '#e2e8f0',
+        }).then(roleResult => {
+            if (!roleResult.isConfirmed || !roleResult.value) return; // Người dùng hủy
+            
+            // Gửi yêu cầu lên server
+            Network.emit('useRoleSkill', {
+                roomCode: state.currentRoomCode,
+                payload: { targetId: targetId, guessedRoleId: roleResult.value }
             });
-        });
-    },
 
-    puppeteerSkillFlow() {
-        const puppetName = state.myRole.description.match(/<strong>(.*?)<\/strong>/)?.[1];
-        const puppet = state.players.find(pl => pl.name === puppetName);
-        const targetOptions = this.getTargetOptions(puppet?.id);
-        Swal.fire({ title: 'Giật Dây', text: 'Chọn một người để hoán đổi hành động với Con Rối của bạn:', input: 'select', inputOptions: targetOptions, inputPlaceholder: 'Chọn mục tiêu...', showCancelButton: true, cancelButtonText: 'Hủy bỏ' }).then(result => {
-            if (!result.isConfirmed || !result.value) return;
-            Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: result.value } });
+            // Vô hiệu hóa nút để tránh dùng nhiều lần
             const skillBtn = document.getElementById('skill-btn');
-            if (skillBtn) { skillBtn.disabled = true; skillBtn.textContent = 'Đã Giật Dây'; }
-        });
-    },
-
-    prophetSkillFlow() {
-        const targetOptions = this.getTargetOptions();
-        Swal.fire({ title: 'Thiên Lý Nhãn', text: 'Chọn một người để xem hành động của họ:', input: 'select', inputOptions: targetOptions, inputPlaceholder: 'Chọn mục tiêu...', showCancelButton: true, confirmButtonText: 'Xem', background: '#2d3748', color: '#e2e8f0', }).then(result => {
-            if (result.isConfirmed && result.value) {
-                Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: result.value } });
-                const skillBtn = document.getElementById('skill-btn');
-                if (skillBtn) { skillBtn.disabled = true; skillBtn.textContent = 'Đã Dùng Kỹ Năng'; }
+            if (skillBtn) {
+                skillBtn.disabled = true;
+                skillBtn.textContent = 'Đã Ám Sát';
             }
         });
-    },
+    });
+},
 
-    priestSkillFlow() {
-        const targetOptions = this.getTargetOptions();
-        Swal.fire({ title: 'Thánh Nữ Ban Phước', text: 'Chọn một người để bảo vệ khỏi mất điểm đêm nay:', input: 'select', inputOptions: targetOptions, inputPlaceholder: 'Chọn người được ban phước...', showCancelButton: true, confirmButtonText: 'Ban Phước', }).then(result => {
-            if (result.isConfirmed && result.value) {
-                Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: result.value } });
-                const skillBtn = document.getElementById('skill-btn');
-                if (skillBtn) { skillBtn.disabled = true; skillBtn.textContent = 'Đã Ban Phước'; }
-            }
+/**
+ * Luồng giao diện cho kỹ năng Giật Dây của Kẻ Thao Túng.
+ */
+puppeteerSkillFlow() {
+    const puppetName = state.myRole.description.match(/<strong>(.*?)<\/strong>/)?.[1];
+    const puppet = state.players.find(pl => pl.name === puppetName);
+    const targetOptions = this.getTargetOptions(puppet?.id); // Loại trừ con rối khỏi danh sách mục tiêu
+
+    Swal.fire({
+        title: 'Giật Dây',
+        text: 'Chọn một người để hoán đổi hành động với Con Rối của bạn:',
+        input: 'select',
+        inputOptions: targetOptions,
+        inputPlaceholder: 'Chọn mục tiêu...',
+        showCancelButton: true,
+        cancelButtonText: 'Hủy bỏ',
+    }).then(result => {
+        if (!result.isConfirmed || !result.value) return;
+        
+        Network.emit('useRoleSkill', {
+            roomCode: state.currentRoomCode,
+            payload: { targetId: result.value }
         });
-    },
+        const skillBtn = document.getElementById('skill-btn');
+        if (skillBtn) {
+            skillBtn.disabled = true;
+            skillBtn.textContent = 'Đã Giật Dây';
+        }
+    });
+},
 
-    getTargetOptions(excludeId = null) {
-        return state.players.reduce((opts, p) => {
-            if (p.id !== state.myId && p.id !== excludeId && !p.disconnected) { opts[p.id] = p.name; }
-            return opts;
-        }, {});
-    },
+/**
+ * Luồng giao diện cho kỹ năng Thiên Lý Nhãn của Nhà Tiên Tri.
+ */
+prophetSkillFlow() {
+    const targetOptions = this.getTargetOptions();
+    Swal.fire({
+        title: 'Thiên Lý Nhãn',
+        text: 'Chọn một người để xem hành động của họ:',
+        input: 'select',
+        inputOptions: targetOptions,
+        inputPlaceholder: 'Chọn mục tiêu...',
+        showCancelButton: true,
+        confirmButtonText: 'Xem',
+        background: '#2d3748',
+        color: '#e2e8f0',
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            Network.emit('useRoleSkill', { 
+                roomCode: state.currentRoomCode,
+                payload: { targetId: result.value }
+            });
+            const skillBtn = document.getElementById('skill-btn');
+            if (skillBtn) {
+                skillBtn.disabled = true;
+                skillBtn.textContent = 'Đã Dùng Kỹ Năng';
+            }
+        }
+    });
+},
 
-    getPossibleRoles(excludeAssassin = false) {
-        const roles = { ...state.possibleRoles };
-        if (excludeAssassin && roles['ASSASSIN']) delete roles['ASSASSIN'];
-        return roles;
-    },
+/**
+ * Luồng giao diện cho kỹ năng Ban Phước của Thầy Tế.
+ */
+priestSkillFlow() {
+    const targetOptions = this.getTargetOptions();
+    Swal.fire({
+        title: 'Thánh Nữ Ban Phước',
+        text: 'Chọn một người để bảo vệ khỏi mất điểm đêm nay:',
+        input: 'select',
+        inputOptions: targetOptions,
+        inputPlaceholder: 'Chọn người được ban phước...',
+        showCancelButton: true,
+        confirmButtonText: 'Ban Phước',
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            Network.emit('useRoleSkill', {
+                roomCode: state.currentRoomCode,
+                payload: { targetId: result.value }
+            });
+            const skillBtn = document.getElementById('skill-btn');
+            if (skillBtn) {
+                skillBtn.disabled = true;
+                skillBtn.textContent = 'Đã Ban Phước';
+            }
+        }
+    });
+},
+
+/**
+ * Hàm tiện ích để lấy danh sách mục tiêu hợp lệ cho các kỹ năng.
+ * @param {string|null} excludeId - ID của người chơi cần loại trừ (ví dụ: Con Rối).
+ * @returns {Object} - Object dạng { id: name } cho SweetAlert.
+ */
+getTargetOptions(excludeId = null) {
+    return state.players.reduce((opts, p) => {
+        // Điều kiện: Không phải mình, không phải người bị loại trừ, và không bị ngắt kết nối
+        if (p.id !== state.myId && p.id !== excludeId && !p.disconnected) {
+            opts[p.id] = p.name;
+        }
+        return opts;
+    }, {});
+},
+
+/**
+ * Hàm tiện ích để lấy danh sách vai trò có thể đoán.
+ * @param {boolean} excludeAssassin - Có loại trừ vai trò Sát Thủ không?
+ * @returns {Object} - Object dạng { ROLE_ID: Role Name }.
+ */
+getPossibleRoles(excludeAssassin = false) {
+    const roles = { ...state.possibleRoles }; // Luôn đọc từ state để có danh sách vai trò mới nhất
+    if (excludeAssassin && roles['ASSASSIN']) {
+        delete roles['ASSASSIN'];
+    }
+    return roles;
+},
     
-    promptAmnesiaSelection(players) {
-        const playerInputs = players.map(p => `<label class="swal2-checkbox"><input type="checkbox" value="${p.id}"><span class="swal2-label">${p.name}</span></label>`).join('');
-        Swal.fire({ title: 'Bùa Lú Lẫn', html: `<p>Bạn được quyền hoán đổi hành động của 2 người. Hãy chọn chính xác 2 người:</p><div id="amnesia-player-list">${playerInputs}</div>`, confirmButtonText: 'Hoán Đổi', background: '#2d3748', color: '#e2e8f0',
-            preConfirm: () => {
-                const checkedBoxes = document.querySelectorAll('#amnesia-player-list input:checked');
-                if (checkedBoxes.length !== 2) {
-                    Swal.showValidationMessage('Bạn phải chọn chính xác 2 người!');
-                    return false;
-                }
-                return Array.from(checkedBoxes).map(box => box.value);
-            }
-        }).then(result => {
-            if (result.isConfirmed && result.value) {
-                const [player1Id, player2Id] = result.value;
-                Network.emit('amnesiaAction', { roomCode: state.currentRoomCode, player1Id, player2Id });
-            }
-        });
-    },
-};
+/**
+ * Hiển thị modal cho Tiếng Vọng "Bùa Lú Lẫn".
+ * @param {Array} players - Danh sách người chơi để chọn.
+ */
+promptAmnesiaSelection(players) {
+    const playerInputs = players.map(p => 
+        `<label class="swal2-checkbox">
+            <input type="checkbox" value="${p.id}">
+            <span class="swal2-label">${p.name}</span>
+        </label>`
+    ).join('');
 
-// --- VI. GLOBAL EVENT HANDLERS ---
+    Swal.fire({
+        title: 'Bùa Lú Lẫn',
+        html: `
+            <p>Bạn được quyền hoán đổi hành động của 2 người. Hãy chọn chính xác 2 người:</p>
+            <div id="amnesia-player-list" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">${playerInputs}</div>
+        `,
+        confirmButtonText: 'Hoán Đổi',
+        background: '#2d3748',
+        color: '#e2e8f0',
+        preConfirm: () => {
+            const checkedBoxes = document.querySelectorAll('#amnesia-player-list input:checked');
+            if (checkedBoxes.length !== 2) {
+                Swal.showValidationMessage('Bạn phải chọn chính xác 2 người!');
+                return false;
+            }
+            return Array.from(checkedBoxes).map(box => box.value);
+        }
+    }).then(result => {
+        if (result.isConfirmed && result.value) {
+            const [player1Id, player2Id] = result.value;
+            Network.emit('amnesiaAction', { roomCode: state.currentRoomCode, player1Id, player2Id });
+        }
+    });
+},
+
+}; // Kết thúc đối tượng UI
+
+
+// ==========================================================
+// --- VI. GLOBAL EVENT HANDLERS (Hàm xử lý sự kiện toàn cục) ---
+// ==========================================================
+// Các hàm này phải được định nghĩa ở phạm vi toàn cục để onclick trong HTML có thể tìm thấy.
+
 function handleKickPlayer(playerId) {
     UI.playSound('click');
-    Swal.fire({ title: 'Trục Xuất Thợ Săn?', text: "Bạn có chắc muốn trục xuất người này khỏi đoàn?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#e53e3e', cancelButtonColor: '#718096', confirmButtonText: 'Đúng, trục xuất!', cancelButtonText: 'Hủy' }).then(result => {
-        if (result.isConfirmed) { Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId }); }
+    Swal.fire({
+        title: 'Trục Xuất Thợ Săn?',
+        text: "Bạn có chắc muốn trục xuất người này khỏi đoàn?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e53e3e',
+        cancelButtonColor: '#718096',
+        confirmButtonText: 'Đúng, trục xuất!',
+        cancelButtonText: 'Hủy'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId });
+        }
     });
 }
+
 function handleSendPlayerChoice(choice) {
     UI.playSound('click');
     UI.gameElements.actionControls.innerHTML = '<p class="info">Đã hành động... Chờ đợi trong bóng tối...</p>';
     Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice });
 }
+
 function handleStartTargetSelection(actionType) {
     UI.playSound('click');
     document.body.classList.add('selecting-target');
     UI.logMessage('info', `Hãy chọn một người chơi trên màn hình để ${actionType}. Nhấn Esc hoặc click ra ngoài để hủy.`);
+
     const cards = document.querySelectorAll('.player-card:not(.disconnected)');
+    
     const cleanup = () => {
         document.body.classList.remove('selecting-target');
         cards.forEach(card => card.onclick = null);
         window.removeEventListener('keydown', handleEscape);
         document.removeEventListener('click', handleOutsideClick);
     };
-    const handleEscape = (e) => { if (e.key === 'Escape') { cleanup(); UI.logMessage('info', 'Đã hủy hành động.'); } };
-    const handleOutsideClick = (e) => { if (!e.target.closest('.player-card')) { cleanup(); UI.logMessage('info', 'Đã hủy hành động.'); } };
+
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            cleanup();
+            UI.logMessage('info', 'Đã hủy hành động.');
+        }
+    };
+
+    const handleOutsideClick = (e) => {
+        if (!e.target.closest('.player-card')) {
+             cleanup();
+             UI.logMessage('info', 'Đã hủy hành động.');
+        }
+    };
+
     window.addEventListener('keydown', handleEscape, { once: true });
     setTimeout(() => document.addEventListener('click', handleOutsideClick), 0);
+
     cards.forEach(card => {
         const cardPlayerId = card.id.replace('player-card-', '');
         if (cardPlayerId === state.myId) return;
+
         card.onclick = (e) => {
             e.stopPropagation();
             const targetId = card.id.replace('player-card-', '');
@@ -347,24 +532,44 @@ function handleStartTargetSelection(actionType) {
         };
     });
 }
+
 function handleChaosActionSelection(targetId, actionType) {
     const targetName = state.players.find(p => p.id === targetId)?.name || 'Không rõ';
+    
     if (actionType === 'Vạch Trần') {
-        Swal.fire({ title: `Đoán Hành Động Của ${targetName}`, text: 'Bạn đoán hành động của họ là:', showDenyButton: true, showCancelButton: true, confirmButtonText: 'Giải Mã', denyButtonText: 'Phá Hoại', cancelButtonText: 'Quan Sát', background: '#2d3748', color: '#e2e8f0', confirmButtonColor: '#48bb78', denyButtonColor: '#e53e3e' }).then(result => {
+        Swal.fire({
+            title: `Đoán Hành Động Của ${targetName}`,
+            text: 'Bạn đoán hành động của họ là:',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'Giải Mã',
+            denyButtonText: 'Phá Hoại',
+            cancelButtonText: 'Quan Sát',
+            background: '#2d3748',
+            color: '#e2e8f0',
+            confirmButtonColor: '#48bb78',
+            denyButtonColor: '#e53e3e'
+        }).then(result => {
             let guess = null;
             if (result.isConfirmed) guess = 'Giải Mã';
             else if (result.isDenied) guess = 'Phá Hoại';
             else if (result.dismiss === Swal.DismissReason.cancel) guess = 'Quan Sát';
-            if (guess) { Network.emit('requestChaosAction', { roomCode: state.currentRoomCode, targetId, actionType: 'Vạch Trần', guess }); }
+            
+            if (guess) {
+                Network.emit('requestChaosAction', { roomCode: state.currentRoomCode, targetId, actionType: 'Vạch Trần', guess });
+            }
         });
-    } else { Network.emit('requestChaosAction', { roomCode: state.currentRoomCode, targetId, actionType: 'Phối Hợp' }); }
+    } else { // Phối Hợp
+        Network.emit('requestChaosAction', { roomCode: state.currentRoomCode, targetId, actionType: 'Phối Hợp' });
+    }
 }
+
 function handleVoteToSkipChaos() {
     UI.playSound('click');
     const btn = document.getElementById('skip-chaos-btn');
-    if (btn) { 
-        btn.disabled = true; 
-        btn.textContent = 'Đã bỏ phiếu...'; 
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đã bỏ phiếu...';
     }
     Network.emit('playerVotedToSkip', state.currentRoomCode);
 }
