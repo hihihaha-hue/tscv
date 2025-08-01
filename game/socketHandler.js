@@ -3,11 +3,6 @@
 const gameLogic = require('./logic.js');
 const { ROLES } = require('./config.js');
 
-/**
- * Khởi tạo tất cả các trình lắng nghe sự kiện socket.
- * @param {Server} io - Instance của Socket.IO Server.
- * @param {Object} rooms - Object lưu trữ trạng thái của tất cả các phòng chơi.
- */
 function initialize(io, rooms) {
     io.on('connection', (socket) => {
 
@@ -115,7 +110,13 @@ function initialize(io, rooms) {
 
         // 3. Hành động trong game
         socket.on('playerChoice', data => gameLogic.handlePlayerChoice(data.roomCode, socket.id, data.choice, rooms, io));
-        socket.on('requestChaosAction', data => gameLogic.handleChaosAction(data.roomCode, socket.id, data.targetId, data.actionType, data.guess, rooms, io));
+        
+        
+        socket.on('requestTwilightAction', data => gameLogic.handleTwilightAction(data.roomCode, socket.id, data.targetId, data.guess, rooms, io));
+
+      
+        socket.on('requestCoordination', data => gameLogic.handleCoordination(data.roomCode, socket.id, data.targetId, rooms, io));
+
         socket.on('useRoleSkill', data => gameLogic.handleUseSkill(socket, data.roomCode, data.payload, rooms, io));
         socket.on('sendMessage', (data) => {
             const room = rooms[data.roomCode];

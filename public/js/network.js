@@ -115,13 +115,19 @@ const Network = {
             state.gamePhase = 'chaos';
             UI.renderChaosPhase(data);
         });
+		 this.socket.on('coordinationPhaseStarted', data => {
+            state.gamePhase = 'coordination';
+            UI.renderCoordinationPhase(data);
+        });
+		this.socket.on('coordinationPhaseEnded', () => {
+            // Ẩn giao diện Phối Hợp
+            UI.gameElements.actionControls.innerHTML = '<p class="info">Đang chờ Tiếng Vọng...</p>';
+        });
 
-        this.socket.on('chaosActionResolved', data => {
-            state.gamePhase = 'reveal_pending';
-            clearInterval(state.countdownTimer);
-            UI.gameElements.actionControls.innerHTML = '';
-            UI.gameElements.phaseTitle.textContent = "Bình minh lên...";
-            UI.logMessage('warning', data.message);
+
+         this.socket.on('twilightPhaseStarted', data => {
+            state.gamePhase = 'twilight';
+            UI.renderTwilightPhase(data);
         });
 
         this.socket.on('updateSkipVoteCount', (count, total) => {
