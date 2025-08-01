@@ -362,6 +362,9 @@ function handleChaosActionSelection(targetId, actionType) {
 function handleVoteToSkipChaos() {
     UI.playSound('click');
     const btn = document.getElementById('skip-chaos-btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Đã bỏ phiếu...'; }
+    if (btn) { 
+        btn.disabled = true; 
+        btn.textContent = 'Đã bỏ phiếu...'; 
+    }
     Network.emit('playerVotedToSkip', state.currentRoomCode);
-}```
+}
