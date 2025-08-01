@@ -71,17 +71,17 @@ const Network = {
         });
 
         // --- B. Game Flow Events ---
-        this.socket.on('gameStarted', (data) => {
-            UI.showScreen('game');
-            UI.gameElements.messageArea.innerHTML = '';
-            UI.gameElements.roleDisplay.style.display = 'none';
-            if (data && data.rolesInGame) {
-                this.state.possibleRoles = data.rolesInGame.reduce((obj, role) => {
-                    obj[role.id] = role.name;
-                    return obj;
-                }, {});
-            }
-        });
+       this.socket.on('gameStarted', (data) => {
+        UI.showScreen('game');
+        UI.gameElements.messageArea.innerHTML = '';
+        // Dòng ẩn vai trò đã được xóa
+        if (data && data.rolesInGame) {
+            this.state.possibleRoles = data.rolesInGame.reduce((obj, role) => {
+                obj[role.id] = role.name;
+                return obj;
+            }, {});
+        }
+    });
 
         this.socket.on('yourRoleIs', (role) => {
             this.state.myRole = role;
