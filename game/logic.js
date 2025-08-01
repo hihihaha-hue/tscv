@@ -91,7 +91,7 @@ function startNewRound(roomCode, rooms, io) {
     gs.currentRound++;
     gs.phase = 'choice';
     gs.players.forEach(p => { if (!p.isDefeated) p.chosenAction = null; });
-    gs.roundData = { decrees: [], chaosActionTaken: false, chaosResult: null, chaosTimer: null, drawerId: null, votesToSkip: new Set(), choiceTimer: null, skillActivations: {} };
+    gs.roundData = { decrees: [], chaosActionTaken: false, chaosResult: null, chaosTimer: null, drawerId: null, votesToSkip: new Set(), choiceTimer: null, skillActivations: {}, roundWinners: [] };
 
     io.to(roomCode).emit('newRound', {
         roundNumber: gs.currentRound,
@@ -192,7 +192,7 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
     if (!gs) return;
     gs.phase = 'reveal';
     const { decree, chaosResult, skillActivations } = gs.roundData;
-    const results = { messages: [], scoreChanges: {}, isDraw: false, winner: null, roundWinners: [] };
+    const results = { messages: [], scoreChanges: {}, isDraw: false, winner: null };
     const pointMultiplier = decree?.getPointMultiplier?.() || 1;
     const active = gs.players.filter(p => !p.isDefeated);
     if (active.length === 0) return;
@@ -236,8 +236,8 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
             change = pt > 0 ? (p.chosenAction === 'Quan Sát' ? -1 : 1) : -1;
         } else {
             if (p.chosenAction === results.winner) {
-                change = 2;
-                results.roundWinners.push(p.id);
+    change = 2;
+    gs.roundData.roundWinners.push(p.id);
             } else if (p.chosenAction === 'Quan Sát') {
                 change = 3;
             } else {
