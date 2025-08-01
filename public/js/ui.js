@@ -50,9 +50,9 @@ const UI = {
     },
 
     playSound(soundName) {
-    try { new Audio(`/assets/sounds/${soundName}.mp3`).play(); }
-    catch (e) { console.warn(`Không thể phát âm thanh: ${soundName}`); }
-},
+        try { new Audio(`/assets/sounds/${soundName}.mp3`).play(); }
+        catch (e) { console.warn(`Không thể phát âm thanh: ${soundName}`); }
+    },
 
     // --- III. RENDER FUNCTIONS ---
     renderPlayerList() {
@@ -90,7 +90,6 @@ const UI = {
                  actionStatusHTML = '<p class="chosen-action success-text">✅ Đã hành động</p>';
             }
 
-            // Phiên bản HTML đúng, không có lỗi đánh máy
             card.innerHTML = `
                 <h3>${player.name}</h3>
                 <p>Tiến Độ: <span class="player-score">${player.score}</span></p>
@@ -154,10 +153,10 @@ const UI = {
 
     updatePlayerCard(playerId, updates) {
         const card = document.getElementById(`player-card-${playerId}`);
-        if (!card) return; // Guard clause
+        if (!card) return;
         if (updates.hasOwnProperty('score')) {
             const scoreEl = card.querySelector('.player-score');
-            if(scoreEl) { // Safety check
+            if(scoreEl) {
                 const oldScore = parseInt(scoreEl.textContent);
                 const newScore = updates.score;
                 if (oldScore !== newScore) {
@@ -170,7 +169,7 @@ const UI = {
         }
         if (updates.hasOwnProperty('actionText')) {
             const actionEl = card.querySelector('.chosen-action');
-            if (actionEl) { // Safety check
+            if (actionEl) {
                 actionEl.innerHTML = updates.actionText;
             }
         }
@@ -225,219 +224,121 @@ const UI = {
         }
         this.gameElements.actionControls.innerHTML = finalHTML;
     },
-	addChatMessage(sender, message) {
-    const chatMessages = document.getElementById('chat-messages');
-    const messageEl = document.createElement('div');
-    messageEl.classList.add('chat-message');
     
-    // Sanitize message to prevent XSS attacks
-    const senderEl = document.createElement('span');
-    senderEl.className = 'chat-sender';
-    senderEl.textContent = `${sender}: `;
-    
-    const messageContentEl = document.createElement('span');
-    messageContentEl.textContent = message;
+    addChatMessage(sender, message) {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('chat-message');
+        const senderEl = document.createElement('span');
+        senderEl.className = 'chat-sender';
+        senderEl.textContent = `${sender}: `;
+        const messageContentEl = document.createElement('span');
+        messageContentEl.textContent = message;
+        messageEl.appendChild(senderEl);
+        messageEl.appendChild(messageContentEl);
+        chatMessages.prepend(messageEl);
+    },
 
-    messageEl.appendChild(senderEl);
-    messageEl.appendChild(messageContentEl);
-    
-    chatMessages.prepend(messageEl); // Thêm tin nhắn mới lên trên cùng (vì flex-direction: column-reverse)
-},
-
-   // --- V. EVENT HANDLERS & HELPERS (Bên trong đối tượng UI) ---
-// Các hàm này xử lý logic giao diện phức tạp và hoạt động như các hàm tiện ích.
-// ======================================================================
-
- * Bộ định tuyến (router) cho việc xử lý click vào nút kỹ năng.
- * Nó đọc vai trò của người chơi từ state và gọi hàm xử lý tương ứng.
- */
-handleSkillClick() {
-    this.playSound('click');
-    const role = state.myRole;
-    if (!role) return;
-
-    // Xử lý logic đặc biệt cho Kẻ Bắt Chước
-    if (role.id === 'MIMIC') {
-        const mimicTarget = state.players.find(p => p.id === state.myRole.mimicTargetId);
-        if (!mimicTarget) {
-            Swal.fire({ title: 'Lỗi', text: 'Không tìm thấy mục tiêu để bắt chước!', icon: 'error' });
+    // --- V. EVENT HANDLERS & HELPERS ---
+    // (Toàn bộ mục V và VI đã được cung cấp chi tiết ở câu trả lời trước, bạn có thể dán lại vào đây)
+    // Dưới đây là phiên bản đầy đủ để bạn sao chép lại cho chắc chắn.
+    handleSkillClick() {
+        this.playSound('click');
+        const role = state.myRole;
+        if (!role) return;
+        if (role.id === 'MIMIC') {
+            const mimicTarget = state.players.find(p => p.id === state.myRole.mimicTargetId);
+            if (!mimicTarget) {
+                Swal.fire({ title: 'Lỗi', text: 'Không tìm thấy mục tiêu để bắt chước!', icon: 'error' });
+                return;
+            }
+            const targetRoleInfo = state.possibleRoles[mimicTarget.roleId];
+            if (targetRoleInfo && ROLES[mimicTarget.roleId]?.hasActiveSkill) {
+                const fakeRole = { id: mimicTarget.roleId, skillName: ROLES[mimicTarget.roleId].skillName };
+                // Gọi một hàm con để xử lý, tránh đệ quy vô hạn
+                this.executeSkillFlow(fakeRole);
+            } else {
+                Swal.fire({ title: 'Không Thể Sao Chép', text: 'Mục tiêu của bạn không có kỹ năng kích hoạt để sử dụng!', icon: 'info', background: '#2d3748', color: '#e2e8f0' });
+            }
             return;
         }
-        
-        // Lấy thông tin vai trò của mục tiêu từ danh sách vai trò trong game
-        const targetRoleInfo = ROLES[mimicTarget.roleId];
-
-        if (targetRoleInfo && targetRoleInfo.hasActiveSkill) {
-            // "Mượn" thông tin vai trò của mục tiêu để tái sử dụng logic hiển thị modal
-            // Tạo một object vai trò giả để truyền vào các hàm flow
-            const fakeRole = {
-                id: mimicTarget.roleId,
-                skillName: targetRoleInfo.skillName,
-                description: targetRoleInfo.description
-            };
-            this.mimicSkillFlow(fakeRole, mimicTarget.id);
-        } else {
-            Swal.fire({ title: 'Không Thể Sao Chép', text: 'Mục tiêu của bạn không có kỹ năng kích hoạt để sử dụng!', icon: 'info', background: '#2d3748', color: '#e2e8f0' });
-        }
-        return;
-    }
-
-    // Định tuyến cho các vai trò khác
-    switch (role.id) {
-        case 'PROPHET': this.prophetSkillFlow(); break;
-        case 'PEACEMAKER': this.peacemakerSkillFlow(); break;
-        case 'INQUISITOR': this.inquisitorSkillFlow(); break;
-        case 'MAGNATE': this.magnateSkillFlow(); break;
-        case 'BALANCER': this.balancerSkillFlow(); break;
-        case 'REBEL': this.rebelSkillFlow(); break;
-        case 'PRIEST': this.priestSkillFlow(); break;
-        case 'THIEF': this.thiefSkillFlow(); break;
-        case 'MIND_BREAKER': this.mindBreakerSkillFlow(); break;
-        case 'CULTIST': this.cultistSkillFlow(); break;
-        case 'DOUBLE_AGENT': this.doubleAgentSkillFlow(); break;
-        case 'PHANTOM': this.phantomSkillFlow(); break;
-        // Kẻ Đánh Cược và Sát Thủ có kỹ năng bị động hoặc không cần chọn mục tiêu phức tạp
-        default:
-            Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} });
-            break;
-    }
-},
-
-// --- Các luồng xử lý kỹ năng chi tiết ---
-
-// (Các flow cho Prophet, Peacemaker, Gambler, Inquisitor, Magnate, Balancer, Rebel, Priest, Thief, Mind Breaker, Cultist, Double Agent, Phantom đã được cung cấp và giữ nguyên)
-// ...
-// Dưới đây là ví dụ chi tiết cho một vài flow phức tạp để bạn kiểm tra lại
-
-/**
- * Luồng kỹ năng cho Kẻ Tẩy Não (chọn mục tiêu)
- */
-mindBreakerSkillFlow() {
-    const targetOptions = this.getTargetOptions();
-    Swal.fire({
-        title: 'Điều Khiển',
-        text: 'Chọn một người để quyết định hành động của họ:',
-        input: 'select',
-        inputOptions: targetOptions,
-        inputPlaceholder: 'Chọn mục tiêu...',
-        showCancelButton: true,
-        confirmButtonText: 'Chọn',
-        background: '#2d3748', color: '#e2e8f0'
-    }).then(result => {
-        if (result.isConfirmed && result.value) {
-            // Gửi yêu cầu lên server, server sẽ phản hồi bằng sự kiện 'promptMindControl'
-            Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: result.value } });
-            
-            const skillBtn = document.getElementById('skill-btn');
-            if (skillBtn) {
-                skillBtn.disabled = true;
-                skillBtn.textContent = 'Đang Điều Khiển...';
-            }
-        }
-    });
-},
-
-/**
- * Luồng kỹ năng cho Kẻ Bắt Chước (sau khi đã xác định được vai trò của mục tiêu)
- */
-mimicSkillFlow(fakeRole, targetPlayerId) {
-    // Luồng này tương tự như handleSkillClick, nhưng dành riêng cho Kẻ Bắt Chước
-    // Nó quyết định sẽ hiển thị modal nào dựa trên kỹ năng "mượn" được
-    // Ví dụ:
-    switch (fakeRole.id) {
-        case 'PROPHET':
-            this.prophetSkillFlow(true); // Thêm một cờ để báo hiệu đây là từ Kẻ Bắt Chước
-            break;
-        case 'PRIEST':
-            this.priestSkillFlow(true);
-            break;
-        // Thêm các case khác cho tất cả các vai trò có kỹ năng kích hoạt
-        default:
-            // Cho các kỹ năng không cần chọn mục tiêu, chỉ cần gửi sự kiện
-            Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} });
-            break;
-    }
-},
-
-/**
- * Hàm hiển thị modal cho Kẻ Tẩy Não chọn hành động cho mục tiêu
- */
-promptMindControlSelection(targetId) {
-    const target = state.players.find(p => p.id === targetId);
-    if (!target) return;
-
-    Swal.fire({
-        title: `Chọn Hành Động Cho ${target.name}`,
-        text: 'Lựa chọn của bạn sẽ là hành động của họ trong đêm nay.',
-        showDenyButton: true,
-        showCancelButton: true,
-        confirmButtonText: 'Giải Mã',
-        denyButtonText: 'Phá Hoại',
-        cancelButtonText: 'Quan Sát',
-        background: '#2d3748', color: '#e2e8f0'
-    }).then(result => {
-        let chosenAction = null;
-        if (result.isConfirmed) chosenAction = 'Giải Mã';
-        else if (result.isDenied) chosenAction = 'Phá Hoại';
-        else if (result.dismiss === Swal.DismissReason.cancel) chosenAction = 'Quan Sát';
-        
-        if (chosenAction) {
-            Network.emit('mindControlAction', {
-                roomCode: state.currentRoomCode,
-                targetId: targetId,
-                chosenAction: chosenAction,
-            });
-        }
-    });
-},
-
-
-// --- Các hàm tiện ích ---
-getTargetOptions(excludeId = null) {
-    return state.players.reduce((opts, p) => {
-        if (p.id !== state.myId && p.id !== excludeId && !p.disconnected) {
-            opts[p.id] = p.name;
-        }
-        return opts;
-    }, {});
-},
-
-getPossibleRoles(excludeOwnRole = false) {
-    const roles = { ...state.possibleRoles };
-    if (excludeOwnRole && state.myRole && roles[state.myRole.id]) {
-        delete roles[state.myRole.id];
-    }
-    return roles;
-},
+        this.executeSkillFlow(role);
+    },
     
-promptAmnesiaSelection(players) {
-    const playerInputs = players.map(p => 
-        `<label class="swal2-checkbox"><input type="checkbox" value="${p.id}"><span class="swal2-label">${p.name}</span></label>`
-    ).join('');
-
-    Swal.fire({
-        title: 'Bùa Lú Lẫn',
-        html: `<p>Bạn được quyền hoán đổi hành động của 2 người. Hãy chọn chính xác 2 người:</p><div id="amnesia-player-list" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">${playerInputs}</div>`,
-        confirmButtonText: 'Hoán Đổi',
-        background: '#2d3748',
-        color: '#e2e8f0',
-        preConfirm: () => {
-            const checkedBoxes = document.querySelectorAll('#amnesia-player-list input:checked');
-            if (checkedBoxes.length !== 2) {
-                Swal.showValidationMessage('Bạn phải chọn chính xác 2 người!');
-                return false;
+    executeSkillFlow(role) {
+        switch (role.id) {
+            case 'PROPHET': this.prophetSkillFlow(); break;
+            case 'PEACEMAKER': this.peacemakerSkillFlow(); break;
+            case 'INQUISITOR': this.inquisitorSkillFlow(); break;
+            case 'MAGNATE': this.magnateSkillFlow(); break;
+            case 'BALANCER': this.balancerSkillFlow(); break;
+            case 'REBEL': this.rebelSkillFlow(); break;
+            case 'PRIEST': this.priestSkillFlow(); break;
+            case 'THIEF': this.thiefSkillFlow(); break;
+            case 'MIND_BREAKER': this.mindBreakerSkillFlow(); break;
+            case 'CULTIST': this.cultistSkillFlow(); break;
+            case 'DOUBLE_AGENT': this.doubleAgentSkillFlow(); break;
+            case 'PHANTOM': this.phantomSkillFlow(); break;
+            default: Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} }); break;
+        }
+    },
+    
+    mindBreakerSkillFlow() {
+        const targetOptions = this.getTargetOptions();
+        Swal.fire({ title: 'Điều Khiển', text: 'Chọn một người để quyết định hành động của họ:', input: 'select', inputOptions: targetOptions, inputPlaceholder: 'Chọn mục tiêu...', showCancelButton: true, confirmButtonText: 'Chọn' })
+        .then(result => {
+            if (result.isConfirmed && result.value) {
+                Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: result.value } });
+                const skillBtn = document.getElementById('skill-btn');
+                if (skillBtn) { skillBtn.disabled = true; skillBtn.textContent = 'Đang Điều Khiển...'; }
             }
-            return Array.from(checkedBoxes).map(box => box.value);
-        }
-    }).then(result => {
-        if (result.isConfirmed && result.value) {
-            const [player1Id, player2Id] = result.value;
-            Network.emit('amnesiaAction', { roomCode: state.currentRoomCode, player1Id, player2Id });
-        }
-    });
-},
+        });
+    },
 
-}; // Kết thúc đối tượng UI
+    promptMindControlSelection(targetId) {
+        const target = state.players.find(p => p.id === targetId);
+        if (!target) return;
+        Swal.fire({ title: `Chọn Hành Động Cho ${target.name}`, text: 'Lựa chọn của bạn sẽ là hành động của họ.', showDenyButton: true, showCancelButton: true, confirmButtonText: 'Giải Mã', denyButtonText: 'Phá Hoại', cancelButtonText: 'Quan Sát' })
+        .then(result => {
+            let chosenAction = null;
+            if (result.isConfirmed) chosenAction = 'Giải Mã';
+            else if (result.isDenied) chosenAction = 'Phá Hoại';
+            else if (result.dismiss === Swal.DismissReason.cancel) chosenAction = 'Quan Sát';
+            if (chosenAction) {
+                Network.emit('mindControlAction', { roomCode: state.currentRoomCode, targetId: targetId, chosenAction: chosenAction });
+            }
+        });
+    },
+
+    getTargetOptions(excludeId = null) {
+        return state.players.reduce((opts, p) => {
+            if (p.id !== state.myId && p.id !== excludeId && !p.disconnected) { opts[p.id] = p.name; }
+            return opts;
+        }, {});
+    },
+
+    getPossibleRoles(excludeOwnRole = false) {
+        const roles = { ...state.possibleRoles };
+        if (excludeOwnRole && state.myRole && roles[state.myRole.id]) { delete roles[state.myRole.id]; }
+        return roles;
+    },
+    
+    promptAmnesiaSelection(players) {
+        const playerInputs = players.map(p => `<label class="swal2-checkbox"><input type="checkbox" value="${p.id}"><span class="swal2-label">${p.name}</span></label>`).join('');
+        Swal.fire({ title: 'Bùa Lú Lẫn', html: `<p>Bạn được quyền hoán đổi hành động của 2 người. Hãy chọn chính xác 2 người:</p><div id="amnesia-player-list" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">${playerInputs}</div>`, confirmButtonText: 'Hoán Đổi',
+            preConfirm: () => {
+                const checkedBoxes = document.querySelectorAll('#amnesia-player-list input:checked');
+                if (checkedBoxes.length !== 2) { Swal.showValidationMessage('Bạn phải chọn chính xác 2 người!'); return false; }
+                return Array.from(checkedBoxes).map(box => box.value);
+            }
+        }).then(result => {
+            if (result.isConfirmed && result.value) {
+                const [player1Id, player2Id] = result.value;
+                Network.emit('amnesiaAction', { roomCode: state.currentRoomCode, player1Id, player2Id });
+            }
+        });
+    },
+};
 
 
 // ==========================================================
