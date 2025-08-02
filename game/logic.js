@@ -435,47 +435,76 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
         }
     }
 
-    let winner = null; let isDraw = false;
-    const competing = [{ n: 'Giải Mã', c: votes['Giải Mã'] }, { n: 'Phá Hoại', c: votes['Phá Hoại'] }].filter(a => a.c > 0);
-    if (competing.length < 2 || competing[0].c === competing[1].c) isDraw = true;
-    else winner = competing.sort((a, b) => a.c - b.c)[0].n;
-    results.winner = winner;
-    if (isDraw) results.messages.push("⚖️ Đêm nay kết quả là HÒA.");
-    else results.messages.push(`🏆 Phe **${winner}** đã chiến thắng!`);
-
-    if (isDraw && decrees.some(d => d.id === 'VU_NO_HU_VO')) {
-        activePlayers.forEach(p => {
-            const summary = results.roundSummary.find(s => s.id === p.id);
-            if (summary) summary.changes.push({ reason: 'Vụ Nổ Hư Vô', amount: -p.score });
-            p.score = 0;
-        });
-        results.messages.push("💥 Vụ Nổ Hư Vô!");
-        io.to(roomCode).emit('roundResult', { players: gs.players, results, finalVoteCounts: votes });
-        return handlePostRoundEvents(roomCode, rooms, io);
-    }
-
+    let winner = null;
+    let isDraw = false;
     let pointChanges = {};
-    const observerThreshold = Math.floor(activePlayers.length / 2);
-    if (votes['Quan Sát'] > 0) {
-        if (votes['Quan Sát'] >= observerThreshold) {
-            results.messages.push(`👁️ Có quá nhiều người Quan Sát!`);
-            activePlayers.forEach(p => { pointChanges[p.id] = p.chosenAction === 'Quan Sát' ? -1 : 1; });
-        } else {
-            activePlayers.forEach(p => { if (p.chosenAction === 'Quan Sát') pointChanges[p.id] = 3; });
-        }
-    }
-    
-    if (isDraw) {
+
+    const loyalVotes = votes['Giải Mã'];
+    const corruptVotes = votes['Phá Hoại'];
+    const observerCount = votes['Quan Sát'];
+
+    // Kịch bản 1: HÒA (Số phiếu bằng nhau, hoặc chỉ một phe hành động)
+    if (loyalVotes === corruptVotes || (loyalVotes > 0 && corruptVotes === 0) || (corruptVotes > 0 && loyalVotes === 0)) {
+        isDraw = true;
         gs.consecutiveDraws++;
-        activePlayers.forEach(p => { if (p.chosenAction !== 'Quan Sát') pointChanges[p.id] = (pointChanges[p.id] || 0) + (votes['Quan Sát'] > 0 ? 1 : -1); });
-    } else {
-        gs.consecutiveDraws = 0;
+        results.messages.push("⚖️ Đêm nay kết quả là HÒA.");
+        
         activePlayers.forEach(p => {
-            if (p.chosenAction !== 'Quan Sát') pointChanges[p.id] = (p.chosenAction === winner) ? 2 : -1;
-            if (p.chosenAction === winner) results.roundWinners.push(p.id);
+            // Nếu có người Quan Sát: người Quan sát -1, người khác +1
+            if (observerCount > 0) {
+                pointChanges[p.id] = p.chosenAction === 'Quan Sát' ? -1 : 1;
+            } 
+            // Nếu không có ai Quan Sát: TẤT CẢ -1
+            else {
+                pointChanges[p.id] = -1;
+            }
+        });
+    } 
+    // Kịch bản 2: Có phe thắng
+    else {
+        isDraw = false;
+        gs.consecutiveDraws = 0;
+        winner = loyalVotes < corruptVotes ? 'Giải Mã' : 'Phá Hoại';
+        results.winner = winner;
+        results.messages.push(`🏆 Phe **${winner}** đã chiến thắng!`);
+
+        const observerThreshold = Math.floor(activePlayers.length / 2);
+
+        activePlayers.forEach(p => {
+            // Phe thắng: +2 điểm
+            if (p.chosenAction === winner) {
+                pointChanges[p.id] = 2;
+                results.roundWinners.push(p.id);
+            }
+            // Phe thua: -1 điểm
+            else if (p.chosenAction !== 'Quan Sát') {
+                pointChanges[p.id] = -1;
+            }
+            // Phe Quan Sát
+            else {
+                // Nếu số người Quan Sát >= ngưỡng: họ -1 điểm, và những người khác được +1 BỔ SUNG
+                if (observerCount >= observerThreshold) {
+                    pointChanges[p.id] = -1;
+                    // Cộng 1 điểm cho tất cả những người không Quan Sát
+                    activePlayers.forEach(otherPlayer => {
+                        if (otherPlayer.chosenAction !== 'Quan Sát') {
+                            pointChanges[otherPlayer.id] = (pointChanges[otherPlayer.id] || 0) + 1;
+                        }
+                    });
+                    results.messages.push(`👁️ Có quá nhiều người Quan Sát! Họ phải trả giá, những người khác được lợi.`);
+                } 
+                // Nếu số người Quan Sát < ngưỡng: họ +3 điểm
+                else {
+                    pointChanges[p.id] = 3;
+                }
+            }
         });
     }
 
+    // Gán kết quả isDraw vào results
+    results.isDraw = isDraw;
+
+    // Ghi lại các thay đổi điểm cơ bản vào summary
     activePlayers.forEach(p => {
         const change = pointChanges[p.id] || 0;
         if (change !== 0) {
