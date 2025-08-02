@@ -58,6 +58,7 @@ const UI = {
         document.getElementById(`${screenId}-screen`).style.display = 'block';
     },
 
+<<<<<<< HEAD
    showDayTransition(roundNumber) {
     const overlay = document.getElementById('night-transition-overlay');
     const text = document.getElementById('night-transition-text');
@@ -69,6 +70,17 @@ const UI = {
         overlay.classList.remove('active');
     }, 2500);
 },
+=======
+    showNightTransition(roundNumber) {
+        const overlay = document.getElementById('night-transition-overlay');
+        const text = document.getElementById('night-transition-text');
+        text.textContent = `Đêm thứ ${roundNumber}`;
+        overlay.classList.add('active');
+        setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 2500);
+    },
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
 
     showGameHistory(history) {
         if (history.length === 0) {

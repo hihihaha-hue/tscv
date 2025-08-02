@@ -44,9 +44,14 @@ UI.homeElements.joinRoomBtn.addEventListener('click', () => {
 // B. Phòng chờ (Room Screen)
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
+<<<<<<< HEAD
     // Kiểm tra mã phòng trước khi gửi yêu cầu thêm bot
     if (!state.currentRoomCode) {
         Swal.fire('Không có mã phòng!'); // Báo lỗi nếu chưa có mã phòng
+=======
+    if (!state.currentRoomCode) {
+        Swal.fire('Không có mã phòng!');
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
         return;
     }
     Network.emit('addBot', state.currentRoomCode);
@@ -128,9 +133,18 @@ Network.on('kicked', () => {
 
 Network.on('joinedRoom', (data) => {
     UI.playSound('success');
+<<<<<<< HEAD
     Object.assign(state, data);
     UI.showScreen('room');
     // Kiểm tra phần tử DOM trước khi cập nhật mã phòng
+=======
+    // Luôn cập nhật lại các trường cần thiết khi vào phòng
+    state.currentRoomCode = data.roomCode;
+    state.currentHostId = data.hostId;
+    state.myId = data.myId;
+    state.players = data.players;
+    UI.showScreen('room');
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
     if (UI.roomElements.roomCodeDisplay) {
         UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
     } else {
@@ -141,12 +155,15 @@ Network.on('joinedRoom', (data) => {
 });
 
 Network.on('updatePlayerList', (players, hostId) => {
-    Object.assign(state, { players, currentHostId: hostId });
+    state.players = players;
+    state.currentHostId = hostId;
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
 });
 
 Network.on('backToLobby', (data) => {
-    Object.assign(state, { gamePhase: 'lobby', players: data.players, currentHostId: data.hostId });
+    state.gamePhase = 'lobby';
+    state.players = data.players;
+    state.currentHostId = data.hostId;
     UI.showScreen('room');
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addLogMessage('info', 'Trò chơi kết thúc, trở về phòng chờ.');
@@ -164,11 +181,19 @@ Network.on('gameStarted', (data) => {
 });
 
 Network.on('newRound', (data) => {
+<<<<<<< HEAD
    UI.showDayTransition(data.roundNumber);
     UI.playSound('new-round');
      // 2. Chờ 1 giây để hiệu ứng bắt đầu, sau đó mới cập nhật giao diện
     setTimeout(() => {
         Object.assign(state, { gamePhase: 'choice', players: data.players });
+=======
+    UI.showNightTransition(data.roundNumber);
+    UI.playSound('new-round');
+    setTimeout(() => {
+        state.gamePhase = 'choice';
+        state.players = data.players;
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
         UI.gameElements.currentRound.textContent = data.roundNumber;
         UI.updatePlayerCards(state.players, state.myId);
         UI.renderChoiceButtons();
@@ -183,7 +208,12 @@ Network.on('decreeRevealed', (data) => {
 
 Network.on('roundResult', (data) => {
     state.gameHistory.push({ round: data.roundNumber, results: data.results, votes: data.finalVoteCounts });
+<<<<<<< HEAD
     Object.assign(state, { gamePhase: 'reveal', players: data.players });
+=======
+    state.gamePhase = 'reveal';
+    state.players = data.players;
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
     UI.clearTimer();
     UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
     UI.showRoundSummary(data.results, data.finalVoteCounts);
@@ -277,11 +307,16 @@ Network.on('coordinationPhaseStarted', (data) => {
     UI.updatePhaseDisplay('Giai Đoạn Thám Hiểm', '<p>Chọn một người để đề nghị Phối Hợp, hoặc chọn hành động một mình.</p>');
     UI.gameElements.skipCoordinationBtn.style.display = 'inline-block';
     UI.gameElements.skipCoordinationBtn.disabled = false;
+<<<<<<< HEAD
     if (!UI.gameElements.actionControls.contains(UI.gameElements.skipCoordinationBtn)) {
         UI.gameElements.actionControls.appendChild(UI.gameElements.skipCoordinationBtn);
     }
     document.body.classList.add('selecting-target');
     UI.startTimer(data.duration); // Gọi timer!
+=======
+    UI.gameElements.skipCoordinationBtn.textContent = 'Hành động một mình';
+    document.body.classList.add('selecting-target');
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
 
     const handleCoordinationTarget = function () {
         const targetId = this.getAttribute('data-player-id');
@@ -308,11 +343,16 @@ Network.on('twilightPhaseStarted', (data) => {
     UI.updatePhaseDisplay('Hoàng Hôn', '<p>Chọn một người để Vạch Trần, hoặc chọn nghỉ ngơi.</p>');
     UI.gameElements.skipTwilightBtn.style.display = 'inline-block';
     UI.gameElements.skipTwilightBtn.disabled = false;
+<<<<<<< HEAD
     if (!UI.gameElements.actionControls.contains(UI.gameElements.skipTwilightBtn)) {
         UI.gameElements.actionControls.appendChild(UI.gameElements.skipTwilightBtn);
     }
     document.body.classList.add('selecting-target');
     UI.startTimer(data.duration); // Gọi timer!
+=======
+    UI.gameElements.skipTwilightBtn.textContent = 'Nghỉ ngơi';
+    document.body.classList.add('selecting-target');
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
 
     const handleAccusationTarget = function () {
         const targetId = this.getAttribute('data-player-id');
@@ -369,4 +409,8 @@ Network.on('updateSkipVoteCount', (data) => {
     if (btn) {
         btn.textContent = `${btn.textContent.split('(')[0].trim()} (${data.count}/${data.total})`;
     }
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4

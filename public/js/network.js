@@ -188,4 +188,8 @@ const Network = {
             UI.promptMindControlSelection(data.targetId);
         });
     }
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
