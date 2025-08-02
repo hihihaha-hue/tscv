@@ -224,6 +224,12 @@ socket.on('voteSkipTwilight', (roomCode) => {
                 io.to(roomCode).emit('backToLobby', { players: room.players, hostId: room.hostId });
             }
         });
+		socket.on('voteCoordination', (data) => { // data: { roomCode, targetId }
+    const room = rooms[data.roomCode];
+    if (room && room.gameState && room.gameState.phase === 'coordination') {
+        gameLogic.handleCoordination(data.roomCode, socket.id, data.targetId, rooms, io);
+    }
+});
 
 
         // ==========================================================

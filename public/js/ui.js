@@ -406,6 +406,11 @@ const UI = {
             let changeText = totalChange > 0 ? `+${totalChange}` : totalChange;
             let details = player.changes.map(c => `${c.reason}: ${c.amount > 0 ? '+' : ''}${c.amount}`).join('<br>');
             if (player.changes.length === 0) details = 'Không đổi';
+			   let actionText = player.chosenAction;
+        if (player.actionWasNullified) {
+            // Thêm dấu hiệu gạch ngang và tooltip giải thích
+            actionText = `<s style="color: #a0aec0;" title="Hành động bị vô hiệu hóa bởi một kỹ năng hoặc hiệu ứng.">${player.chosenAction}</s>`;
+        }
             summaryHTML += `
                 <tr>
                     <td>${player.name}</td>
@@ -471,6 +476,14 @@ const UI = {
     },
 
     // --- XII. HIỂN THỊ LOG MESSAGE ---
+	addChatMessage(sender, message) {
+    if (this.gameElements.chatMessages) {
+        const div = document.createElement('div');
+        div.className = 'chat-message';
+        div.innerHTML = `<strong>${sender}:</strong> ${message}`;
+        this.gameElements.chatMessages.appendChild(div);
+    }
+},
     addLogMessage(message) {
         // Hiển thị log ở giao diện chat nếu có, hoặc log ra console
         if (this.gameElements.chatMessages) {
@@ -482,6 +495,7 @@ const UI = {
             console.log('[Log]', message);
         }
     }
+	
 };
 
 window.UI = UI;
