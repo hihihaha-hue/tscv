@@ -83,6 +83,31 @@ showNightTransition(roundNumber) {
             overlay.classList.remove('active');
         }, 2500);
     },
+showGameHistory(history) {
+    if (history.length === 0) {
+        return Swal.fire({ title: 'Lịch Sử Ván Đấu', text: 'Chưa có đêm nào kết thúc.', background: '#2d3748', color: '#e2e8f0' });
+    }
+    let historyHTML = '<div style="text-align: left;">';
+    history.forEach(roundData => {
+        historyHTML += `
+            <details>
+                <summary><strong>Đêm ${roundData.round}:</strong> Phe ${roundData.results.winner || 'Hòa'} thắng</summary>
+                <p>Phiếu: 📜${roundData.votes['Giải Mã']} 💣${roundData.votes['Phá Hoại']} 👁️${roundData.votes['Quan Sát']}</p>
+                <ul>
+                    ${roundData.results.roundSummary.map(p => `<li>${p.name}: ${p.oldScore} → ${p.newScore}</li>`).join('')}
+                </ul>
+            </details>
+            <hr>
+        `;
+    });
+    historyHTML += '</div>';
+    Swal.fire({
+        title: 'Lịch Sử Ván Đấu',
+        html: historyHTML,
+        background: '#2d3748',
+        color: '#e2e8f0'
+    });
+},
 
     playSound(soundName) {
         try {
@@ -201,6 +226,7 @@ showNightTransition(roundNumber) {
             card.addEventListener('click', handleTargetClick, { once: !firstSelection });
         });
     },
+
 
     /** Hiển thị giao diện chọn 2 Đấu Sĩ. */
     promptForDuelistPick(players, onPickComplete) {
@@ -641,3 +667,24 @@ showNightTransition(roundNumber) {
         });
     }
 };
+Hàm chọn mục tiêu cho tin nhắn nhanh
+promptForPlayerTarget(title, onSelected) {
+    const inputOptions = {};
+    state.players.filter(p => p.id !== state.myId).forEach(p => {
+        inputOptions[p.id] = p.name;
+    });
+
+    Swal.fire({
+        title: title,
+        input: 'select',
+        inputOptions: inputOptions,
+        inputPlaceholder: 'Chọn một người chơi',
+        showCancelButton: true,
+        background: '#2d3748',
+        color: '#e2e8f0',
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            onSelected(result.value);
+        }
+    });
+},
