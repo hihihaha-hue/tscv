@@ -44,6 +44,11 @@ UI.homeElements.joinRoomBtn.addEventListener('click', () => {
 // B. Phòng chờ (Room Screen)
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
+    // Kiểm tra mã phòng trước khi gửi yêu cầu thêm bot
+    if (!state.currentRoomCode) {
+        Swal.fire('Không có mã phòng!'); // Báo lỗi nếu chưa có mã phòng
+        return;
+    }
     Network.emit('addBot', state.currentRoomCode);
 });
 UI.roomElements.startGameBtn.addEventListener('click', () => {
@@ -123,14 +128,18 @@ Network.on('kicked', () => {
 
 Network.on('joinedRoom', (data) => {
     UI.playSound('success');
-    const music = document.getElementById('background-music');
-    if (music.paused) music.play().catch(e => console.log("Cần tương tác để bật nhạc."));
     Object.assign(state, data);
     UI.showScreen('room');
-    UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
+    // Kiểm tra phần tử DOM trước khi cập nhật mã phòng
+    if (UI.roomElements.roomCodeDisplay) {
+        UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
+    } else {
+        console.error('Không tìm thấy phần tử roomCodeDisplay!');
+    }
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addCopyToClipboard();
 });
+
 Network.on('updatePlayerList', (players, hostId) => {
     Object.assign(state, { players, currentHostId: hostId });
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
