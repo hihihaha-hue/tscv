@@ -1,5 +1,3 @@
-
-
 // public/js/network.js
 // ======================================================================
 // NETWORK MODULE ("The Messenger")
@@ -30,27 +28,15 @@ const Network = {
         } else {
             console.error("Socket chưa được khởi tạo.");
         }
-    }
-};
+    },
+
     /**
-     * Lắng nghe một sự kiện từ server.
-     * @param {string} eventName - Tên của sự kiện.
-     * @param {function} callback - Hàm sẽ được gọi khi sự kiện xảy ra.
+     * Thiết lập tất cả các sự kiện nhận từ server
+     * @param {Object} state - Trạng thái toàn cục của client
+     * @param {Object} UI - Đối tượng giao diện người dùng
+     * @param {Object} Swal - Đối tượng SweetAlert (nếu dùng)
      */
-    on(eventName, callback) {
-        if (this.socket) {
-            this.socket.on(eventName, callback);
-        } else {
-            console.error("Socket chưa được khởi tạo. Không thể lắng nghe sự kiện.");
-        }
-    }
-};
-
-    setupEventListeners() {
-        const state = this.state;
-		
-		
-
+    setupEventListeners(state, UI, Swal) {
         // --- A. Sự kiện Kết nối & Phòng chờ ---
         this.socket.on('connect', () => {
             state.myId = this.socket.id;
@@ -69,7 +55,7 @@ const Network = {
             UI.showScreen('room');
             UI.renderPlayerList();
         });
-        
+
         this.socket.on('updatePlayerList', (players, hostId) => {
             state.players = players;
             state.currentHostId = hostId;
@@ -82,7 +68,7 @@ const Network = {
         });
 
         // --- B. Sự kiện Luồng Game Chính ---
-     this.socket.on('gameStarted', (data) => {
+        this.socket.on('gameStarted', (data) => {
             UI.showScreen('game');
             UI.gameElements.messageArea.innerHTML = '';
             if (data && data.rolesInGame) {
@@ -107,7 +93,7 @@ const Network = {
         this.socket.on('decreeRevealed', data => {
             UI.playSound('decree');
             const decree = data.decrees[0];
-            let decreeHTML = `<h3>📜 Tiếng Vọng Của Đền Thờ 📜</h3><div class="decree-item"><p class="decree-title warning">${decree.name}</p><p class="decree-description">${decree.description}</p></div>`;
+            let decreeHTML = `<h3>📜 Tiếng Vọng Của Đền Thờ 📜</h3><div class="decree-item"><p class="decree-title warning">${decree.name}</p><p class="decree-description">${decree.desc}</p></div>`;
             UI.gameElements.decreeDisplay.innerHTML = decreeHTML;
             UI.gameElements.decreeDisplay.style.display = 'block';
             UI.logMessage('warning', `📜 **${data.drawerName}** đã nghe thấy một Tiếng Vọng!`);
@@ -123,12 +109,12 @@ const Network = {
             state.gamePhase = 'gameover';
             UI.renderGameOver(data);
         });
-        
+
         this.socket.on('promptNextRound', () => {
             if (state.myId === state.currentHostId) {
-                 UI.gameElements.actionControls.innerHTML = `<button class="skip-button" onclick="Network.emit('nextRound', state.currentRoomCode)">Đêm Tiếp Theo</button>`;
+                UI.gameElements.actionControls.innerHTML = `<button class="skip-button" onclick="Network.emit('nextRound', state.currentRoomCode)">Đêm Tiếp Theo</button>`;
             } else {
-                 UI.gameElements.actionControls.innerHTML = `<p class="info">Đang chờ Trưởng Đoàn bắt đầu đêm tiếp theo...</p>`;
+                UI.gameElements.actionControls.innerHTML = `<p class="info">Đang chờ Trưởng Đoàn bắt đầu đêm tiếp theo...</p>`;
             }
         });
 
@@ -143,17 +129,18 @@ const Network = {
             state.gamePhase = 'chaos';
             UI.renderChaosPhase(data);
         });
-		 this.socket.on('coordinationPhaseStarted', data => {
+
+        this.socket.on('coordinationPhaseStarted', data => {
             state.gamePhase = 'coordination';
             UI.renderCoordinationPhase(data);
         });
-		this.socket.on('coordinationPhaseEnded', () => {
+
+        this.socket.on('coordinationPhaseEnded', () => {
             // Ẩn giao diện Phối Hợp
             UI.gameElements.actionControls.innerHTML = '<p class="info">Đang chờ Tiếng Vọng...</p>';
         });
 
-
-         this.socket.on('twilightPhaseStarted', data => {
+        this.socket.on('twilightPhaseStarted', data => {
             state.gamePhase = 'twilight';
             UI.renderTwilightPhase(data);
         });
@@ -180,17 +167,18 @@ const Network = {
             UI.logMessage('error', `Thợ săn ${data.newName} đã mất tích trong đền thờ.`);
             UI.updatePlayerCard(data.playerId, { disconnected: true, newName: data.newName });
         });
-		this.socket.on('newMessage', (data) => {
-        UI.playSound('new-message');
-        UI.addChatMessage(data.senderName, data.message);
-    });
+
+        this.socket.on('newMessage', (data) => {
+            UI.playSound('new-message');
+            UI.addChatMessage(data.senderName, data.message);
+        });
 
         // --- D. Sự kiện Kỹ năng & Đặc biệt ---
-       this.socket.on('logMessage', data => UI.logMessage(data.type, data.message));
+        this.socket.on('logMessage', data => UI.logMessage(data.type, data.message));
         this.socket.on('privateInfo', data => {
             Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' });
         });
-        
+
         this.socket.on('promptAmnesiaAction', (data) => {
             UI.promptAmnesiaSelection(data.players);
         });
@@ -201,4 +189,3 @@ const Network = {
         });
     }
 };
- 
