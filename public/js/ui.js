@@ -33,6 +33,32 @@ const UI = {
         chatMessages: document.getElementById('chat-messages'),
     },
     audioCache: {},
+     // NÂNG CẤP: Thêm một trạng thái Mute toàn cục
+    isMuted: false,
+
+    // --- CÁC HÀM TIỆN ÍCH ÂM THANH ĐÃ NÂNG CẤP ---
+
+    /**
+     * (NÂNG CẤP) Bật hoặc tắt TOÀN BỘ âm thanh trong game.
+     * Giờ đây nó sẽ là bộ điều khiển trung tâm.
+     */
+    toggleMasterMute() {
+        // 1. Đảo ngược trạng thái tắt tiếng
+        this.isMuted = !this.isMuted;
+
+        // 2. Cập nhật icon trên nút bấm
+        const btn = document.getElementById('music-toggle-btn');
+        btn.textContent = this.isMuted ? '🔇' : '🎵';
+
+        // 3. Áp dụng trạng thái Mute cho nhạc nền
+        const music = document.getElementById('background-music');
+        music.muted = this.isMuted;
+
+        // 4. Áp dụng trạng thái Mute cho TẤT CẢ các âm thanh hiệu ứng đã được cache
+        for (const soundName in this.audioCache) {
+            this.audioCache[soundName].muted = this.isMuted;
+        }
+    }
 
     // --- II. HÀM TIỆN ÍCH CHUNG (UTILITY FUNCTIONS) ---
     showScreen(screenId) {
@@ -44,11 +70,16 @@ const UI = {
 
     playSound(soundName) {
         try {
+            // Nếu âm thanh đã có trong cache
             if (this.audioCache[soundName]) {
-                this.audioCache[soundName].currentTime = 0;
-                this.audioCache[soundName].play();
+                const audio = this.audioCache[soundName];
+                audio.muted = this.isMuted; // Đảm bảo nó tuân thủ trạng thái Mute
+                audio.currentTime = 0;      // Quay về đầu để phát lại ngay lập tức (tránh chồng âm)
+                audio.play();
             } else {
+                // Nếu chưa có, tạo mới, đặt trạng thái Mute và lưu vào cache
                 const audio = new Audio(`/assets/sounds/${soundName}.mp3`);
+                audio.muted = this.isMuted;
                 this.audioCache[soundName] = audio;
                 audio.play();
             }
@@ -56,6 +87,7 @@ const UI = {
             console.error(`Không thể phát âm thanh '${soundName}':`, e);
         }
     },
+
 
     addLogMessage(type, message) {
         const p = document.createElement('p');
