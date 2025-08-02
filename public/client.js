@@ -18,6 +18,7 @@ const state = {
     players: [],            // Mảng chứa thông tin của tất cả người chơi trong phòng
     gamePhase: 'lobby',     // Trạng thái hiện tại của game (lobby, started, gameover...)
     myRole: null,           // Vai trò của chính người chơi này
+    gameHistory: [],
 };
 
 
@@ -84,6 +85,25 @@ document.getElementById('music-toggle-btn').addEventListener('click', () => {
 document.getElementById('music-toggle-btn').addEventListener('click', () => {
     UI.playSound('click');
     UI.toggleMusic();
+});
+document.getElementById('history-log-btn').addEventListener('click', () => {
+    UI.playSound('click');
+    UI.showGameHistory(state.gameHistory);
+});
+
+document.querySelectorAll('.quick-chat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        UI.playSound('click');
+        const key = btn.getAttribute('data-key');
+        if (key === 'suspect') {
+            // Nếu là tin nhắn cần mục tiêu, hiển thị danh sách người chơi
+            UI.promptForPlayerTarget('Bạn nghi ngờ ai?', (targetId) => {
+                Network.emit('sendQuickChat', { roomCode: state.currentRoomCode, key: 'suspect', targetId: targetId });
+            });
+        } else {
+            Network.emit('sendQuickChat', { roomCode: state.currentRoomCode, key: key });
+        }
+    });
 });
 
 // D. Chức năng Chat
@@ -176,6 +196,7 @@ Network.on('decreeRevealed', (data) => {
 });
 
 Network.on('roundResult', (data) => {
+    state.gameHistory.push({ round: gs.currentRound -1, results: data.results, votes: data.finalVoteCounts });
     Object.assign(state, { gamePhase: 'reveal', players: data.players });
     UI.clearTimer();
    UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
