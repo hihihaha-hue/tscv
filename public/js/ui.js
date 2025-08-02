@@ -33,6 +33,8 @@ const UI = {
         actionControls: document.getElementById('action-controls'),
         messageArea: document.getElementById('message-area'),
         chatMessages: document.getElementById('chat-messages'),
+        skipCoordinationBtn: document.getElementById('skip-coordination-btn'),
+        skipTwilightBtn: document.getElementById('skip-twilight-btn'),
     },
     audioCache: {},
      // NÂNG CẤP: Thêm một trạng thái Mute toàn cục
