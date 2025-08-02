@@ -62,7 +62,7 @@ const UI = {
         for (const soundName in this.audioCache) {
             this.audioCache[soundName].muted = this.isMuted;
         }
-    }
+    },
 
     // --- II. HÀM TIỆN ÍCH CHUNG (UTILITY FUNCTIONS) ---
     showScreen(screenId) {
