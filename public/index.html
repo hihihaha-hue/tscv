@@ -54,24 +54,22 @@
         <!-- ===================== MÀN HÌNH PHÒNG CHỜ (ROOM) ==================== -->
         <!-- ==================================================================== -->
         <!-- Ban đầu được ẩn, JavaScript sẽ hiển thị nó khi cần thiết -->
-        <div id="room-screen" style="display: none;">
-            <!-- Mã phòng sẽ được điền vào <span> này bởi JS -->
-            <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
-            <h3>Các Thợ Săn Trong Đoàn:</h3>
-            
-            <!-- Danh sách người chơi sẽ được JS render vào đây -->
-            <ul id="player-list"></ul>
-            
-            <!-- Khu vực điều khiển chỉ dành cho Host (Trưởng Đoàn) -->
-            <div id="host-controls" class="controls-wrapper" style="display: none;">
-                <button id="add-bot-btn">Thêm Thợ Săn AI</button>
-                <!-- Nút này bị vô hiệu hóa ban đầu cho đến khi có đủ người chơi -->
-                <button id="start-game-btn" disabled>Bắt Đầu Thám Hiểm</button>
-            </div>
-		<div id="player-controls" class="controls-wrapper" style="display: none;">
-    <button id="ready-btn">Sẵn Sàng</button>
+       <div id="room-screen" style="display: none;">
+    <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
+    <h3>Các Thợ Săn Trong Đoàn:</h3>
+    <ul id="player-list"></ul>
+    
+    <!-- Khu vực điều khiển chỉ dành cho Host -->
+    <div id="host-controls" class="controls-wrapper" style="display: none;">
+        <button id="add-bot-btn">Thêm Thợ Săn AI</button>
+        <button id="start-game-btn" disabled>Bắt Đầu Thám Hiểm</button>
+    </div>
+
+    <!-- THÊM MỚI: Khu vực điều khiển dành cho người chơi -->
+    <div id="player-controls" class="controls-wrapper" style="display: none;">
+        <button id="ready-btn">Sẵn Sàng</button>
+    </div>
 </div>
-        </div>
 
         <!-- ==================================================================== -->
         <!-- ===================== MÀN HÌNH CHƠI GAME (GAME) ==================== -->
@@ -125,7 +123,9 @@
                 <button id="send-chat-btn">Gửi</button>
         </div>
     </div>
-    
+    <div id="night-transition-overlay">
+        <h2 id="night-transition-text"></h2>
+    </div>
     <!-- ==================================================================== -->
     <!-- ========================== SCRIPTS ================================= -->
     <!-- ==================================================================== -->
