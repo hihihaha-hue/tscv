@@ -1,4 +1,3 @@
-// public/client.js (PHIÊN BẢN HOÀN CHỈNH - CÓ CHÚ THÍCH CHI TIẾT)
 // ======================================================================
 // MODULE ĐIỀU KHIỂN CHÍNH CỦA CLIENT ("The Conductor")
 // Nhiệm vụ:
@@ -7,60 +6,65 @@
 // 3. Lắng nghe và xử lý tất cả các sự kiện từ server.
 // ======================================================================
 
-
 // --- I. TRẠNG THÁI TOÀN CỤC (GLOBAL STATE) ---
-// Ghi chú: Đây là "bộ não" của client, lưu trữ mọi thông tin cần thiết.
-// Mọi thay đổi về dữ liệu (như điểm số, người chơi) đều được cập nhật ở đây.
 const state = {
-    myId: null,             // ID duy nhất của người chơi này, được server cấp
-    currentRoomCode: null,  // Mã phòng hiện tại
-    currentHostId: null,    // ID của chủ phòng
-    players: [],            // Mảng chứa thông tin của tất cả người chơi trong phòng
-    gamePhase: 'lobby',     // Trạng thái hiện tại của game (lobby, started, gameover...)
-    myRole: null,           // Vai trò của chính người chơi này
+    myId: null,
+    currentRoomCode: null,
+    currentHostId: null,
+    players: [],
+    gamePhase: 'lobby',
+    myRole: null,
+    gameHistory: [],
 };
 
-
 // --- II. KHỞI TẠO (INITIALIZATION) ---
-// Ghi chú: Đoạn mã này sẽ chạy một lần duy nhất ngay khi file script được tải.
-Network.initialize();      // Khởi tạo module Network để kết nối với server.
-UI.loadPlayerName();       // Tải tên người chơi đã lưu từ lần trước (nếu có).
+Network.initialize();
+UI.loadPlayerName();
 console.log("Client application initialized.");
 
-
 // --- III. GÁN SỰ KIỆN TĨNH CHO CÁC THÀNH PHẦN GIAO DIỆN ---
-// Ghi chú: Gán sự kiện "click" cho các nút bấm cố định có trong file index.html.
-// Các sự kiện này chỉ cần được gán một lần.
-
 // A. Màn hình chính (Home Screen)
 UI.homeElements.createRoomBtn.addEventListener('click', () => {
     UI.playSound('click');
-    UI.savePlayerName(); // Lưu tên người chơi cho các lần chơi sau.
+    UI.savePlayerName();
     Network.emit('createRoom', { name: UI.homeElements.nameInput.value });
 });
 
 UI.homeElements.joinRoomBtn.addEventListener('click', () => {
     UI.playSound('click');
-    UI.savePlayerName(); // Lưu tên người chơi cho các lần chơi sau.
+    UI.savePlayerName();
     const code = UI.homeElements.roomCodeInput.value.trim().toUpperCase();
     if (code) {
         Network.emit('joinRoom', { roomCode: code, name: UI.homeElements.nameInput.value });
     } else {
-        UI.homeElements.roomCodeInput.focus(); // Nếu chưa nhập mã, trỏ chuột vào ô.
+        UI.homeElements.roomCodeInput.focus();
     }
 });
 
 // B. Phòng chờ (Room Screen)
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
+    // Kiểm tra mã phòng trước khi gửi yêu cầu thêm bot
+    if (!state.currentRoomCode) {
+        Swal.fire('Không có mã phòng!'); // Báo lỗi nếu chưa có mã phòng
+        return;
+    }
     Network.emit('addBot', state.currentRoomCode);
 });
 UI.roomElements.startGameBtn.addEventListener('click', () => {
     UI.playSound('click');
     Network.emit('startGame', state.currentRoomCode);
 });
+UI.roomElements.readyBtn.addEventListener('click', () => {
+    UI.playSound('click');
+    Network.emit('playerReady', state.currentRoomCode);
+});
 
 // C. Các nút chức năng chung
+document.getElementById('music-toggle-btn').addEventListener('click', () => {
+    UI.playSound('click');
+    UI.toggleMasterMute();
+});
 document.getElementById('rulebook-btn').addEventListener('click', () => {
     UI.playSound('click');
     const rulebookHTML = document.getElementById('rulebook-template').innerHTML;
@@ -74,10 +78,23 @@ document.getElementById('rulebook-btn').addEventListener('click', () => {
         confirmButtonText: 'Đã Hiểu'
     });
 });
-
-document.getElementById('music-toggle-btn').addEventListener('click', () => {
+document.getElementById('history-log-btn').addEventListener('click', () => {
     UI.playSound('click');
-    UI.toggleMusic();
+    UI.showGameHistory(state.gameHistory);
+});
+
+document.querySelectorAll('.quick-chat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        UI.playSound('click');
+        const key = btn.getAttribute('data-key');
+        if (key === 'suspect') {
+            UI.promptForPlayerTarget('Bạn nghi ngờ ai?', (targetId) => {
+                Network.emit('sendQuickChat', { roomCode: state.currentRoomCode, key: 'suspect', targetId: targetId });
+            });
+        } else {
+            Network.emit('sendQuickChat', { roomCode: state.currentRoomCode, key: key });
+        }
+    });
 });
 
 // D. Chức năng Chat
@@ -93,11 +110,7 @@ function sendChatMessage() {
 sendChatBtn.addEventListener('click', sendChatMessage);
 chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
-
 // --- IV. LẮNG NGHE VÀ XỬ LÝ SỰ KIỆN TỪ SERVER ---
-// Ghi chú: Đây là phần cốt lõi, nơi client nhận lệnh và dữ liệu từ server
-// để cập nhật trạng thái và giao diện.
-
 // A. Nhóm sự kiện kết nối và quản lý phòng chờ
 Network.on('connect', () => {
     state.myId = Network.socket.id;
@@ -115,14 +128,14 @@ Network.on('kicked', () => {
 
 Network.on('joinedRoom', (data) => {
     UI.playSound('success');
-    const music = document.getElementById('background-music');
-    if (music.paused) {
-        music.play().catch(e => console.log("Người dùng cần tương tác để bật nhạc."));
-    }
-    
-    Object.assign(state, { myId: data.myId, currentRoomCode: data.roomCode, currentHostId: data.hostId, players: data.players });
+    Object.assign(state, data);
     UI.showScreen('room');
-    UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
+    // Kiểm tra phần tử DOM trước khi cập nhật mã phòng
+    if (UI.roomElements.roomCodeDisplay) {
+        UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
+    } else {
+        console.error('Không tìm thấy phần tử roomCodeDisplay!');
+    }
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addCopyToClipboard();
 });
@@ -141,8 +154,9 @@ Network.on('backToLobby', (data) => {
 
 // B. Nhóm sự kiện luồng game chính
 Network.on('gameStarted', (data) => {
-    UI.playSound('success'); // Hoặc một âm thanh game_start.mp3 hoành tráng
+    UI.playSound('success');
     state.gamePhase = 'started';
+    state.rolesInGame = data.rolesInGame;
     UI.showScreen('game');
     UI.addLogMessage('success', 'Cuộc thám hiểm bắt đầu!');
     const rolesList = data.rolesInGame.map(r => r.name).join(', ');
@@ -150,32 +164,33 @@ Network.on('gameStarted', (data) => {
 });
 
 Network.on('newRound', (data) => {
+   UI.showDayTransition(data.roundNumber);
     UI.playSound('new-round');
-    Object.assign(state, { gamePhase: 'choice', players: data.players });
-    UI.gameElements.currentRound.textContent = data.roundNumber;
-    UI.updatePlayerCards(state.players, state.myId);
-    UI.renderChoiceButtons(); // UI sẽ tự gán sự kiện cho các nút này
-    UI.startTimer(data.duration);
-    UI.gameElements.decreeDisplay.style.display = 'none';
+     // 2. Chờ 1 giây để hiệu ứng bắt đầu, sau đó mới cập nhật giao diện
+    setTimeout(() => {
+        Object.assign(state, { gamePhase: 'choice', players: data.players });
+        UI.gameElements.currentRound.textContent = data.roundNumber;
+        UI.updatePlayerCards(state.players, state.myId);
+        UI.renderChoiceButtons();
+        UI.startTimer(data.duration);
+        UI.gameElements.decreeDisplay.style.display = 'none';
+    }, 1000);
 });
-
 Network.on('decreeRevealed', (data) => {
     UI.playSound('decree');
     UI.displayDecree(data);
 });
 
 Network.on('roundResult', (data) => {
+    state.gameHistory.push({ round: data.roundNumber, results: data.results, votes: data.finalVoteCounts });
     Object.assign(state, { gamePhase: 'reveal', players: data.players });
     UI.clearTimer();
     UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
-    
-    // Hiển thị bảng tổng kết chi tiết, hấp dẫn
     UI.showRoundSummary(data.results, data.finalVoteCounts);
-
     if (state.myId === state.currentHostId) {
         setTimeout(() => {
             const nextRoundBtn = document.createElement('button');
-            nextRoundBtn.textContent = 'Bắt Đầu Đêm Tiếp Theo';
+            nextRoundBtn.textContent = 'Bắt Đầu Ngày Tiếp Theo';
             nextRoundBtn.addEventListener('click', () => {
                 UI.playSound('click');
                 Network.emit('nextRound', state.currentRoomCode);
@@ -188,27 +203,24 @@ Network.on('roundResult', (data) => {
 
 Network.on('gameOver', (data) => {
     if (data.winner && data.winner.id === state.myId) {
-        UI.playSound('success'); // Hoặc âm thanh victory.mp3
+        UI.playSound('success');
     } else {
-        UI.playSound('error'); // Hoặc âm thanh defeat.mp3
+        UI.playSound('error');
     }
     state.gamePhase = 'gameover';
     UI.clearTimer();
     UI.showGameOver(data);
 });
 
-
 // C. Nhóm sự kiện nhận thông tin cá nhân
 Network.on('yourRoleIs', (roleData) => {
     state.myRole = roleData;
     UI.displayRole(roleData);
-    
-    // Ghi chú: Nút kỹ năng được tạo động, nên ta phải gán sự kiện ngay sau khi nó được tạo ra.
+
     const skillBtn = document.getElementById('skill-btn');
     if (skillBtn) {
         skillBtn.addEventListener('click', () => {
-            UI.playSound('click'); // Âm thanh dùng kỹ năng
-            // ... (toàn bộ logic phức tạp xử lý các loại kỹ năng khác nhau)
+            UI.playSound('click');
             const roleId = state.myRole.id;
             const targetBasedRoles = ['PROPHET', 'PEACEMAKER', 'MAGNATE', 'REBEL', 'PRIEST', 'THIEF', 'PHANTOM'];
             if (targetBasedRoles.includes(roleId)) {
@@ -238,7 +250,9 @@ Network.on('yourRoleIs', (roleData) => {
     }
 });
 
-Network.on('privateInfo', (data) => Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' }));
+Network.on('privateInfo', (data) => {
+    Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' });
+});
 
 // D. Nhóm sự kiện phản hồi hành động và cập nhật real-time
 Network.on('playerChose', (playerId) => {
@@ -260,34 +274,67 @@ Network.on('chaosActionResolved', (data) => {
 
 Network.on('coordinationPhaseStarted', (data) => {
     state.gamePhase = 'coordination';
-    UI.updatePhaseDisplay('Giai Đoạn Phối Hợp', '<p>Chọn một người để đề nghị Phối Hợp.</p>');
-    UI.startTimer(data.duration);
+    UI.updatePhaseDisplay('Giai Đoạn Thám Hiểm', '<p>Chọn một người để đề nghị Phối Hợp, hoặc chọn hành động một mình.</p>');
+    UI.gameElements.skipCoordinationBtn.style.display = 'inline-block';
+    UI.gameElements.skipCoordinationBtn.disabled = false;
+    if (!UI.gameElements.actionControls.contains(UI.gameElements.skipCoordinationBtn)) {
+        UI.gameElements.actionControls.appendChild(UI.gameElements.skipCoordinationBtn);
+    }
     document.body.classList.add('selecting-target');
+    UI.startTimer(data.duration); // Gọi timer!
+
+    const handleCoordinationTarget = function () {
+        const targetId = this.getAttribute('data-player-id');
+        Network.emit('voteCoordination', { roomCode: state.currentRoomCode, targetId });
+        UI.gameElements.skipCoordinationBtn.disabled = true;
+        document.body.classList.remove('selecting-target');
+        document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
+    };
     document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
-        card.addEventListener('click', function handleCoordinationTarget() {
-            UI.playSound('click');
-            Network.emit('requestCoordination', { roomCode: state.currentRoomCode, targetId: card.getAttribute('data-player-id') });
-            document.body.classList.remove('selecting-target');
-            document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
-        });
+        card.addEventListener('click', handleCoordinationTarget, { once: true });
     });
+
+    UI.gameElements.skipCoordinationBtn.addEventListener('click', () => {
+        UI.playSound('click');
+        Network.emit('voteSkipCoordination', state.currentRoomCode);
+        UI.gameElements.skipCoordinationBtn.disabled = true;
+        document.body.classList.remove('selecting-target');
+        document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
+    }, { once: true });
 });
 
 Network.on('twilightPhaseStarted', (data) => {
     state.gamePhase = 'twilight';
-    UI.updatePhaseDisplay('Giờ Hoàng Hôn', '<p>Chọn một người để Vạch Trần.</p>');
-    UI.startTimer(data.duration);
+    UI.updatePhaseDisplay('Hoàng Hôn', '<p>Chọn một người để Vạch Trần, hoặc chọn nghỉ ngơi.</p>');
+    UI.gameElements.skipTwilightBtn.style.display = 'inline-block';
+    UI.gameElements.skipTwilightBtn.disabled = false;
+    if (!UI.gameElements.actionControls.contains(UI.gameElements.skipTwilightBtn)) {
+        UI.gameElements.actionControls.appendChild(UI.gameElements.skipTwilightBtn);
+    }
     document.body.classList.add('selecting-target');
+    UI.startTimer(data.duration); // Gọi timer!
+
+    const handleAccusationTarget = function () {
+        const targetId = this.getAttribute('data-player-id');
+        UI.promptForAccusation(targetId, this.querySelector('.player-name').textContent);
+        UI.gameElements.skipTwilightBtn.disabled = true;
+        document.body.classList.remove('selecting-target');
+        document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
+    };
     document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
-        card.addEventListener('click', function handleAccusationTarget() {
-            UI.playSound('click');
-            UI.promptForAccusation(card.getAttribute('data-player-id'), card.querySelector('.player-name').textContent);
-        });
+        card.addEventListener('click', handleAccusationTarget, { once: true });
     });
+
+    UI.gameElements.skipTwilightBtn.addEventListener('click', () => {
+        UI.playSound('click');
+        Network.emit('voteSkipTwilight', state.currentRoomCode);
+        UI.gameElements.skipTwilightBtn.disabled = true;
+        document.body.classList.remove('selecting-target');
+        document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
+    }, { once: true });
 });
 
 Network.on('newMessage', (data) => {
-    // UI.playSound('chat_message'); // Có thể thêm âm thanh này
     UI.addChatMessage(data.senderName, data.message);
 });
 
@@ -295,10 +342,10 @@ Network.on('newMessage', (data) => {
 Network.on('promptAmnesiaAction', (data) => {
     state.gamePhase = 'amnesia_selection';
     UI.promptForPlayerSwap(data.validTargets, (selection) => {
-        Network.emit('submitAmnesiaAction', { 
-            roomCode: state.currentRoomCode, 
-            player1Id: selection.player1Id, 
-            player2Id: selection.player2Id 
+        Network.emit('submitAmnesiaAction', {
+            roomCode: state.currentRoomCode,
+            player1Id: selection.player1Id,
+            player2Id: selection.player2Id
         });
         UI.updatePhaseDisplay('Đã hoán đổi!', 'Đang chờ server xử lý...');
     });
@@ -316,4 +363,10 @@ Network.on('promptArenaBet', (data) => {
         Network.emit('submitArenaBet', { roomCode: state.currentRoomCode, ...bet });
         UI.updatePhaseDisplay('Đã Đặt Cược!', 'Đang chờ trận đấu diễn ra...');
     });
+});
+Network.on('updateSkipVoteCount', (data) => {
+    const btn = document.getElementById(data.buttonId);
+    if (btn) {
+        btn.textContent = `${btn.textContent.split('(')[0].trim()} (${data.count}/${data.total})`;
+    }
 });

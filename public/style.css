@@ -372,7 +372,19 @@ body.selecting-target .player-card.is-self {
     background-color: var(--bg-medium);
     border: 2px solid var(--bg-light);
 }
-
+#history-log-btn {
+    position: fixed;
+    top: 140px; /* Dưới các nút khác */
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.8em;
+    z-index: 1000;
+    padding: 0;
+    background-color: var(--bg-medium);
+    border: 2px solid var(--bg-light);
+}
 /* Animation rung lắc cho thẻ người chơi */
 @keyframes shake {
   10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -384,4 +396,43 @@ body.selecting-target .player-card.is-self {
 .shake {
     animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
     border-color: var(--accent-red) !important; /* Đổi màu viền để nhấn mạnh */
+}
+#night-transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    color: var(--primary-gold);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5em;
+    text-shadow: 0 0 15px var(--primary-gold);
+    z-index: 9999;
+    
+    /* Trạng thái mặc định: ẩn và không thể click */
+    opacity: 0;
+    pointer-events: none;
+    
+    /* Hiệu ứng mờ dần trong 1.5 giây */
+    transition: opacity 1.5s ease-in-out;
+}
+
+/* Lớp .active sẽ kích hoạt hiệu ứng */
+#night-transition-overlay.active {
+    opacity: 1;
+}
+#quick-chat-area {
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    border-bottom: 1px solid var(--bg-light);
+}
+.quick-chat-btn {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    background-color: var(--bg-medium);
 }
