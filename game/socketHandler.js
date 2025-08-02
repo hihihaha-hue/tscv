@@ -9,10 +9,8 @@
 const gameLogic = require('./logic.js'); // "Bộ Não" xử lý luật chơi
 const { ROLES } = require('./config.js');   // "Sách Luật" chứa thông tin về các vai trò
 
-function initialize(io, rooms) {
-    // Hàm này được gọi một lần duy nhất khi server khởi động.
-    // Nó thiết lập trình lắng nghe cho tất cả các kết nối trong tương lai.
 
+function initialize(io, rooms) {
     io.on('connection', (socket) => {
         // Mỗi khi có một người chơi mới mở game trên trình duyệt, một 'socket' mới sẽ được tạo ra.
         // Tất cả các sự kiện của người chơi đó sẽ được xử lý bên trong hàm này.
@@ -30,35 +28,65 @@ function initialize(io, rooms) {
          */
         function handleJoinRoom(code, name) {
             const room = rooms[code];
+            if (!room) return socket.emit('roomError', `Phòng '${code}' không tồn tại!`);
+            if (room.gameState) return socket.emit('roomError', 'Cuộc thám hiểm đã bắt đầu!');
+            if (room.players.length >= room.maxPlayers) return socket.emit('roomError', 'Đoàn đã đủ người!');
 
-            // --- Các bước kiểm tra an toàn ---
-            if (!room) {
-                return socket.emit('roomError', `Phòng '${code}' không tồn tại!`);
-            }
-            if (room.gameState) {
-                return socket.emit('roomError', 'Cuộc thám hiểm đã bắt đầu, không thể tham gia!');
-            }
-            if (room.players.length >= room.maxPlayers) {
-                return socket.emit('roomError', 'Đoàn đã đủ người!');
-            }
-
-            // --- Thêm người chơi vào phòng ---
             const newPlayer = {
                 id: socket.id,
                 name: (name || `Thợ Săn ${room.players.length + 1}`).substring(0, 15).trim(),
-                isBot: false
+                isBot: false,
+                isReady: false // <-- THÊM DÒNG NÀY
             };
             room.players.push(newPlayer);
-            socket.join(code); // Cho socket này vào "kênh" của phòng
-
-            // --- Thông báo cho mọi người trong phòng và người chơi mới ---
-            // Gửi cho TẤT CẢ mọi người trong phòng (bao gồm cả người mới) danh sách người chơi đã cập nhật.
+            socket.join(code);
             io.to(code).emit('updatePlayerList', room.players, room.hostId);
-            // Gửi RIÊNG cho người chơi vừa tham gia để xác nhận họ đã vào phòng thành công.
             socket.emit('joinedRoom', { roomCode: code, hostId: room.hostId, myId: socket.id, players: room.players });
             console.log(`[Join] Người chơi ${newPlayer.name} (${socket.id}) đã vào phòng ${code}`);
         }
 
+        // THÊM MỚI: Lắng nghe sự kiện khi người chơi bấm nút Sẵn sàng
+        socket.on('playerReady', (roomCode) => {
+            const room = rooms[roomCode];
+            // Chỉ xử lý khi phòng tồn tại và game chưa bắt đầu
+            if (room && !room.gameState) {
+                const player = room.players.find(p => p.id === socket.id);
+                if (player) {
+                    // Đảo ngược trạng thái sẵn sàng của người chơi (true -> false, false -> true)
+                    player.isReady = !player.isReady;
+                    // Thông báo cho tất cả mọi người trong phòng về danh sách người chơi đã cập nhật
+                    io.to(roomCode).emit('updatePlayerList', room.players, room.hostId);
+                }
+            }
+        });
+	    socket.on('sendQuickChat', (data) => { // data: { roomCode, key, targetId }
+    const room = rooms[data.roomCode];
+    const sender = room?.players.find(p => p.id === socket.id);
+    if (!sender) return;
+
+    let message = '';
+    const target = room.players.find(p => p.id === data.targetId);
+
+    // Xây dựng tin nhắn ở server để đảm bảo an toàn
+    switch(data.key) {
+        case 'suspect':
+            if (target) message = `Tôi nghi ngờ ${target.name}!`;
+            break;
+        case 'praise':
+            message = `Nước đi hay lắm! 👍`;
+            break;
+        case 'hurry':
+            message = `Mọi người ơi, nhanh lên nào! ⏰`;
+            break;
+    }
+
+    if (message) {
+        io.to(data.roomCode).emit('newMessage', {
+            senderName: sender.name,
+            message: message
+        });
+    }
+});
         // ==========================================================
         // --- II. SỰ KIỆN QUẢN LÝ PHÒNG CHỜ (LOBBY EVENTS) ---
         // ==========================================================
@@ -104,22 +132,42 @@ function initialize(io, rooms) {
                 io.to(roomCode).emit('updatePlayerList', room.players, room.hostId);
             }
         });
+	    // THÊM MỚI: Lắng nghe sự kiện bỏ phiếu bỏ qua Phối hợp
+socket.on('voteSkipCoordination', (roomCode) => {
+    const room = rooms[roomCode];
+    if (room && room.gameState && room.gameState.phase === 'coordination') {
+        // Gọi logic để xử lý việc bỏ phiếu
+        gameLogic.handleVoteToSkip(roomCode, socket.id, 'coordination', rooms, io);
+    }
+});
+
+// THÊM MỚI: Lắng nghe sự kiện bỏ phiếu Nghỉ ngơi
+socket.on('voteSkipTwilight', (roomCode) => {
+    const room = rooms[roomCode];
+    if (room && room.gameState && room.gameState.phase === 'twilight') {
+        gameLogic.handleVoteToSkip(roomCode, socket.id, 'twilight', rooms, io);
+    }
+});
 
         // Lắng nghe sự kiện khi chủ phòng muốn đuổi một người chơi.
         socket.on('kickPlayer', (data) => {
-            const room = rooms[data.roomCode];
-            if (room && socket.id === room.hostId) {
-                // Tìm socket của người chơi bị đuổi.
-                const targetSocket = io.sockets.sockets.get(data.playerId);
-                if (targetSocket) {
-                    targetSocket.emit('kicked'); // Báo cho người bị đuổi biết.
-                    targetSocket.leave(data.roomCode); // Buộc họ rời khỏi kênh phòng.
-                }
-                // Cập nhật lại danh sách người chơi.
-                room.players = room.players.filter(p => p.id !== data.playerId);
-                io.to(data.roomCode).emit('updatePlayerList', room.players, room.hostId);
-            }
-        });
+    const room = rooms[data.roomCode];
+    if (room && socket.id === room.hostId) {
+        // Nếu là người chơi thật (socket tồn tại)
+        const targetSocket = io.sockets.sockets.get(data.playerId);
+        if (targetSocket) {
+            targetSocket.emit('kicked');
+            targetSocket.leave(data.roomCode);
+        }
+        // Nếu là bot hoặc người chơi thật, đều xóa khỏi danh sách
+        room.players = room.players.filter(p => p.id !== data.playerId);
+        // Nếu game đang chạy, cũng xóa khỏi gameState.players
+        if (room.gameState) {
+            room.gameState.players = room.gameState.players.filter(p => p.id !== data.playerId);
+        }
+        io.to(data.roomCode).emit('updatePlayerList', room.players, room.hostId);
+    }
+});
 
         // ==========================================================
         // --- III. SỰ KIỆN LUỒNG GAME (GAME FLOW EVENTS) ---
