@@ -59,6 +59,10 @@ UI.roomElements.startGameBtn.addEventListener('click', () => {
     UI.playSound('click');
     Network.emit('startGame', state.currentRoomCode);
 });
+UI.roomElements.readyBtn.addEventListener('click', () => {
+    UI.playSound('click');
+    Network.emit('playerReady', state.currentRoomCode);
+});
 
 // C. Các nút chức năng chung
 document.getElementById('music-toggle-btn').addEventListener('click', () => {
