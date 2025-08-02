@@ -435,8 +435,49 @@ body.selecting-target .player-card.is-self {
     padding: 5px 10px;
     font-size: 0.9em;
     background-color: var(--bg-medium);
-<<<<<<< HEAD
 }
-=======
+/* --- VIII. CẢI TIẾN SÁCH LUẬT --- */
+.rulebook-section {
+    margin-bottom: 20px;
 }
->>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
+
+.rulebook-content .role-details {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--bg-light);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.rulebook-content .role-details[open] {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.rulebook-content .role-details summary {
+    padding: 12px 15px;
+    font-weight: bold;
+    font-size: 1.2em;
+    color: var(--primary-gold);
+    cursor: pointer;
+    outline: none;
+    user-select: none; /* Chặn việc chọn văn bản của tiêu đề */
+}
+
+.rulebook-content .role-details summary::marker {
+    color: var(--primary-gold); /* Đổi màu mũi tên tam giác */
+}
+
+.rulebook-content .role-details .role-description-content {
+    padding: 0 15px 15px 15px;
+    border-top: 1px solid var(--bg-light);
+    margin-top: 10px;
+}
+
+.rulebook-content .role-details p {
+    margin: 8px 0;
+}
+
+.rulebook-content .role-details p strong {
+    color: var(--text-light);
+    font-weight: bold;
+}

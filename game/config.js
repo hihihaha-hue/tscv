@@ -38,104 +38,161 @@ const DECREES = {
 const ROLES = {
     'PROPHET': {
         name: "Nhà Tiên Tri",
-        description: "Thắng nếu Vạch Trần thành công 3 lần LIÊN TIẾP VÀ điểm >= 2/3 mốc thắng. Nội tại: Vạch Trần sai chỉ bị -1 điểm. Kĩ năng: Xem hành động của 1 người.",
+        description: {
+            win: "Thắng nếu Vạch Trần thành công 3 lần LIÊN TIẾP và điểm >= 2/3 mốc thắng.",
+            passive: "Vạch Trần sai chỉ bị -1 điểm.",
+            skill: "[Mỗi Đêm] Xem hành động của 1 người."
+        },
         hasActiveSkill: true,
         skillName: "Thiên Lý Nhãn"
     },
     'PEACEMAKER': {
         name: "Người Gìn Giữ Hòa Bình",
-        description: "Thắng nếu có 3 đêm HÒA liên tiếp. Nội tại: Nhận +1 điểm mỗi khi HÒA. Kĩ năng: Vô hiệu hóa phiếu của 1 người.",
+        description: {
+            win: "Thắng nếu có 3 đêm HÒA liên tiếp.",
+            passive: "Nhận +1 điểm mỗi khi HÒA.",
+            skill: "[Mỗi Đêm] Vô hiệu hóa phiếu của 1 người."
+        },
         hasActiveSkill: true,
         skillName: "Hòa Giải"
     },
     'GAMBLER': {
         name: "Kẻ Đánh Cược",
-        description: "Thắng nếu đã từng đạt chính xác +7 và -7 điểm. Nội tại: Mọi điểm bị mất có 50% bị chia đôi, 50% bị nhân đôi. Kĩ năng: Nếu phe bạn chọn thắng nhận +8 điểm, thua bị -4 điểm.",
+        description: {
+            win: "Thắng nếu đã từng đạt chính xác +7 và -7 điểm.",
+            passive: "Mọi điểm bị mất có 50% bị chia đôi, 50% bị nhân đôi.",
+            skill: "[Mỗi Đêm] Nếu phe bạn chọn thắng nhận +8 điểm, thua bị -4 điểm."
+        },
         hasActiveSkill: true,
         skillName: "Tất Tay"
     },
     'INQUISITOR': {
         name: "Kẻ Phán Xử",
-        description: "Thắng khi đạt 15 điểm. Nội tại: Vạch Trần thành công kẻ 'Phá Hoại', nhận thêm +1 điểm. Kĩ năng: Tất cả người chọn 'Phá Hoại' bị trừ điểm bằng số người đã Phá Hoại.",
+        description: {
+            win: "Thắng khi đạt điểm cơ bản (15, 20...).",
+            passive: "Vạch Trần thành công kẻ 'Phá Hoại', nhận thêm +1 điểm.",
+            skill: "[Mỗi Đêm] Tất cả người chọn 'Phá Hoại' bị trừ điểm bằng số người đã Phá Hoại."
+        },
         hasActiveSkill: true,
         skillName: "Phán Quyết"
     },
     'MAGNATE': {
         name: "Nhà Tài Phiệt",
-        description: "Thắng khi đạt mốc điểm cao nhất (20, 25, hoặc 30). Nội tại: Cuối đêm, nếu điểm > 0 nhận +1, nếu điểm < 0 bị -1. Kĩ năng: Chọn 1 người, nếu phe họ thắng, cả hai cùng nhận thêm +2 điểm.",
+        description: {
+            win: "Thắng khi đạt mốc điểm cao nhất (20, 25, hoặc 30).",
+            passive: "Cuối đêm, nếu điểm > 0 nhận +1, nếu điểm < 0 bị -1.",
+            skill: "[Mỗi Đêm] Chọn 1 người, nếu phe họ thắng, cả hai cùng nhận thêm +2 điểm."
+        },
         hasActiveSkill: true,
         skillName: "Đầu Tư"
     },
     'BALANCER': {
         name: "Người Cân Bằng",
-        description: "Thắng nếu tổng điểm dương = giá trị đối của tổng điểm âm. Nội tại: Nhận +1 điểm nếu số người điểm dương = số người điểm âm. Kĩ năng: Điểm của người cao nhất và thấp nhất được tính trung bình cộng.",
+        description: {
+            win: "Thắng nếu tổng điểm dương = giá trị đối của tổng điểm âm.",
+            passive: "Nhận +1 điểm nếu số người điểm dương = số người điểm âm.",
+            skill: "[Mỗi Đêm] Điểm của người cao nhất và thấp nhất được tính trung bình cộng."
+        },
         hasActiveSkill: true,
         skillName: "Tái Phân Bố"
     },
     'REBEL': {
         name: "Kẻ Nổi Loạn",
-        description: "Thắng nếu bạn thắng 3 đêm là người duy nhất của phe thắng. Nội tại: Hành động của bạn không thể bị thay đổi. Kĩ năng: Tuyên bố 1 hành động, nếu là người duy nhất làm, chọn 1 người để trừ điểm bằng chi phí kỹ năng đã trả.",
+        description: {
+            win: "Thắng nếu bạn thắng 3 đêm là người duy nhất của phe thắng.",
+            passive: "Hành động của bạn không thể bị thay đổi.",
+            skill: "[Mỗi Đêm] Tuyên bố 1 hành động, nếu là người duy nhất làm, chọn 1 người để trừ điểm bằng chi phí kỹ năng đã trả (ít nhất 1)."
+        },
         hasActiveSkill: true,
         skillName: "Khiêu Khích"
     },
     'PRIEST': {
         name: "Thầy Tế",
-        description: "Thắng khi đạt điểm cơ bản. Nội tại: Ban phước đúng người bị mất điểm, bạn được +1 điểm. Kĩ năng: Chọn 1 người để họ không bị mất điểm trong đêm đó.",
+        description: {
+            win: "Thắng khi đạt điểm cơ bản (15, 20...).",
+            passive: "Ban phước đúng người bị mất điểm, bạn được +1 điểm.",
+            skill: "[Mỗi Đêm] Chọn 1 người để họ không bị mất điểm trong đêm đó."
+        },
         hasActiveSkill: true,
         skillName: "Thánh Nữ Ban Phước"
     },
     'THIEF': {
         name: "Kẻ Trộm",
-        description: "Thắng khi đạt 15 điểm. Nội tại: Nếu >= 2 người mất điểm, bạn nhận thêm điểm. Kĩ năng: Chọn 1 người, nếu họ được cộng điểm, bạn cắp một nửa số điểm đó.",
+        description: {
+            win: "Thắng khi đạt điểm cơ bản (15, 20...).",
+            passive: "Nếu >= 2 người mất điểm, bạn nhận thêm điểm bằng (số người mất điểm / 2, làm tròn xuống).",
+            skill: "[Mỗi Đêm] Chọn 1 người, nếu họ được cộng điểm, bạn cắp một nửa số điểm đó."
+        },
         hasActiveSkill: true,
         skillName: "Móc Túi"
     },
     'MIND_BREAKER': {
         name: "Kẻ Tẩy Não",
-        description: "Thắng nếu có 5 đêm Vạch Trần thất bại. Nội tại: Mỗi lần có Vạch Trần thất bại, bạn nhận +2 điểm. Kĩ năng: Chọn 1 người, hành động của họ trong đêm đó do BẠN quyết định.",
+        description: {
+            win: "Thắng nếu có 5 đêm Vạch Trần thất bại.",
+            passive: "Mỗi lần có Vạch Trần thất bại, bạn nhận +2 điểm.",
+            skill: "[Mỗi Đêm] Chọn 1 người, hành động của họ trong đêm đó do BẠN quyết định."
+        },
         hasActiveSkill: true,
         skillName: "Điều Khiển"
     },
     'CULTIST': {
         name: "Kẻ Hiến Tế",
-        description: "Thắng nếu đạt -15 điểm. Nội tại: Mỗi khi mất điểm, được giảm 1 điểm mất mát. Kĩ năng: Tự mất 2 điểm để nhận 1 trong 3 hiệu ứng ngẫu nhiên.",
+        description: {
+            win: "Thắng nếu đạt -15 điểm.",
+            passive: "Mỗi khi mất điểm, được giảm 1 điểm mất mát.",
+            skill: "[Mỗi Đêm] Tự mất 2 điểm để nhận 1 trong 3 hiệu ứng ngẫu nhiên (thấy vai trò, vô hiệu hóa kỹ năng, phiếu x3)."
+        },
         hasActiveSkill: true,
         skillName: "Nghi Thức Hắc Ám"
     },
     'DOUBLE_AGENT': {
         name: "Kẻ Hai Mang",
-        description: "Thắng khi đạt mốc điểm cao nhất (20, 25, hoặc 30). Nội tại: Nếu bạn không thuộc phe thắng, được +1 điểm. Kĩ năng: Tất cả phiếu 'Quan Sát' trở thành phiếu cho phe đối nghịch với hành động của bạn.",
+        description: {
+            win: "Thắng khi đạt mốc điểm cao nhất (20, 25, hoặc 30).",
+            passive: "Nếu bạn không thuộc phe thắng, được +1 điểm.",
+            skill: "[Mỗi Đêm] Tất cả phiếu 'Quan Sát' trở thành phiếu cho phe đối nghịch với hành động của bạn."
+        },
         hasActiveSkill: true,
         skillName: "Xuyên Tạc"
     },
     'ASSASSIN': {
         name: "Sát Thủ",
-        description: "Thắng khi đạt 15 điểm. Nội tại: Ai Vạch Trần/Phối Hợp với bạn, bạn biết hành động của họ đêm sau. Kĩ năng: Được giao 1 'Mục Tiêu', Vạch Trần đúng họ sẽ chia đôi điểm của họ.",
+        description: {
+            win: "Thắng khi đạt điểm cơ bản (15, 20...).",
+            passive: "Ai Vạch Trần/Phối Hợp với bạn, bạn biết hành động của họ đêm sau.",
+            skill: "[Bị Động] Được giao 1 'Mục Tiêu'. Nếu bạn Vạch Trần đúng họ, họ bị chia đôi điểm. Nếu người khác Vạch Trần đúng họ, họ bị mất gấp đôi điểm."
+        },
         hasActiveSkill: false, // Kỹ năng chính là bị động
         skillName: "Đánh Dấu"
     },
     'PHANTOM': {
         name: "Bóng Ma",
-        description: "Thắng khi Ám Quẻ thành công 5 lần. Nội tại: Phiếu của bạn không được tính, thay vào đó bạn luôn nhận +1 điểm. Kĩ năng: Ám 1 người. Nếu họ được cộng điểm, bạn cắp 1 điểm và lần ám tiếp theo miễn phí.",
+        description: {
+            win: "Thắng khi Ám Quẻ thành công 5 lần.",
+            passive: "Phiếu của bạn không được tính, thay vào đó bạn luôn nhận +1 điểm cuối đêm.",
+            skill: "[Mỗi Đêm] Ám 1 người. Nếu họ được cộng điểm, họ mất 1 điểm, bạn nhận 1 điểm, và lần ám tiếp theo của bạn miễn phí."
+        },
         hasActiveSkill: true,
         skillName: "Ám Quẻ"
     },
     'MIMIC': {
         name: "Kẻ Bắt Chước",
-        description: "Thắng khi đạt điểm cơ bản. Nội tại: Tự động sao chép hành động của 1 người ngẫu nhiên. Kĩ năng: Trả 2 điểm để dùng ké kỹ năng của người bạn đang bắt chước.",
+        description: {
+            win: "Thắng khi đạt điểm cơ bản (15, 20...).",
+            passive: "Không tự chọn hành động, mà tự động sao chép hành động của 1 người ngẫu nhiên (bạn biết đó là ai).",
+            skill: "[Mỗi Đêm] Nếu người bạn bắt chước có kỹ năng kích hoạt, bạn có thể trả 2 điểm để dùng ké kỹ năng của họ."
+        },
         hasActiveSkill: true,
         skillName: "Đánh Cắp Năng Lực"
     },
 };
-
 // --- IV. EXPORTS ---
-// Tạo các mảng ID để dễ dàng lặp qua hoặc chọn ngẫu nhiên
 const ALL_DECREE_IDS = Object.keys(DECREES);
 const ALL_ROLE_IDS = Object.keys(ROLES);
 
-// Xuất tất cả mọi thứ để các module khác có thể sử dụng
 module.exports = {
-    ...GAME_CONSTANTS, // Trải các hằng số ra
+    ...GAME_CONSTANTS,
     DECREES,
     ROLES,
     ALL_DECREE_IDS,

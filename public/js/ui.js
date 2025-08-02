@@ -207,25 +207,42 @@ const UI = {
 
     // --- VI. HIỂN THỊ VAI TRÒ, KỸ NĂNG ---
     displayRole(role) {
-        let skillButtonHTML = '';
-        if (role.hasActiveSkill) {
-            skillButtonHTML = `<button class="skill-button" id="skill-btn" data-role-id="${role.id}">${role.skillName}</button>`;
-        }
-        this.gameElements.roleDisplay.innerHTML = `
-            <h4>Vai Trò Của Bạn</h4>
-            <strong>${role.name}</strong>
-            <p>${role.description}</p>
-            ${skillButtonHTML}
-        `;
-        this.gameElements.roleDisplay.style.display = 'block';
-    },
+    let skillButtonHTML = '';
+    if (role.hasActiveSkill) {
+        skillButtonHTML = `<button class="skill-button" id="skill-btn" data-role-id="${role.id}">${role.skillName}</button>`;
+    }
 
-    displayDecree(decreeData) {
-        this.gameElements.decreeDisplay.innerHTML = `
-            <p><span class="decree-title">Tiếng Vọng từ ${decreeData.drawerName}:</span> ${decreeData.decrees.map(d => `<strong>${d.name}</strong> - ${d.description}`).join('<br>')}</p>
-        `;
-        this.gameElements.decreeDisplay.style.display = 'block';
-    },
+    // Sử dụng cấu trúc mới của description
+    this.gameElements.roleDisplay.innerHTML = `
+        <h4>Vai Trò Của Bạn: <strong>${role.name}</strong></h4>
+        <div style="text-align: left; line-height: 1.5; margin-top: 10px;">
+            <p><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
+            <p><strong>Nội Tại:</strong> ${role.description.passive}</p>
+            <p><strong>Kỹ Năng:</strong> ${role.description.skill}</p>
+        </div>
+        ${skillButtonHTML}
+    `;
+    this.gameElements.roleDisplay.style.display = 'block';
+},
+
+// THÊM HÀM MỚI NÀY VÀO TRONG ĐỐI TƯỢNG UI
+displayRolesInGame(roles) {
+    if (!roles || roles.length === 0) return;
+    const rolesList = roles.map(r => r.name).join(', ');
+    const message = `<strong>Các vai trò trong ngày hôm nay:</strong> ${rolesList}`;
+    this.addLogMessage(message, 'info'); // Gọi hàm addLogMessage với loại 'info'
+},
+
+
+// SỬA HÀM addLogMessage ĐỂ TRÔNG ĐẸP HƠN
+addLogMessage(message, type = 'info') {
+    const p = document.createElement('p');
+    p.className = type; // 'info', 'success', 'error', 'warning'
+    p.innerHTML = message; // Dùng innerHTML để render thẻ <strong>
+
+    // Chèn vào đầu thay vì cuối
+    this.gameElements.messageArea.insertBefore(p, this.gameElements.messageArea.firstChild);
+},
 
     // --- VII. GIAI ĐOẠN, ĐỒNG HỒ, HÀNH ĐỘNG ---
     updatePhaseDisplay(title, description = '') {
@@ -480,8 +497,12 @@ const UI = {
     if (this.gameElements.chatMessages) {
         const div = document.createElement('div');
         div.className = 'chat-message';
-        div.innerHTML = `<strong>${sender}:</strong> ${message}`;
+        // Xử lý để tránh tấn công XSS, nhưng vẫn cho phép một số thẻ an toàn
+        const sanitizedMessage = message.replace(/</g, "<").replace(/>/g, ">");
+        div.innerHTML = `<strong class="chat-sender">${sender}:</strong> ${sanitizedMessage}`;
         this.gameElements.chatMessages.appendChild(div);
+        // Tự động cuộn xuống tin nhắn mới nhất
+        this.gameElements.chatMessages.scrollTop = this.gameElements.chatMessages.scrollHeight;
     }
 },
     addLogMessage(message) {
