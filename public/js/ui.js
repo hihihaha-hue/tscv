@@ -1,4 +1,3 @@
-// public/js/ui.js
 // ======================================================================
 // UI MODULE ("The Interior Decorator")
 // Nhiệm vụ: Chịu trách nhiệm hoàn toàn cho việc cập nhật, hiển thị,
@@ -37,28 +36,15 @@ const UI = {
         skipTwilightBtn: document.getElementById('skip-twilight-btn'),
     },
     audioCache: {},
-     // NÂNG CẤP: Thêm một trạng thái Mute toàn cục
     isMuted: false,
 
     // --- CÁC HÀM TIỆN ÍCH ÂM THANH ĐÃ NÂNG CẤP ---
-
-    /**
-     * (NÂNG CẤP) Bật hoặc tắt TOÀN BỘ âm thanh trong game.
-     * Giờ đây nó sẽ là bộ điều khiển trung tâm.
-     */
     toggleMasterMute() {
-        // 1. Đảo ngược trạng thái tắt tiếng
         this.isMuted = !this.isMuted;
-
-        // 2. Cập nhật icon trên nút bấm
         const btn = document.getElementById('music-toggle-btn');
         btn.textContent = this.isMuted ? '🔇' : '🎵';
-
-        // 3. Áp dụng trạng thái Mute cho nhạc nền
         const music = document.getElementById('background-music');
         music.muted = this.isMuted;
-
-        // 4. Áp dụng trạng thái Mute cho TẤT CẢ các âm thanh hiệu ứng đã được cache
         for (const soundName in this.audioCache) {
             this.audioCache[soundName].muted = this.isMuted;
         }
@@ -71,54 +57,51 @@ const UI = {
         this.gameElements.screen.style.display = 'none';
         document.getElementById(`${screenId}-screen`).style.display = 'block';
     },
-showNightTransition(roundNumber) {
+
+    showNightTransition(roundNumber) {
         const overlay = document.getElementById('night-transition-overlay');
         const text = document.getElementById('night-transition-text');
-        
         text.textContent = `Đêm thứ ${roundNumber}`;
-        overlay.classList.add('active'); // Kích hoạt hiệu ứng mờ vào
-
-        // Sau 2.5 giây, tự động mờ ra
+        overlay.classList.add('active');
         setTimeout(() => {
             overlay.classList.remove('active');
         }, 2500);
     },
-showGameHistory(history) {
-    if (history.length === 0) {
-        return Swal.fire({ title: 'Lịch Sử Ván Đấu', text: 'Chưa có đêm nào kết thúc.', background: '#2d3748', color: '#e2e8f0' });
-    }
-    let historyHTML = '<div style="text-align: left;">';
-    history.forEach(roundData => {
-        historyHTML += `
-            <details>
-                <summary><strong>Đêm ${roundData.round}:</strong> Phe ${roundData.results.winner || 'Hòa'} thắng</summary>
-                <p>Phiếu: 📜${roundData.votes['Giải Mã']} 💣${roundData.votes['Phá Hoại']} 👁️${roundData.votes['Quan Sát']}</p>
-                <ul>
-                    ${roundData.results.roundSummary.map(p => `<li>${p.name}: ${p.oldScore} → ${p.newScore}</li>`).join('')}
-                </ul>
-            </details>
-            <hr>
-        `;
-    });
-    historyHTML += '</div>';
-    Swal.fire({
-        title: 'Lịch Sử Ván Đấu',
-        html: historyHTML,
-        background: '#2d3748',
-        color: '#e2e8f0'
-    });
-},
+
+    showGameHistory(history) {
+        if (history.length === 0) {
+            return Swal.fire({ title: 'Lịch Sử Ván Đấu', text: 'Chưa có đêm nào kết thúc.', background: '#2d3748', color: '#e2e8f0' });
+        }
+        let historyHTML = '<div style="text-align: left;">';
+        history.forEach(roundData => {
+            historyHTML += `
+                <details>
+                    <summary><strong>Đêm ${roundData.round}:</strong> Phe ${roundData.results.winner || 'Hòa'} thắng</summary>
+                    <p>Phiếu: 📜${roundData.votes['Giải Mã']} 💣${roundData.votes['Phá Hoại']} 👁️${roundData.votes['Quan Sát']}</p>
+                    <ul>
+                        ${roundData.results.roundSummary.map(p => `<li>${p.name}: ${p.oldScore} → ${p.newScore}</li>`).join('')}
+                    </ul>
+                </details>
+                <hr>
+            `;
+        });
+        historyHTML += '</div>';
+        Swal.fire({
+            title: 'Lịch Sử Ván Đấu',
+            html: historyHTML,
+            background: '#2d3748',
+            color: '#e2e8f0'
+        });
+    },
 
     playSound(soundName) {
         try {
-            // Nếu âm thanh đã có trong cache
             if (this.audioCache[soundName]) {
                 const audio = this.audioCache[soundName];
-                audio.muted = this.isMuted; // Đảm bảo nó tuân thủ trạng thái Mute
-                audio.currentTime = 0;      // Quay về đầu để phát lại ngay lập tức (tránh chồng âm)
+                audio.muted = this.isMuted;
+                audio.currentTime = 0;
                 audio.play();
             } else {
-                // Nếu chưa có, tạo mới, đặt trạng thái Mute và lưu vào cache
                 const audio = new Audio(`/assets/sounds/${soundName}.mp3`);
                 audio.muted = this.isMuted;
                 this.audioCache[soundName] = audio;
@@ -128,7 +111,6 @@ showGameHistory(history) {
             console.error(`Không thể phát âm thanh '${soundName}':`, e);
         }
     },
-
 
     addLogMessage(type, message) {
         const p = document.createElement('p');
@@ -151,10 +133,8 @@ showGameHistory(history) {
     },
 
     // --- III. CÁC HÀM CẬP NHẬT GIAO DIỆN CHÍNH ---
-  updatePlayerList(players, hostId, myId) {
+    updatePlayerList(players, hostId, myId) {
         this.roomElements.playerList.innerHTML = '';
-        
-        // Kiểm tra xem tất cả người chơi (không phải host, không phải bot) đã sẵn sàng chưa
         const allPlayersReady = players
             .filter(p => p.id !== hostId && !p.isBot)
             .every(p => p.isReady);
@@ -162,19 +142,13 @@ showGameHistory(history) {
         players.forEach(player => {
             const li = document.createElement('li');
             let nameHTML = player.name;
-            
-            // Thêm icon ✅/❌ cho người chơi thường
             if (player.id !== hostId && !player.isBot) {
                 nameHTML = (player.isReady ? '✅' : '❌') + ' ' + nameHTML;
             }
-
             if (player.id === myId) nameHTML += ' (Bạn)';
             if (player.id === hostId) nameHTML = '👑 ' + nameHTML;
             if (player.isBot) nameHTML += ' [BOT]';
-            
             li.innerHTML = `<span>${nameHTML}</span>`;
-
-            // Nút Kick (giữ nguyên)
             if (myId === hostId && player.id !== myId && !player.isBot) {
                 const kickBtn = document.createElement('button');
                 kickBtn.textContent = 'Đuổi';
@@ -184,30 +158,23 @@ showGameHistory(history) {
             }
             this.roomElements.playerList.appendChild(li);
         });
-        
-        // Hiển thị/ẩn các nút điều khiển
+
         if (myId === hostId) {
             this.roomElements.hostControls.style.display = 'block';
             this.roomElements.playerControls.style.display = 'none';
-            // Nút Bắt Đầu chỉ bật khi đủ người VÀ tất cả đã sẵn sàng
             this.roomElements.startGameBtn.disabled = players.length < 2 || !allPlayersReady;
         } else {
             this.roomElements.hostControls.style.display = 'none';
             this.roomElements.playerControls.style.display = 'block';
-            // Thay đổi chữ trên nút Sẵn Sàng
             const myPlayer = players.find(p => p.id === myId);
             this.roomElements.readyBtn.textContent = myPlayer?.isReady ? 'Bỏ Sẵn Sàng' : 'Sẵn Sàng';
         }
     },
 
-    /**
-     * Hiển thị giao diện để chọn 2 người chơi để hoán đổi.
-     */
     promptForPlayerSwap(players, onSwapSelected) {
         let firstSelection = null;
         this.updatePhaseDisplay('Bùa Lú Lẫn', '<p>Chọn người chơi đầu tiên để hoán đổi hành động.</p>');
         document.body.classList.add('selecting-target');
-
         const handleTargetClick = (event) => {
             const card = event.currentTarget;
             const targetId = card.getAttribute('data-player-id');
@@ -221,19 +188,15 @@ showGameHistory(history) {
                 onSwapSelected({ player1Id: firstSelection, player2Id: targetId });
             }
         };
-
         document.querySelectorAll('.player-card:not(.disconnected)').forEach(card => {
             card.addEventListener('click', handleTargetClick, { once: !firstSelection });
         });
     },
 
-
-    /** Hiển thị giao diện chọn 2 Đấu Sĩ. */
     promptForDuelistPick(players, onPickComplete) {
         let firstDuelist = null;
         this.updatePhaseDisplay('Đấu Trường Sinh Tử', '<p>Chọn Đấu Sĩ đầu tiên.</p>');
         document.body.classList.add('selecting-target');
-
         const handlePick = (event) => {
             const card = event.currentTarget;
             const targetId = card.getAttribute('data-player-id');
@@ -249,15 +212,11 @@ showGameHistory(history) {
                 onPickComplete({ player1Id: firstDuelist, player2Id: targetId });
             }
         };
-
         document.querySelectorAll('.player-card:not(.disconnected)').forEach(card => {
             card.addEventListener('click', handlePick);
         });
     },
 
-    /**
-     * Hiển thị giao diện đặt cược cho Khán Giả.
-     */
     promptForArenaBet(data, onBetPlaced) {
         Swal.fire({
             title: 'Đặt Cược Cho Đấu Trường!',
@@ -288,9 +247,6 @@ showGameHistory(history) {
         });
     },
 
-    /**
-     * Vẽ lại toàn bộ các thẻ người chơi trên màn hình game.
-     */
     updatePlayerCards(players, myId) {
         this.gameElements.playersContainer.innerHTML = '';
         players.forEach(player => {
@@ -310,9 +266,6 @@ showGameHistory(history) {
         });
     },
 
-    /**
-     * Bật "chế độ chọn mục tiêu" cho một kỹ năng.
-     */
     enterTargetSelectionMode(skillName, onTargetSelected) {
         this.updatePhaseDisplay(
             `Sử Dụng Kỹ Năng: ${skillName}`,
@@ -342,9 +295,6 @@ showGameHistory(history) {
         document.getElementById('cancel-skill-btn').addEventListener('click', handleCancelClick);
     },
 
-    /**
-     * Hiển thị hộp thoại đặc biệt cho Kẻ Tẩy Não chọn hành động.
-     */
     promptForMindControlAction(onActionSelected) {
         Swal.fire({
             title: 'Điều Khiển Tâm Trí',
@@ -376,9 +326,6 @@ showGameHistory(history) {
         });
     },
 
-    /**
-     * Hiển thị vai trò và kỹ năng của người chơi.
-     */
     displayRole(role) {
         let skillButtonHTML = '';
         if (role.hasActiveSkill) {
@@ -393,9 +340,6 @@ showGameHistory(history) {
         this.gameElements.roleDisplay.style.display = 'block';
     },
 
-    /**
-     * Hiển thị Tiếng Vọng của vòng chơi.
-     */
     displayDecree(decreeData) {
         this.gameElements.decreeDisplay.innerHTML = `
             <p><span class="decree-title">Tiếng Vọng từ ${decreeData.drawerName}:</span> ${decreeData.decrees.map(d => `<strong>${d.name}</strong> - ${d.description}`).join('<br>')}</p>
@@ -404,17 +348,11 @@ showGameHistory(history) {
     },
 
     // --- IV. CÁC HÀM LIÊN QUAN ĐẾN GIAI ĐOẠN & HÀNH ĐỘNG ---
-    /**
-     * Cập nhật tiêu đề và mô tả của giai đoạn hiện tại.
-     */
     updatePhaseDisplay(title, description = '') {
         this.gameElements.phaseTitle.textContent = title;
         this.gameElements.actionControls.innerHTML = `${description}<div id="timer-display"></div>`;
     },
 
-    /**
-     * Bắt đầu một bộ đếm ngược trên màn hình.
-     */
     startTimer(duration, onComplete) {
         const timerDisplay = document.getElementById('timer-display');
         if (!timerDisplay) return;
@@ -431,18 +369,15 @@ showGameHistory(history) {
             timeLeft--;
         }, 1000);
     },
-    /** Dừng và xóa bộ đếm ngược. */
+
     clearTimer() {
         if (window.countdownInterval) {
             clearInterval(window.countdownInterval);
         }
         const timerDisplay = document.getElementById('timer-display');
-        if(timerDisplay) timerDisplay.innerHTML = '';
+        if (timerDisplay) timerDisplay.innerHTML = '';
     },
 
-    /**
-     * Hiển thị các nút hành động chính cho người chơi.
-     */
     renderChoiceButtons() {
         this.updatePhaseDisplay(
             'Giai Đoạn Thám Hiểm',
@@ -466,9 +401,6 @@ showGameHistory(history) {
         });
     },
 
-    /**
-     * Hiển thị hộp thoại để người chơi chọn phán đoán khi Vạch Trần.
-     */
     promptForAccusation(targetId, targetName) {
         document.body.classList.remove('selecting-target');
         Swal.fire({
@@ -507,18 +439,15 @@ showGameHistory(history) {
         });
     },
 
-    /**
-     * Hiển thị kết quả cuối vòng, cập nhật điểm và hành động.
-     */
     renderResults(resultData, players) {
         players.forEach(player => {
             const actionEl = document.getElementById(`action-${player.id}`);
             if (actionEl) {
                 let actionText = player.chosenAction;
                 let actionClass = '';
-                if(actionText === 'Giải Mã') actionClass = 'loyal-text';
-                if(actionText === 'Phá Hoại') actionClass = 'corrupt-text';
-                if(actionText === 'Quan Sát') actionClass = 'blank-text';
+                if (actionText === 'Giải Mã') actionClass = 'loyal-text';
+                if (actionText === 'Phá Hoại') actionClass = 'corrupt-text';
+                if (actionText === 'Quan Sát') actionClass = 'blank-text';
                 actionEl.innerHTML = `<span class="${actionClass}">${actionText}</span>`;
             }
         });
@@ -529,7 +458,7 @@ showGameHistory(history) {
                 if (scoreEl) {
                     const oldScore = parseInt(scoreEl.textContent);
                     const newScore = player.score;
-                    if(oldScore !== newScore) {
+                    if (oldScore !== newScore) {
                         scoreEl.textContent = newScore;
                         const change = newScore - oldScore;
                         const animationClass = change > 0 ? 'score-up' : 'score-down';
@@ -541,9 +470,6 @@ showGameHistory(history) {
         }, 1000);
     },
 
-    /**
-     * Hiển thị màn hình kết thúc game.
-     */
     showGameOver(data) {
         let title = "Hòa!";
         let text = "Không ai hoàn thành được mục tiêu của mình.";
@@ -563,14 +489,13 @@ showGameHistory(history) {
             confirmButtonText: 'Tuyệt vời!',
         });
         if (state.myId === state.currentHostId) {
-             this.gameElements.actionControls.innerHTML = `<button id="play-again-btn">Chơi Lại</button>`;
-             document.getElementById('play-again-btn').addEventListener('click', () => {
-                 Network.emit('playAgain', state.currentRoomCode);
-             });
+            this.gameElements.actionControls.innerHTML = `<button id="play-again-btn">Chơi Lại</button>`;
+            document.getElementById('play-again-btn').addEventListener('click', () => {
+                Network.emit('playAgain', state.currentRoomCode);
+            });
         }
     },
 
-    // --- PHẦN BỔ SUNG, ĐƯA VÀO ĐÚNG VỊ TRÍ TRONG OBJECT ---
     savePlayerName() {
         const name = this.homeElements.nameInput.value;
         if (name) {
@@ -665,26 +590,27 @@ showGameHistory(history) {
             color: '#e2e8f0',
             confirmButtonText: 'OK'
         });
+    },
+
+    // THÊM MỚI: Hàm chọn mục tiêu cho tin nhắn nhanh
+    promptForPlayerTarget(title, onSelected) {
+        const inputOptions = {};
+        state.players.filter(p => p.id !== state.myId).forEach(p => {
+            inputOptions[p.id] = p.name;
+        });
+
+        Swal.fire({
+            title: title,
+            input: 'select',
+            inputOptions: inputOptions,
+            inputPlaceholder: 'Chọn một người chơi',
+            showCancelButton: true,
+            background: '#2d3748',
+            color: '#e2e8f0',
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                onSelected(result.value);
+            }
+        });
     }
 };
-// THÊM MỚI:Hàm chọn mục tiêu cho tin nhắn nhanh
-promptForPlayerTarget(title, onSelected) {
-    const inputOptions = {};
-    state.players.filter(p => p.id !== state.myId).forEach(p => {
-        inputOptions[p.id] = p.name;
-    });
-
-    Swal.fire({
-        title: title,
-        input: 'select',
-        inputOptions: inputOptions,
-        inputPlaceholder: 'Chọn một người chơi',
-        showCancelButton: true,
-        background: '#2d3748',
-        color: '#e2e8f0',
-    }).then((result) => {
-        if (result.isConfirmed && result.value) {
-            onSelected(result.value);
-        }
-    });
-},
