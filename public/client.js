@@ -156,15 +156,20 @@ Network.on('gameStarted', (data) => {
 });
 
 Network.on('newRound', (data) => {
+    // 1. Gọi hiệu ứng chuyển cảnh và âm thanh ngay lập tức
+    UI.showNightTransition(data.roundNumber);
     UI.playSound('new-round');
-    Object.assign(state, { gamePhase: 'choice', players: data.players });
-    UI.gameElements.currentRound.textContent = data.roundNumber;
-    UI.updatePlayerCards(state.players, state.myId);
-    UI.renderChoiceButtons(); // UI sẽ tự gán sự kiện cho các nút này
-    UI.startTimer(data.duration);
-    UI.gameElements.decreeDisplay.style.display = 'none';
-});
 
+    // 2. Chờ 1 giây để hiệu ứng bắt đầu, sau đó mới cập nhật giao diện bên dưới
+    setTimeout(() => {
+        Object.assign(state, { gamePhase: 'choice', players: data.players });
+        UI.gameElements.currentRound.textContent = data.roundNumber;
+        UI.updatePlayerCards(state.players, state.myId);
+        UI.renderChoiceButtons();
+        UI.startTimer(data.duration);
+        UI.gameElements.decreeDisplay.style.display = 'none';
+    }, 1000);
+});
 Network.on('decreeRevealed', (data) => {
     UI.playSound('decree');
     UI.displayDecree(data);
