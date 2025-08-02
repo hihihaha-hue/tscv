@@ -59,6 +59,34 @@ function initialize(io, rooms) {
                 }
             }
         });
+	    socket.on('sendQuickChat', (data) => { // data: { roomCode, key, targetId }
+    const room = rooms[data.roomCode];
+    const sender = room?.players.find(p => p.id === socket.id);
+    if (!sender) return;
+
+    let message = '';
+    const target = room.players.find(p => p.id === data.targetId);
+
+    // Xây dựng tin nhắn ở server để đảm bảo an toàn
+    switch(data.key) {
+        case 'suspect':
+            if (target) message = `Tôi nghi ngờ ${target.name}!`;
+            break;
+        case 'praise':
+            message = `Nước đi hay lắm! 👍`;
+            break;
+        case 'hurry':
+            message = `Mọi người ơi, nhanh lên nào! ⏰`;
+            break;
+    }
+
+    if (message) {
+        io.to(data.roomCode).emit('newMessage', {
+            senderName: sender.name,
+            message: message
+        });
+    }
+});
         // ==========================================================
         // --- II. SỰ KIỆN QUẢN LÝ PHÒNG CHỜ (LOBBY EVENTS) ---
         // ==========================================================
