@@ -178,9 +178,38 @@ function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
         }
     }
 }
+function handleVoteToSkip(roomCode, playerId, phase, rooms, io) {
+    const gs = rooms[roomCode]?.gameState;
+    if (!gs || gs.phase !== phase) return;
 
+    const voteSet = gs.roundData[`votesToSkip${phase}`];
+    if (!voteSet) return; // Đảm bảo set tồn tại
+
+    voteSet.add(playerId);
+    
+    // Tìm nút tương ứng và gửi thông báo cập nhật số phiếu
+    const buttonId = phase === 'coordination' ? 'skip-coordination-btn' : 'skip-twilight-btn';
+    io.to(roomCode).emit('updateSkipVoteCount', { 
+        buttonId: buttonId,
+        count: voteSet.size,
+        total: gs.players.filter(p => !p.isDefeated && !p.disconnected).length
+    });
+
+    // Nếu tất cả người chơi còn sống đã bỏ phiếu, kết thúc giai đoạn
+    if (voteSet.size >= gs.players.filter(p => !p.isDefeated && !p.disconnected).length) {
+        if (phase === 'coordination') {
+            clearTimeout(gs.roundData.coordinationTimer);
+            io.to(roomCode).emit('logMessage', { type: 'info', message: "Mọi người đều đồng ý hành động một mình. Giai đoạn Phối hợp kết thúc." });
+            io.to(roomCode).emit('coordinationPhaseEnded');
+            setTimeout(() => revealDecreeAndContinue(roomCode, rooms, io), 2000);
+        } else if (phase === 'twilight') {
+            endTwilightPhase("Tất cả Thợ Săn đã chọn nghỉ ngơi trong hoàng hôn.", roomCode, rooms, io);
+        }
+    }
+}
 function startCoordinationPhase(roomCode, rooms, io) {
     const gs = rooms[roomCode].gameState;
+      gs.roundData.votesToSkipcoordination = new Set();
     gs.phase = 'coordination';
     if (gs.roundData.decrees.some(d => d.id === 'DEM_TINH_LANG')) {
         io.to(roomCode).emit('logMessage', { type: 'info', message: "Đêm Tĩnh Lặng bao trùm, không thể Phối Hợp." });
@@ -373,6 +402,7 @@ function startTwilightPhase(roomCode, rooms, io) {
     gs.phase = 'twilight';
     io.to(roomCode).emit('twilightPhaseStarted', { duration: CHAOS_DURATION });
     triggerBotTwilightAction(roomCode, rooms, io);
+    gs.roundData.votesToSkiptwilight = new Set();
     gs.roundData.twilightTimer = setTimeout(() => {
         endTwilightPhase(roomCode, "Hết giờ cho giai đoạn Hoàng Hôn.", rooms, io);
     }, CHAOS_DURATION * 1000);
@@ -823,4 +853,5 @@ module.exports = {
     handleAmnesiaAction,
     handleArenaPick,
     handleArenaBet,
+     handleVoteToSkip,
 };
