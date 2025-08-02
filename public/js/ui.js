@@ -69,6 +69,18 @@ const UI = {
         this.gameElements.screen.style.display = 'none';
         document.getElementById(`${screenId}-screen`).style.display = 'block';
     },
+showNightTransition(roundNumber) {
+        const overlay = document.getElementById('night-transition-overlay');
+        const text = document.getElementById('night-transition-text');
+        
+        text.textContent = `Đêm thứ ${roundNumber}`;
+        overlay.classList.add('active'); // Kích hoạt hiệu ứng mờ vào
+
+        // Sau 2.5 giây, tự động mờ ra
+        setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 2500);
+    },
 
     playSound(soundName) {
         try {
