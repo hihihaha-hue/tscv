@@ -44,9 +44,8 @@ UI.homeElements.joinRoomBtn.addEventListener('click', () => {
 // B. Phòng chờ (Room Screen)
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
-    // Kiểm tra mã phòng trước khi gửi yêu cầu thêm bot
     if (!state.currentRoomCode) {
-        Swal.fire('Không có mã phòng!'); // Báo lỗi nếu chưa có mã phòng
+        Swal.fire('Không có mã phòng!');
         return;
     }
     Network.emit('addBot', state.currentRoomCode);
@@ -128,9 +127,12 @@ Network.on('kicked', () => {
 
 Network.on('joinedRoom', (data) => {
     UI.playSound('success');
-    Object.assign(state, data);
+    // Luôn cập nhật lại các trường cần thiết khi vào phòng
+    state.currentRoomCode = data.roomCode;
+    state.currentHostId = data.hostId;
+    state.myId = data.myId;
+    state.players = data.players;
     UI.showScreen('room');
-    // Kiểm tra phần tử DOM trước khi cập nhật mã phòng
     if (UI.roomElements.roomCodeDisplay) {
         UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
     } else {
@@ -141,12 +143,15 @@ Network.on('joinedRoom', (data) => {
 });
 
 Network.on('updatePlayerList', (players, hostId) => {
-    Object.assign(state, { players, currentHostId: hostId });
+    state.players = players;
+    state.currentHostId = hostId;
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
 });
 
 Network.on('backToLobby', (data) => {
-    Object.assign(state, { gamePhase: 'lobby', players: data.players, currentHostId: data.hostId });
+    state.gamePhase = 'lobby';
+    state.players = data.players;
+    state.currentHostId = data.hostId;
     UI.showScreen('room');
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addLogMessage('info', 'Trò chơi kết thúc, trở về phòng chờ.');
@@ -167,7 +172,8 @@ Network.on('newRound', (data) => {
     UI.showNightTransition(data.roundNumber);
     UI.playSound('new-round');
     setTimeout(() => {
-        Object.assign(state, { gamePhase: 'choice', players: data.players });
+        state.gamePhase = 'choice';
+        state.players = data.players;
         UI.gameElements.currentRound.textContent = data.roundNumber;
         UI.updatePlayerCards(state.players, state.myId);
         UI.renderChoiceButtons();
@@ -182,7 +188,8 @@ Network.on('decreeRevealed', (data) => {
 
 Network.on('roundResult', (data) => {
     state.gameHistory.push({ round: data.roundNumber, results: data.results, votes: data.finalVoteCounts });
-    Object.assign(state, { gamePhase: 'reveal', players: data.players });
+    state.gamePhase = 'reveal';
+    state.players = data.players;
     UI.clearTimer();
     UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
     UI.showRoundSummary(data.results, data.finalVoteCounts);
