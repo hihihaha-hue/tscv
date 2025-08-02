@@ -20,6 +20,8 @@ const UI = {
         hostControls: document.getElementById('host-controls'),
         addBotBtn: document.getElementById('add-bot-btn'),
         startGameBtn: document.getElementById('start-game-btn'),
+        playerControls: document.getElementById('player-controls'),
+        readyBtn: document.getElementById('ready-btn'),
     },
     gameElements: {
         screen: document.getElementById('game-screen'),
@@ -110,28 +112,53 @@ const UI = {
     },
 
     // --- III. CÁC HÀM CẬP NHẬT GIAO DIỆN CHÍNH ---
-    updatePlayerList(players, hostId, myId) {
+  updatePlayerList(players, hostId, myId) {
         this.roomElements.playerList.innerHTML = '';
+        
+        // Kiểm tra xem tất cả người chơi (không phải host, không phải bot) đã sẵn sàng chưa
+        const allPlayersReady = players
+            .filter(p => p.id !== hostId && !p.isBot)
+            .every(p => p.isReady);
+
         players.forEach(player => {
             const li = document.createElement('li');
             let nameHTML = player.name;
+            
+            // Thêm icon ✅/❌ cho người chơi thường
+            if (player.id !== hostId && !player.isBot) {
+                nameHTML = (player.isReady ? '✅' : '❌') + ' ' + nameHTML;
+            }
+
             if (player.id === myId) nameHTML += ' (Bạn)';
             if (player.id === hostId) nameHTML = '👑 ' + nameHTML;
             if (player.isBot) nameHTML += ' [BOT]';
+            
             li.innerHTML = `<span>${nameHTML}</span>`;
+
+            // Nút Kick (giữ nguyên)
             if (myId === hostId && player.id !== myId && !player.isBot) {
                 const kickBtn = document.createElement('button');
                 kickBtn.textContent = 'Đuổi';
                 kickBtn.className = 'kick-btn';
-                kickBtn.onclick = () => {
-                    Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId: player.id });
-                };
+                kickBtn.onclick = () => { Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId: player.id }); };
                 li.appendChild(kickBtn);
             }
             this.roomElements.playerList.appendChild(li);
         });
-        this.roomElements.startGameBtn.disabled = players.length < 2;
-        this.roomElements.hostControls.style.display = (myId === hostId) ? 'block' : 'none';
+        
+        // Hiển thị/ẩn các nút điều khiển
+        if (myId === hostId) {
+            this.roomElements.hostControls.style.display = 'block';
+            this.roomElements.playerControls.style.display = 'none';
+            // Nút Bắt Đầu chỉ bật khi đủ người VÀ tất cả đã sẵn sàng
+            this.roomElements.startGameBtn.disabled = players.length < 2 || !allPlayersReady;
+        } else {
+            this.roomElements.hostControls.style.display = 'none';
+            this.roomElements.playerControls.style.display = 'block';
+            // Thay đổi chữ trên nút Sẵn Sàng
+            const myPlayer = players.find(p => p.id === myId);
+            this.roomElements.readyBtn.textContent = myPlayer?.isReady ? 'Bỏ Sẵn Sàng' : 'Sẵn Sàng';
+        }
     },
 
     /**
