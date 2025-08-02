@@ -385,3 +385,30 @@ body.selecting-target .player-card.is-self {
     animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
     border-color: var(--accent-red) !important; /* Đổi màu viền để nhấn mạnh */
 }
+#night-transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    color: var(--primary-gold);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5em;
+    text-shadow: 0 0 15px var(--primary-gold);
+    z-index: 9999;
+    
+    /* Trạng thái mặc định: ẩn và không thể click */
+    opacity: 0;
+    pointer-events: none;
+    
+    /* Hiệu ứng mờ dần trong 1.5 giây */
+    transition: opacity 1.5s ease-in-out;
+}
+
+/* Lớp .active sẽ kích hoạt hiệu ứng */
+#night-transition-overlay.active {
+    opacity: 1;
+}
