@@ -38,7 +38,6 @@ const UI = {
     audioCache: {},
     isMuted: false,
 
-    // --- CÁC HÀM TIỆN ÍCH ÂM THANH ĐÃ NÂNG CẤP ---
     toggleMasterMute() {
         this.isMuted = !this.isMuted;
         const btn = document.getElementById('music-toggle-btn');
@@ -50,27 +49,6 @@ const UI = {
         }
     },
 
-    // --- II. HÀM TIỆN ÍCH CHUNG (UTILITY FUNCTIONS) ---
-    showScreen(screenId) {
-        this.homeElements.screen.style.display = 'none';
-        this.roomElements.screen.style.display = 'none';
-        this.gameElements.screen.style.display = 'none';
-        document.getElementById(`${screenId}-screen`).style.display = 'block';
-    },
-
-<<<<<<< HEAD
-   showDayTransition(roundNumber) {
-    const overlay = document.getElementById('night-transition-overlay');
-    const text = document.getElementById('night-transition-text');
-        text.textContent = `Ngày thứ ${roundNumber}`;
-    
-    overlay.classList.add('active');
-
-    setTimeout(() => {
-        overlay.classList.remove('active');
-    }, 2500);
-},
-=======
     showNightTransition(roundNumber) {
         const overlay = document.getElementById('night-transition-overlay');
         const text = document.getElementById('night-transition-text');
@@ -80,7 +58,6 @@ const UI = {
             overlay.classList.remove('active');
         }, 2500);
     },
->>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4
 
     showGameHistory(history) {
         if (history.length === 0) {
@@ -146,7 +123,6 @@ const UI = {
         this.gameElements.chatMessages.prepend(messageEl);
     },
 
-    // --- III. CÁC HÀM CẬP NHẬT GIAO DIỆN CHÍNH ---
     updatePlayerList(players, hostId, myId) {
         this.roomElements.playerList.innerHTML = '';
         const allPlayersReady = players
@@ -184,7 +160,6 @@ const UI = {
             this.roomElements.readyBtn.textContent = myPlayer?.isReady ? 'Bỏ Sẵn Sàng' : 'Sẵn Sàng';
         }
     },
-
     promptForPlayerSwap(players, onSwapSelected) {
         let firstSelection = null;
         this.updatePhaseDisplay('Bùa Lú Lẫn', '<p>Chọn người chơi đầu tiên để hoán đổi hành động.</p>');

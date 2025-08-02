@@ -4,7 +4,6 @@
 // Nhiệm vụ: Đóng gói và quản lý giao tiếp Socket.IO.
 // Nó cung cấp một giao diện đơn giản cho client.js để gửi và nhận sự kiện.
 // ======================================================================
-
 const Network = {
     socket: null,
 
@@ -28,8 +27,8 @@ const Network = {
         } else {
             console.error("Socket chưa được khởi tạo.");
         }
-    },
-
+    }
+};
     /**
      * Thiết lập tất cả các sự kiện nhận từ server
      * @param {Object} state - Trạng thái toàn cục của client
@@ -188,8 +187,4 @@ const Network = {
             UI.promptMindControlSelection(data.targetId);
         });
     }
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> 988c6e1db53aaadf964b78b788804ac77fc23ef4

@@ -44,9 +44,8 @@ UI.homeElements.joinRoomBtn.addEventListener('click', () => {
 // B. Phòng chờ (Room Screen)
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
-    // Kiểm tra mã phòng trước khi gửi yêu cầu thêm bot
     if (!state.currentRoomCode) {
-        Swal.fire('Không có mã phòng!'); // Báo lỗi nếu chưa có mã phòng
+        Swal.fire('Không có mã phòng!');
         return;
     }
     Network.emit('addBot', state.currentRoomCode);
@@ -111,7 +110,6 @@ sendChatBtn.addEventListener('click', sendChatMessage);
 chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
 // --- IV. LẮNG NGHE VÀ XỬ LÝ SỰ KIỆN TỪ SERVER ---
-// A. Nhóm sự kiện kết nối và quản lý phòng chờ
 Network.on('connect', () => {
     state.myId = Network.socket.id;
 });
@@ -128,9 +126,11 @@ Network.on('kicked', () => {
 
 Network.on('joinedRoom', (data) => {
     UI.playSound('success');
-    Object.assign(state, data);
+    state.currentRoomCode = data.roomCode;
+    state.currentHostId = data.hostId;
+    state.myId = data.myId;
+    state.players = data.players;
     UI.showScreen('room');
-    // Kiểm tra phần tử DOM trước khi cập nhật mã phòng
     if (UI.roomElements.roomCodeDisplay) {
         UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
     } else {
@@ -141,18 +141,20 @@ Network.on('joinedRoom', (data) => {
 });
 
 Network.on('updatePlayerList', (players, hostId) => {
-    Object.assign(state, { players, currentHostId: hostId });
+    state.players = players;
+    state.currentHostId = hostId;
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
 });
 
 Network.on('backToLobby', (data) => {
-    Object.assign(state, { gamePhase: 'lobby', players: data.players, currentHostId: data.hostId });
+    state.gamePhase = 'lobby';
+    state.players = data.players;
+    state.currentHostId = data.hostId;
     UI.showScreen('room');
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addLogMessage('info', 'Trò chơi kết thúc, trở về phòng chờ.');
 });
 
-// B. Nhóm sự kiện luồng game chính
 Network.on('gameStarted', (data) => {
     UI.playSound('success');
     state.gamePhase = 'started';
@@ -164,11 +166,11 @@ Network.on('gameStarted', (data) => {
 });
 
 Network.on('newRound', (data) => {
-   UI.showDayTransition(data.roundNumber);
+    UI.showNightTransition(data.roundNumber);
     UI.playSound('new-round');
-     // 2. Chờ 1 giây để hiệu ứng bắt đầu, sau đó mới cập nhật giao diện
     setTimeout(() => {
-        Object.assign(state, { gamePhase: 'choice', players: data.players });
+        state.gamePhase = 'choice';
+        state.players = data.players;
         UI.gameElements.currentRound.textContent = data.roundNumber;
         UI.updatePlayerCards(state.players, state.myId);
         UI.renderChoiceButtons();
@@ -183,14 +185,15 @@ Network.on('decreeRevealed', (data) => {
 
 Network.on('roundResult', (data) => {
     state.gameHistory.push({ round: data.roundNumber, results: data.results, votes: data.finalVoteCounts });
-    Object.assign(state, { gamePhase: 'reveal', players: data.players });
+    state.gamePhase = 'reveal';
+    state.players = data.players;
     UI.clearTimer();
     UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
     UI.showRoundSummary(data.results, data.finalVoteCounts);
     if (state.myId === state.currentHostId) {
         setTimeout(() => {
             const nextRoundBtn = document.createElement('button');
-            nextRoundBtn.textContent = 'Bắt Đầu Ngày Tiếp Theo';
+            nextRoundBtn.textContent = 'Bắt Đầu Đêm Tiếp Theo';
             nextRoundBtn.addEventListener('click', () => {
                 UI.playSound('click');
                 Network.emit('nextRound', state.currentRoomCode);
@@ -212,7 +215,6 @@ Network.on('gameOver', (data) => {
     UI.showGameOver(data);
 });
 
-// C. Nhóm sự kiện nhận thông tin cá nhân
 Network.on('yourRoleIs', (roleData) => {
     state.myRole = roleData;
     UI.displayRole(roleData);
@@ -254,7 +256,6 @@ Network.on('privateInfo', (data) => {
     Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' });
 });
 
-// D. Nhóm sự kiện phản hồi hành động và cập nhật real-time
 Network.on('playerChose', (playerId) => {
     const actionEl = document.getElementById(`action-${playerId}`);
     if (actionEl) actionEl.innerHTML = '✓ Đã chọn';
@@ -281,7 +282,7 @@ Network.on('coordinationPhaseStarted', (data) => {
         UI.gameElements.actionControls.appendChild(UI.gameElements.skipCoordinationBtn);
     }
     document.body.classList.add('selecting-target');
-    UI.startTimer(data.duration); // Gọi timer!
+    UI.startTimer(data.duration);
 
     const handleCoordinationTarget = function () {
         const targetId = this.getAttribute('data-player-id');
@@ -312,7 +313,7 @@ Network.on('twilightPhaseStarted', (data) => {
         UI.gameElements.actionControls.appendChild(UI.gameElements.skipTwilightBtn);
     }
     document.body.classList.add('selecting-target');
-    UI.startTimer(data.duration); // Gọi timer!
+    UI.startTimer(data.duration);
 
     const handleAccusationTarget = function () {
         const targetId = this.getAttribute('data-player-id');
@@ -338,7 +339,6 @@ Network.on('newMessage', (data) => {
     UI.addChatMessage(data.senderName, data.message);
 });
 
-// E. Nhóm sự kiện cho các Tiếng Vọng đặc biệt
 Network.on('promptAmnesiaAction', (data) => {
     state.gamePhase = 'amnesia_selection';
     UI.promptForPlayerSwap(data.validTargets, (selection) => {
