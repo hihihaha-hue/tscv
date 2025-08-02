@@ -16,94 +16,24 @@ const GAME_CONSTANTS = {
 // Key: ID duy nhất của Tiếng Vọng.
 // Value: Object chứa các thuộc tính. Các hàm trong này là "logic hooks".
 const DECREES = {
-    'VONG_AM_KHUECH_DAI': { 
-        name: "Vọng Âm Khuếch Đại", 
-        description: "Mọi thanh âm trong đền thờ đều được khuếch đại. Tất cả Tiến Độ nhận được hoặc mất đi trong đêm nay sẽ được nhân đôi!", 
-        getPointMultiplier: () => 2 
-    },
-    'DEM_TINH_LANG': { 
-        name: "Đêm Tĩnh Lặng", 
-        description: "Một sự im lặng đáng sợ bao trùm. Đêm nay, cấm mọi hành vi Vạch Trần và Phối Hợp.", 
-        isChaosDisabled: true 
-    },
-    'BUA_LU_LAN': { 
-        name: "Bùa Lú Lẫn", 
-        description: "Người có Tiến Độ thấp nhất bị ảnh hưởng bởi ảo giác và có thể hoán đổi hành động của 2 người bất kỳ. Hai người bị hoán đổi sẽ không thể Vạch Trần hay Phối Hợp với nhau trong đêm nay.", 
-        onReveal: (gs, io, roomCode, drawerId, rooms) => { /* Logic sẽ được gọi trong logic.js */ } 
-    },
-    'AO_GIAC_DICH_CHUYEN': { 
-        name: "Ảo Giác Dịch Chuyển", 
-        description: "Không gian trong đền thờ bị bóp méo! Tất cả người chơi đổi hành động của mình cho người bên cạnh theo vòng tròn. Vạch Trần và Phối Hợp bị vô hiệu hóa.", 
-        isChaosDisabled: true, 
-        onReveal: (gs, io, roomCode) => { /* Logic sẽ được gọi trong logic.js */ } 
-    },
-    'PHAN_XET_DAO_NGUOC': { 
-        name: "Phán Xét Đảo Ngược", 
-        description: "Luật lệ của ngôi đền bị đảo lộn! Phe thường thắng trong đêm nay sẽ thua, và phe thường thua sẽ thắng.", 
-        determineWinner: (giaiMaCount, phaHoaiCount) => (giaiMaCount <= phaHoaiCount ? 'Giải Mã' : 'Phá Hoại') 
-    },
-    'GIAO_UOC_BAT_BUOC': { 
-        name: "Giao Ước Bắt Buộc", 
-        description: "Mọi người phải công khai thảo luận về hành động của mình. Sau đó, tất cả phải thực hiện Vạch Trần hoặc Phối Hợp. Một người có thể được Phối Hợp nhiều lần, tạo thành một liên minh lớn với một lá phiếu duy nhất.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'CONG_NAP': { 
-        name: "Cống Nạp", 
-        description: "Vào cuối đêm, người có Tiến Độ cao nhất phải cống nạp 2 điểm. Số điểm đó sẽ được ban cho người có Tiến Độ thấp nhất.", 
-        endOfRoundEffect: (gs, results, pointMultiplier) => { /* Logic sẽ được gọi trong logic.js */ } 
-    },
-    'LOI_NGUYEN_HI_HA': {
-        name: "Lời Nguyền Hỉ Hả",
-        description: "Đêm nay, nếu có người bị mất điểm và rơi xuống mức âm, điểm của họ sẽ được hồi về 0. Tuy nhiên, TẤT CẢ những người chơi khác sẽ bị -1 điểm.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'LUA_CHON_CUA_KE_YEU': {
-        name: "Lựa Chọn Của Kẻ Yếu",
-        description: "Đêm nay, hành động 'Quan Sát' sẽ không theo phe thắng. Thay vào đó, nó sẽ tự động cộng thêm 1 phiếu cho phe đang có số lượng ít hơn trước khi tính kết quả.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'GIA_CUA_SU_THO_O': {
-        name: "Cái Giá Của Sự Thờ Ơ",
-        description: "Đêm nay, những người chọn 'Quan Sát' sẽ không nhận điểm theo phe thắng. Thay vào đó, họ sẽ bị trừ số điểm bằng với số phiếu 'Phá Hoại' có trên bàn.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'VU_DIEU_HON_LOAN': {
-        name: "Vũ Điệu Hỗn Loạn",
-        description: "Tất cả các lựa chọn hành động sẽ được thu thập lại, xáo trộn và chia ngẫu nhiên lại cho mọi người. Lựa chọn bạn nhận được mới là hành động cuối cùng của bạn trong đêm nay.",
-        onReveal: (gs, io, roomCode) => { /* Logic sẽ được gọi trong logic.js */ }
-    },
-    'DEM_SUY_TAN': {
-        name: "Đêm Suy Tàn",
-        description: "Đêm nay, phe thua cuộc sẽ bị chia đôi Tiến Độ hiện tại (làm tròn xuống). Nếu kết quả là hòa, tất cả mọi người bị chia đôi Tiến Độ.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'VU_NO_HU_VO': {
-        name: "Vụ Nổ Hư Vô",
-        description: "Nếu kết quả đêm nay là hòa, thay vì mỗi người +1 điểm, Tiến Độ của tất cả mọi người sẽ bị reset về 0.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'THACH_THUC_KE_DAN_DAU': {
-        name: "Thách Thức Kẻ Dẫn Đầu",
-        description: "Đêm nay, nếu bạn 'Vạch Trần' đúng người chơi đang có điểm cao nhất, bạn sẽ tráo đổi toàn bộ Tiến Độ của mình với họ.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'DI_SAN_KE_TIEN_PHONG': {
-        name: "Di Sản Kẻ Tiên Phong",
-        description: "Người chiến thắng trong đêm đấu này sẽ được quyền chọn Tiếng Vọng cho đêm kế tiếp từ ba lá được bốc ngẫu nhiên.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'DAU_TRUONG_SINH_TU': {
-        name: "Đấu Trường Sinh Tử",
-        description: "Người thấp điểm nhất chọn ra hai 'Đấu Sĩ'. Những người còn lại là 'Khán Giả'. Hai Đấu Sĩ buộc phải 'Vạch Trần' lẫn nhau. Khán Giả sẽ đặt cược tối đa 2 Tiến Độ vào Đấu Sĩ mà họ tin sẽ thắng. Cược đúng được nhân đôi số điểm đã cược.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    },
-    'DEM_SONG_TRUNG': {
-        name: "Đêm Song Trùng",
-        description: "Khi rút phải Tiếng Vọng này, người thấp điểm nhất sẽ rút thêm một Tiếng Vọng nữa. Đêm nay sẽ có hai luật chơi được áp dụng cùng lúc.",
-        // Cần logic đặc biệt trong logic.js để xử lý
-    }
+    'VONG_AM_KHUECH_DAI': { id: 'VONG_AM_KHUECH_DAI', name: "Vọng Âm Khuếch Đại", description: "Tất cả Tiến Độ nhận được hoặc mất đi trong đêm nay sẽ được nhân đôi!" },
+    'DEM_TINH_LANG': { id: 'DEM_TINH_LANG', name: "Đêm Tĩnh Lặng", description: "Cấm mọi hành vi Vạch Trần và Phối Hợp.", isChaosDisabled: true },
+    'BUA_LU_LAN': { id: 'BUA_LU_LAN', name: "Bùa Lú Lẫn", description: "Người có Tiến Độ thấp nhất có thể hoán đổi hành động của 2 người bất kỳ." },
+    'AO_GIAC_DICH_CHUYEN': { id: 'AO_GIAC_DICH_CHUYEN', name: "Ảo Giác Dịch Chuyển", description: "Tất cả người chơi đổi hành động của mình cho người bên cạnh theo vòng tròn.", isChaosDisabled: true },
+    'PHAN_XET_DAO_NGUOC': { id: 'PHAN_XET_DAO_NGUOC', name: "Phán Xét Đảo Ngược", description: "Phe thường thắng (ít phiếu) giờ sẽ thua, và ngược lại." },
+    'GIAO_UOC_BAT_BUOC': { id: 'GIAO_UOC_BAT_BUOC', name: "Giao Ước Bắt Buộc", description: "Tất cả phải thực hiện Vạch Trần hoặc Phối Hợp." },
+    'CONG_NAP': { id: 'CONG_NAP', name: "Cống Nạp", description: "Người có Tiến Độ cao nhất phải cống nạp 2 điểm cho người thấp nhất." },
+    'LOI_NGUYEN_HI_HA': { id: 'LOI_NGUYEN_HI_HA', name: "Lời Nguyền Hỉ Hả", description: "Ai rơi xuống điểm âm sẽ về 0, nhưng những người khác bị -1 điểm." },
+    'LUA_CHON_CUA_KE_YEU': { id: 'LUA_CHON_CUA_KE_YEU', name: "Lựa Chọn Của Kẻ Yếu", description: "Phiếu 'Quan Sát' sẽ cộng thêm 1 phiếu cho phe đang có số lượng ít hơn." },
+    'GIA_CUA_SU_THO_O': { id: 'GIA_CUA_SU_THO_O', name: "Cái Giá Của Sự Thờ Ơ", description: "Người 'Quan Sát' sẽ bị trừ điểm bằng với số phiếu 'Phá Hoại'." },
+    'VU_DIEU_HON_LOAN': { id: 'VU_DIEU_HON_LOAN', name: "Vũ Điệu Hỗn Loạn", description: "Hành động của mọi người bị xáo trộn và chia lại ngẫu nhiên." },
+    'DEM_SUY_TAN': { id: 'DEM_SUY_TAN', name: "Đêm Suy Tàn", description: "Phe thua cuộc bị chia đôi Tiến Độ. Hòa thì tất cả bị chia đôi." },
+    'VU_NO_HU_VO': { id: 'VU_NO_HU_VO', name: "Vụ Nổ Hư Vô", description: "Nếu kết quả là hòa, Tiến Độ của tất cả mọi người sẽ bị reset về 0." },
+    'THACH_THUC_KE_DAN_DAU': { id: 'THACH_THUC_KE_DAN_DAU', name: "Thách Thức Kẻ Dẫn Đầu", description: "Vạch Trần đúng người cao điểm nhất, bạn sẽ tráo đổi toàn bộ Tiến Độ với họ." },
+    'DI_SAN_KE_TIEN_PHONG': { id: 'DI_SAN_KE_TIEN_PHONG', name: "Di Sản Kẻ Tiên Phong", description: "Người chiến thắng đêm nay được chọn Tiếng Vọng cho đêm sau." },
+    'DAU_TRUONG_SINH_TU': { id: 'DAU_TRUONG_SINH_TU', name: "Đấu Trường Sinh Tử", description: "Hai người thấp điểm nhất đấu tay đôi, những người khác đặt cược." },
+    'DEM_SONG_TRUNG': { id: 'DEM_SONG_TRUNG', name: "Đêm Song Trùng", description: "Sẽ có hai Tiếng Vọng được áp dụng trong cùng một đêm." }
 };
-
 // --- III. DỮ LIỆU CÁC VAI TRÒ (ROLES) ---
 const ROLES = {
     'PROPHET': {

@@ -1,148 +1,287 @@
-// public/client.js
-// ======================================================================
-// CLIENT INITIALIZER ("The Conductor")
-// Nhiệm vụ: Khởi tạo ứng dụng, định nghĩa trạng thái và kết nối các module.
+// public/client.js (PHIÊN BẢN HOÀN THIỆN CUỐI CÙNG - ĐÃ NÂNG CẤP ÂM THANH)
 // ======================================================================
 
-// --- I. TRẠNG THÁI TOÀN CỤC CỦA CLIENT (THE "SINGLE SOURCE OF TRUTH") ---
-// Đây là "bộ não" của client. Mọi thông tin đều được lưu ở đây.
-// Các module khác (UI, Network) sẽ đọc và ghi vào object này.
+// --- I. TRẠNG THÁI TOÀN CỤC ---
 const state = {
-    myId: null,             // ID socket của người chơi này
-    currentRoomCode: null,  // Mã phòng hiện tại
-    currentHostId: null,    // ID của trưởng đoàn
-    players: [],            // Danh sách người chơi trong phòng [{id, name, isBot}, ...]
-    gamePhase: null,        // Giai đoạn hiện tại của game ('choice', 'chaos', 'reveal'...)
-    countdownTimer: null,   // Biến chứa bộ đếm ngược (để có thể xóa khi cần)
-    myRole: null,           // Object chứa thông tin vai trò của người chơi này
-    
-    // Nơi lưu trữ danh sách các vai trò có trong ván chơi.
-    // Sẽ được cập nhật từ server khi game bắt đầu.
-    possibleRoles: {}       
+    myId: null, currentRoomCode: null, currentHostId: null,
+    players: [], gamePhase: 'lobby', myRole: null,
 };
 
-// --- II. KHỞI TẠO CÁC MODULE ---
-// Khởi chạy module mạng và truyền 'state' vào cho nó.
-// Module UI không cần initialize vì nó chỉ là một object chứa các hàm.
+// --- II. KHỞI TẠO ---
 Network.initialize(state);
+UI.loadPlayerName(); // <-- NÂNG CẤP: Tải tên người chơi đã lưu khi vào game
+console.log("Client application initialized.");
 
-// --- III. GÁN CÁC SỰ KIỆN TĨNH BAN ĐẦU ---
-// Gán sự kiện click cho các nút luôn có mặt trên trang khi tải lần đầu.
-// Các nút động (được tạo ra trong quá trình chơi) sẽ được gán sự kiện trong module UI.
+// --- III. GÁN SỰ KIỆN TĨNH ---
 
-// Sự kiện cho các nút ở màn hình chính (Home Screen)
+// A. Màn hình chính
 UI.homeElements.createRoomBtn.addEventListener('click', () => {
-    UI.playSound('click'); // Phát âm thanh phản hồi
-    // Gọi module Network để gửi yêu cầu lên server
+    UI.playSound('click');
+    UI.savePlayerName(); // <-- NÂNG CẤP: Lưu tên người chơi khi tạo phòng
     Network.emit('createRoom', { name: UI.homeElements.nameInput.value });
 });
-
 UI.homeElements.joinRoomBtn.addEventListener('click', () => {
     UI.playSound('click');
-    const code = UI.homeElements.roomCodeInput.value;
-    if (code) { // Chỉ gửi nếu người dùng đã nhập mã phòng
-        Network.emit('joinRoom', { roomCode: code, name: UI.homeElements.nameInput.value });
-    } else {
-        // Có thể thêm thông báo lỗi ở đây nếu muốn
-        UI.homeElements.roomCodeInput.focus();
-    }
+    UI.savePlayerName(); // <-- NÂNG CẤP: Lưu tên người chơi khi vào phòng
+    const code = UI.homeElements.roomCodeInput.value.trim().toUpperCase();
+    if (code) Network.emit('joinRoom', { roomCode: code, name: UI.homeElements.nameInput.value });
+    else UI.homeElements.roomCodeInput.focus();
 });
 
-// Sự kiện cho các nút ở phòng chờ (Room Screen)
+// B. Phòng chờ
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
     Network.emit('addBot', state.currentRoomCode);
 });
-
 UI.roomElements.startGameBtn.addEventListener('click', () => {
     UI.playSound('click');
     Network.emit('startGame', state.currentRoomCode);
 });
 
-// Ghi log ra console để xác nhận client đã được khởi tạo thành công
-console.log("Client application initialized successfully. Waiting for connection...");
 
-
-// --- IV. RULEBOOK LOGIC ---
+// C. Sách Luật & Chat
 document.getElementById('rulebook-btn').addEventListener('click', () => {
     UI.playSound('click');
-    // Dùng SweetAlert2 để hiển thị modal
+    const rulebookHTML = document.getElementById('rulebook-template').innerHTML;
     Swal.fire({
         title: 'Sách Luật Thợ Săn Cổ Vật',
-       html: `
-            <div class="rulebook-content">
-                <h3>Cách Chơi</h3>
-                <p>Mỗi đêm diễn ra qua 4 giai đoạn: Hành Động, Tiếng Vọng, Giờ Hoàng Hôn, và Kết Quả. Mục tiêu của bạn là hoàn thành Thiên Mệnh (điều kiện thắng riêng) hoặc đạt đủ Tiến Độ trước người khác.</p>
-                
-                <h3>Các Vai Trò (15)</h3>
-                <ul>
-                    <li><strong>Nhà Tiên Tri:</strong> Thắng nếu Vạch Trần đúng 3 lần LIÊN TIẾP và điểm >= 2/3 mốc thắng. Nội tại: Vạch Trần sai chỉ bị -1 điểm. Kĩ năng: Xem hành động của 1 người.</li>
-                    <li><strong>Người Gìn Giữ Hòa Bình:</strong> Thắng nếu có 3 đêm HÒA liên tiếp. Nội tại: Nhận +1 điểm mỗi khi HÒA. Kĩ năng: Vô hiệu hóa phiếu của 1 người.</li>
-                    <li><strong>Kẻ Đánh Cược:</strong> Thắng nếu đã từng đạt chính xác +7 và -7 điểm. Nội tại: Mọi điểm bị mất có 50% bị chia đôi, 50% bị nhân đôi. Kĩ năng: Nếu phe thắng nhận +8 điểm, thua bị -4.</li>
-                    <li><strong>Kẻ Phán Xử:</strong> Thắng khi đạt 15 điểm. Nội tại: Vạch Trần đúng kẻ 'Phá Hoại', nhận thêm +1 điểm. Kĩ năng: Tất cả người chọn 'Phá Hoại' bị trừ điểm bằng số người đã Phá Hoại.</li>
-                    <li><strong>Nhà Tài Phiệt:</strong> Thắng khi đạt mốc điểm cao nhất. Nội tại: Cuối đêm, nếu điểm > 0 nhận +1, nếu điểm < 0 bị -1. Kĩ năng: Chọn 1 người, nếu phe họ thắng, cả hai nhận +2 điểm.</li>
-                    <li><strong>Người Cân Bằng:</strong> Thắng nếu tổng điểm dương = giá trị đối của tổng điểm âm. Nội tại: Nhận +1 điểm nếu số người điểm dương = số người điểm âm. Kĩ năng: Điểm của người cao nhất và thấp nhất được tính trung bình cộng.</li>
-                    <li><strong>Kẻ Nổi Loạn:</strong> Thắng nếu thắng 3 đêm là người duy nhất của phe thắng. Nội tại: Hành động không thể bị thay đổi. Kĩ năng: Tuyên bố hành động, nếu là người duy nhất làm, chọn 1 người để trừ điểm.</li>
-                    <li><strong>Thầy Tế:</strong> Thắng khi đạt điểm cơ bản. Nội tại: Ban phước đúng người bị mất điểm, bạn được +1 điểm. Kĩ năng: Chọn 1 người để họ không bị mất điểm.</li>
-                    <li><strong>Kẻ Trộm:</strong> Thắng khi đạt 15 điểm. Nội tại: Nếu >= 2 người mất điểm, bạn nhận thêm điểm. Kĩ năng: Chọn 1 người, nếu họ được cộng điểm, bạn cắp một nửa.</li>
-                    <li><strong>Kẻ Tẩy Não:</strong> Thắng nếu có 5 đêm Vạch Trần thất bại. Nội tại: Mỗi lần có Vạch Trần thất bại, bạn nhận +2 điểm. Kĩ năng: Chọn 1 người và quyết định hành động của họ.</li>
-                    <li><strong>Kẻ Hiến Tế:</strong> Thắng nếu đạt -15 điểm. Nội tại: Mọi điểm bị mất được giảm 1. Kĩ năng: Tự mất 2 điểm để nhận 1 trong 3 hiệu ứng ngẫu nhiên.</li>
-                    <li><strong>Kẻ Hai Mang:</strong> Thắng khi đạt mốc điểm cao nhất. Nội tại: Nếu không thuộc phe thắng, được +1 điểm. Kĩ năng: Tất cả phiếu 'Quan Sát' trở thành phiếu cho phe đối nghịch với bạn.</li>
-                    <li><strong>Sát Thủ:</strong> Thắng khi đạt 15 điểm. Nội tại: Ai Vạch Trần/Phối Hợp với bạn, bạn biết hành động của họ đêm sau. Kĩ năng: Được giao 1 'Mục Tiêu' và trừng phạt họ.</li>
-                    <li><strong>Bóng Ma:</strong> Thắng khi Ám Quẻ thành công 5 lần. Nội tại: Phiếu không tính, luôn nhận +1 điểm. Kĩ năng: Ám 1 người, nếu họ được cộng điểm, bạn cắp 1 điểm và lần sau miễn phí.</li>
-                    <li><strong>Kẻ Bắt Chước:</strong> Thắng khi đạt điểm cơ bản. Nội tại: Tự động sao chép hành động của 1 người ngẫu nhiên. Kĩ năng: Trả 2 điểm để dùng ké kỹ năng của người bị bắt chước.</li>
-                </ul>
-
-                <h3>Các Tiếng Vọng (17)</h3>
-                <ul>
-                    <li><strong>Vọng Âm Khuếch Đại:</strong> Mọi điểm nhận hoặc mất trong đêm được nhân đôi.</li>
-                    <li><strong>Đêm Tĩnh Lặng:</strong> Cấm Vạch Trần và Phối Hợp.</li>
-                    <li><strong>Bùa Lú Lẫn:</strong> Người thấp điểm nhất hoán đổi hành động của 2 người.</li>
-                    <li><strong>Ảo Giác Dịch Chuyển:</strong> Tất cả người chơi đổi hành động cho người bên cạnh.</li>
-                    <li><strong>Phán Xét Đảo Ngược:</strong> Phe thường thắng giờ sẽ thua, và ngược lại.</li>
-                    <li><strong>Giao Ước Bắt Buộc:</strong> Tất cả phải Vạch Trần hoặc Phối Hợp.</li>
-                    <li><strong>Cống Nạp:</strong> Người cao điểm nhất cống nạp 2 điểm cho người thấp nhất.</li>
-                    <li><strong>Lời Nguyền Hỉ Hả:</strong> Ai rơi xuống điểm âm sẽ về 0, những người khác bị -1 điểm.</li>
-                    <li><strong>Lựa Chọn Của Kẻ Yếu:</strong> Phiếu 'Quan Sát' sẽ cộng cho phe đang yếu thế hơn.</li>
-                    <li><strong>Cái Giá Của Sự Thờ Ơ:</strong> Người 'Quan Sát' bị trừ điểm bằng số phiếu 'Phá Hoại'.</li>
-                    <li><strong>Vũ Điệu Hỗn Loạn:</strong> Hành động của mọi người bị xáo trộn và chia lại ngẫu nhiên.</li>
-                    <li><strong>Đêm Suy Tàn:</strong> Phe thua cuộc bị chia đôi Tiến Độ. Hòa thì tất cả bị chia đôi.</li>
-                    <li><strong>Vụ Nổ Hư Vô:</strong> Nếu kết quả là hòa, điểm của tất cả mọi người reset về 0.</li>
-                    <li><strong>Thách Thức Kẻ Dẫn Đầu:</strong> Vạch Trần đúng người cao điểm nhất, bạn tráo đổi điểm với họ.</li>
-                    <li><strong>Di Sản Kẻ Tiên Phong:</strong> Người thắng đêm nay được chọn Tiếng Vọng cho đêm sau.</li>
-                    <li><strong>Đấu Trường Sinh Tử:</strong> Hai người thấp điểm nhất đấu tay đôi, những người khác đặt cược.</li>
-                    <li><strong>Đêm Song Trùng:</strong> Có hai Tiếng Vọng được áp dụng trong cùng một đêm.</li>
-                </ul>
-            </div>
-            `,
+        html: rulebookHTML,
         width: '80%',
-        customClass: {
-            container: 'rulebook-modal'
-        },
+        customClass: { container: 'rulebook-modal' },
         background: '#2d3748',
         color: '#e2e8f0',
         confirmButtonText: 'Đã Hiểu'
     });
 });
-
-// --- V. CHAT LOGIC ---
 const chatInput = document.getElementById('chat-input');
 const sendChatBtn = document.getElementById('send-chat-btn');
-
 function sendChatMessage() {
     const message = chatInput.value.trim();
-    if (message) {
-        Network.emit('sendMessage', {
-            roomCode: state.currentRoomCode,
-            message: message
-        });
+    if (message && state.currentRoomCode) {
+        Network.emit('sendMessage', { roomCode: state.currentRoomCode, message: message });
         chatInput.value = '';
     }
 }
-
 sendChatBtn.addEventListener('click', sendChatMessage);
-chatInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        sendChatMessage();
+chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+// D. Nút điều khiển nhạc
+document.getElementById('music-toggle-btn').addEventListener('click', () => {
+    UI.playSound('click');
+    UI.toggleMusic();
+});
+
+// --- IV. LẮNG NGHE SỰ KIỆN TỪ SERVER ---
+
+Network.on('connect', () => {
+    // Lưu ID khi kết nối thành công
+    state.myId = Network.socket.id;
+});
+
+Network.on('roomError', (msg) => {
+    UI.playSound('error');
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg, background: '#2d3748', color: '#e2e8f0' });
+});
+
+Network.on('kicked', () => {
+    UI.playSound('error');
+    Swal.fire('Bạn đã bị đuổi!').then(() => window.location.reload());
+});
+
+Network.on('joinedRoom', (data) => {
+    UI.playSound('success');
+	const music = document.getElementById('background-music');
+    if(music.paused) {
+        music.play().catch(e => console.log("Người dùng cần tương tác để bật nhạc."));
+    }
+     Object.assign(state, { myId: data.myId, currentRoomCode: data.roomCode, currentHostId: data.hostId, players: data.players });
+    UI.showScreen('room');
+    UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
+    UI.updatePlayerList(state.players, state.currentHostId, state.myId);
+    UI.addCopyToClipboard();
+});
+
+
+Network.on('updatePlayerList', (players, hostId) => {
+    Object.assign(state, { players, currentHostId: hostId });
+    UI.updatePlayerList(state.players, state.currentHostId, state.myId);
+});
+
+Network.on('backToLobby', (data) => {
+    Object.assign(state, { gamePhase: 'lobby', players: data.players, currentHostId: data.hostId });
+    UI.showScreen('room');
+    UI.updatePlayerList(state.players, state.currentHostId, state.myId);
+    UI.addLogMessage('info', 'Trò chơi kết thúc, trở về phòng chờ.');
+});
+
+Network.on('gameStarted', (data) => {
+    UI.playSound('success');
+    state.gamePhase = 'started';
+    UI.showScreen('game');
+    UI.addLogMessage('success', 'Cuộc thám hiểm bắt đầu!');
+    const rolesList = data.rolesInGame.map(r => r.name).join(', ');
+    UI.addLogMessage('info', `<strong>Các vai trò trong đêm nay:</strong> ${rolesList}`);
+});
+
+Network.on('decreeRevealed', (data) => {
+    UI.playSound('decree');
+    UI.displayDecree(data);
+});
+
+Network.on('gameOver', (data) => {
+    // NÂNG CẤP: Âm thanh thắng/thua riêng biệt
+    if (data.winner && data.winner.id === state.myId) {
+        UI.playSound('success'); // Bạn thắng
+    } else {
+        UI.playSound('error'); // Bạn thua hoặc người khác thắng
+    }
+    state.gamePhase = 'gameover';
+    UI.clearTimer();
+    UI.showGameOver(data);
+});
+
+// Các trình lắng nghe sự kiện khác giữ nguyên
+Network.on('promptAmnesiaAction', (data) => {
+    state.gamePhase = 'amnesia_selection';
+    UI.promptForPlayerSwap(data.validTargets, (selection) => {
+        Network.emit('submitAmnesiaAction', { 
+            roomCode: state.currentRoomCode, 
+            player1Id: selection.player1Id, 
+            player2Id: selection.player2Id 
+        });
+        UI.updatePhaseDisplay('Đã hoán đổi!', 'Đang chờ server xử lý...');
+    });
+});
+
+Network.on('promptArenaPick', (data) => {
+    state.gamePhase = 'arena_picking';
+    UI.promptForDuelistPick(data.validTargets, (selection) => {
+        Network.emit('submitArenaPick', { roomCode: state.currentRoomCode, ...selection });
+        UI.updatePhaseDisplay('Đã chọn Đấu Sĩ!', 'Đang chờ các Khán Giả đặt cược...');
+    });
+});
+
+Network.on('promptArenaBet', (data) => {
+    state.gamePhase = 'arena_betting';
+    UI.promptForArenaBet(data, (bet) => {
+        Network.emit('submitArenaBet', { roomCode: state.currentRoomCode, ...bet });
+        UI.updatePhaseDisplay('Đã Đặt Cược!', 'Đang chờ trận đấu diễn ra...');
+    });
+});
+Network.on('playerAccused', (data) => {
+    UI.playSound('accusation'); // Phát âm thanh Vạch Trần
+    UI.applyShakeEffect(data.targetId); // Kích hoạt hiệu ứng rung lắc
+});
+
+Network.on('yourRoleIs', (roleData) => {
+    state.myRole = roleData;
+    UI.displayRole(roleData);
+    const skillBtn = document.getElementById('skill-btn');
+    if (skillBtn) {
+        skillBtn.addEventListener('click', () => {
+            UI.playSound('click'); // Thêm âm thanh click cho nút kỹ năng
+            const roleId = state.myRole.id;
+            const targetBasedRoles = ['PROPHET', 'PEACEMAKER', 'MAGNATE', 'REBEL', 'PRIEST', 'THIEF', 'PHANTOM'];
+            if (targetBasedRoles.includes(roleId)) {
+                UI.enterTargetSelectionMode(state.myRole.skillName, (targetId) => {
+                    Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId } });
+                    UI.updatePhaseDisplay('Đã dùng kỹ năng!', 'Đang chờ những người khác...');
+                    skillBtn.disabled = true;
+                });
+            } else if (roleId === 'MIND_BREAKER') {
+                UI.enterTargetSelectionMode(state.myRole.skillName, (targetId) => {
+                    UI.promptForMindControlAction((chosenAction) => {
+                        Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId, chosenAction } });
+                        UI.updatePhaseDisplay('Đã dùng kỹ năng!', 'Đang chờ những người khác...');
+                        skillBtn.disabled = true;
+                    });
+                });
+            } else {
+                Swal.fire({ title: `Dùng "${state.myRole.skillName}"?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Xác nhận', background: '#2d3748', color: '#e2e8f0' })
+                .then((result) => {
+                    if (result.isConfirmed) {
+                        Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} });
+                        skillBtn.disabled = true;
+                    }
+                });
+            }
+        });
     }
 });
+
+Network.on('newRound', (data) => {
+    UI.playSound('new-round'); // <-- NÂNG CẤP: Âm thanh khi có vòng mới
+    Object.assign(state, { gamePhase: 'choice', players: data.players });
+    UI.gameElements.currentRound.textContent = data.roundNumber;
+    UI.updatePlayerCards(state.players, state.myId);
+    UI.renderChoiceButtons();
+    UI.startTimer(data.duration);
+    UI.gameElements.decreeDisplay.style.display = 'none';
+});Network.on('gameOver',
+
+Network.on('playerChose', (playerId) => {
+    const actionEl = document.getElementById(`action-${playerId}`);
+    if (actionEl) actionEl.innerHTML = '✓ Đã chọn';
+});
+
+Network.on('coordinationPhaseStarted', (data) => {
+    state.gamePhase = 'coordination';
+    UI.updatePhaseDisplay('Giai Đoạn Phối Hợp', '<p>Chọn một người để đề nghị Phối Hợp.</p>');
+    UI.startTimer(data.duration);
+    document.body.classList.add('selecting-target');
+    document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
+        card.addEventListener('click', function handleCoordinationTarget() {
+            UI.playSound('click');
+            Network.emit('requestCoordination', { roomCode: state.currentRoomCode, targetId: card.getAttribute('data-player-id') });
+            document.body.classList.remove('selecting-target');
+            document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
+        });
+    });
+});
+
+Network.on('twilightPhaseStarted', (data) => {
+    state.gamePhase = 'twilight';
+    UI.updatePhaseDisplay('Giờ Hoàng Hôn', '<p>Chọn một người để Vạch Trần.</p>');
+    UI.startTimer(data.duration);
+    document.body.classList.add('selecting-target');
+    document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
+        card.addEventListener('click', function handleAccusationTarget() {
+            UI.playSound('click');
+            UI.promptForAccusation(card.getAttribute('data-player-id'), card.querySelector('.player-name').textContent);
+        });
+    });
+});
+
+Network.on('chaosActionResolved', (data) => {
+    document.body.classList.remove('selecting-target');
+    UI.clearTimer();
+    UI.addLogMessage('info', `<strong>[Hoàng Hôn]</strong> ${data.message}`);
+    document.querySelectorAll('.player-card').forEach(card => card.parentNode.replaceChild(card.cloneNode(true), card));
+});
+
+Network.on('roundResult', (data) => {
+    Object.assign(state, { gamePhase: 'reveal', players: data.players });
+    UI.clearTimer();
+    UI.updatePhaseDisplay('Giai Đoạn Phán Xét', '<p>Kết quả đang được công bố...</p>');
+    
+    // THAY ĐỔI: Gọi hàm renderResults cũ để cập nhật thẻ người chơi
+    UI.renderResults(data.results, data.players);
+    // SAU ĐÓ, gọi hàm mới để hiển thị bảng tổng kết
+    UI.showRoundSummary(data.results, data.finalVoteCounts); 
+
+    if (state.myId === state.currentHostId) {
+        // Đặt thời gian chờ lâu hơn một chút để người chơi có thời gian đọc bảng
+        setTimeout(() => {
+            const nextRoundBtn = document.createElement('button');
+            nextRoundBtn.textContent = 'Bắt Đầu Đêm Tiếp Theo';
+            nextRoundBtn.addEventListener('click', () => {
+                UI.playSound('click');
+                Network.emit('nextRound', state.currentRoomCode);
+            });
+            UI.gameElements.actionControls.innerHTML = '';
+            UI.gameElements.actionControls.appendChild(nextRoundBtn);
+        }, 6000); // Tăng thời gian chờ
+    }
+});
+Network.on('newMessage', (data) => UI.addChatMessage(data.senderName, data.message));
+
+Network.on('privateInfo', (data) => Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' }));

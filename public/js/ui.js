@@ -1,453 +1,700 @@
 // public/js/ui.js
 // ======================================================================
-// MODULE GIAO DIỆN (USER INTERFACE - "The Painter")
-// Nhiệm vụ: Chịu trách nhiệm cho mọi thao tác với DOM.
-// Nó đọc dữ liệu từ biến 'state' toàn cục và "vẽ" lên màn hình.
+// UI MODULE ("The Interior Decorator")
+// Nhiệm vụ: Chịu trách nhiệm hoàn toàn cho việc cập nhật, hiển thị,
+// và thay đổi giao diện người dùng (HTML/CSS). Nó nhận lệnh từ client.js.
 // ======================================================================
 
 const UI = {
-    // --- I. DOM ELEMENTS ---
-    screens: {
-        home: document.getElementById('home-screen'),
-        room: document.getElementById('room-screen'),
-        game: document.getElementById('game-screen')
-    },
+    // --- I. BỘ NHỚ CACHE CÁC THÀNH PHẦN (ELEMENTS) ---
+    // Lưu trữ các element thường dùng để không phải query lại nhiều lần, giúp tăng hiệu suất.
     homeElements: {
+        screen: document.getElementById('home-screen'),
+        nameInput: document.getElementById('player-name-input'),
         createRoomBtn: document.getElementById('create-room-btn'),
-        joinRoomBtn: document.getElementById('join-room-btn'),
         roomCodeInput: document.getElementById('room-code-input'),
-        nameInput: document.getElementById('player-name-input')
+        joinRoomBtn: document.getElementById('join-room-btn'),
     },
     roomElements: {
+        screen: document.getElementById('room-screen'),
         roomCodeDisplay: document.getElementById('room-code-display'),
         playerList: document.getElementById('player-list'),
         hostControls: document.getElementById('host-controls'),
         addBotBtn: document.getElementById('add-bot-btn'),
-        startGameBtn: document.getElementById('start-game-btn')
+        startGameBtn: document.getElementById('start-game-btn'),
     },
     gameElements: {
-        roundIndicator: document.getElementById('current-round'),
+        screen: document.getElementById('game-screen'),
+        roleDisplay: document.getElementById('role-display'),
+        currentRound: document.getElementById('current-round'),
         decreeDisplay: document.getElementById('decree-display'),
         playersContainer: document.getElementById('players-container'),
         phaseTitle: document.getElementById('phase-title'),
         actionControls: document.getElementById('action-controls'),
         messageArea: document.getElementById('message-area'),
-        roleDisplay: document.getElementById('role-display')
+        chatMessages: document.getElementById('chat-messages'),
+    },
+    audioCache: {}, // Thêm bộ nhớ cache cho các file âm thanh
+
+    // --- II. HÀM TIỆN ÍCH CHUNG (UTILITY FUNCTIONS) ---
+
+    /**
+     * Hiển thị một màn hình cụ thể và ẩn tất cả các màn hình khác.
+     * @param {string} screenId - ID của màn hình cần hiển thị ('home', 'room', 'game').
+     */
+    showScreen(screenId) {
+        this.homeElements.screen.style.display = 'none';
+        this.roomElements.screen.style.display = 'none';
+        this.gameElements.screen.style.display = 'none';
+        
+        document.getElementById(`${screenId}-screen`).style.display = 'block';
     },
 
-    // --- II. CORE UI METHODS ---
-    showScreen(screenName) {
-        for (const key in this.screens) {
-            this.screens[key].style.display = (key === screenName) ? 'block' : 'none';
+    /**
+     * (ĐÃ NÂNG CẤP) Phát một file âm thanh từ thư mục public/assets/sounds.
+     * @param {string} soundName - Tên file âm thanh không có phần mở rộng (ví dụ: 'click').
+     */
+    playSound(soundName) {
+        try {
+            // Kiểm tra xem âm thanh đã được cache chưa
+            if (this.audioCache[soundName]) {
+                this.audioCache[soundName].currentTime = 0; // Quay về đầu để phát lại
+                this.audioCache[soundName].play();
+            } else {
+                // Nếu chưa, tạo mới và lưu vào cache
+                const audio = new Audio(`/assets/sounds/${soundName}.mp3`);
+                this.audioCache[soundName] = audio;
+                audio.play();
+            }
+        } catch (e) {
+            console.error(`Không thể phát âm thanh '${soundName}':`, e);
         }
     },
-
-    logMessage(type, message) {
+    
+    /**
+     * Thêm một tin nhắn vào khu vực nhật ký game.
+     * @param {'info'|'success'|'error'|'warning'} type - Loại tin nhắn (để tô màu).
+     * @param {string} message - Nội dung tin nhắn (hỗ trợ HTML).
+     */
+    addLogMessage(type, message) {
         const p = document.createElement('p');
-        p.className = type;
-        p.innerHTML = message;
-        this.gameElements.messageArea.prepend(p);
+        p.className = type; // 'info', 'success', 'error', 'warning'
+        p.innerHTML = message; // Dùng innerHTML để render được <strong>, <em>...
+        this.gameElements.messageArea.prepend(p); // Thêm vào đầu để tin mới nhất ở trên.
+    },
+    
+     /**
+     * Thêm một tin nhắn vào khu vực chat.
+     * @param {string} senderName - Tên người gửi.
+     * @param {string} message - Nội dung tin nhắn.
+     */
+    addChatMessage(senderName, message) {
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('chat-message');
+        
+        const senderEl = document.createElement('span');
+        senderEl.classList.add('chat-sender');
+        senderEl.textContent = `${senderName}: `;
+        
+        const contentEl = document.createElement('span');
+        contentEl.textContent = message;
+        
+        messageEl.appendChild(senderEl);
+        messageEl.appendChild(contentEl);
+        
+        this.gameElements.chatMessages.prepend(messageEl);
     },
 
-    playSound(soundName) {
-        try { new Audio(`/assets/sounds/${soundName}.mp3`).play(); }
-        catch (e) { console.warn(`Không thể phát âm thanh: ${soundName}`); }
-    },
-
-    // --- III. RENDER FUNCTIONS ---
-    renderPlayerList() {
-        this.roomElements.playerList.innerHTML = '';
-        const isHost = state.myId === state.currentHostId;
-        state.players.forEach(p => {
+    // --- III. CÁC HÀM CẬP NHẬT GIAO DIỆN CHÍNH ---
+    // ... (Các hàm còn lại giữ nguyên không thay đổi) ...
+    /**
+     * Cập nhật danh sách người chơi trong phòng chờ.
+     * @param {Array} players - Mảng đối tượng người chơi.
+     * @param {string} hostId - ID của chủ phòng.
+     * @param {string} myId - ID của người chơi hiện tại.
+     */
+    updatePlayerList(players, hostId, myId) {
+        this.roomElements.playerList.innerHTML = ''; // Xóa danh sách cũ
+        players.forEach(player => {
             const li = document.createElement('li');
-            let text = `<span>${p.name}</span>`;
-            let controls = '';
-            if (p.id === state.myId) text += ' <em>(Bạn)</em>';
-            if (p.id === state.currentHostId) text += ' <strong class="host-tag">[Trưởng Đoàn]</strong>';
-            if (p.isBot) li.classList.add('bot');
-            if (isHost && p.id !== state.myId) {
-                controls = `<button class="kick-btn" onclick="handleKickPlayer('${p.id}')">Trục Xuất</button>`;
+            let nameHTML = player.name;
+            if (player.id === myId) nameHTML += ' (Bạn)';
+            if (player.id === hostId) nameHTML = '👑 ' + nameHTML;
+            if (player.isBot) nameHTML += ' [BOT]';
+            
+            li.innerHTML = `<span>${nameHTML}</span>`;
+
+            // Nếu người xem là chủ phòng, và người chơi không phải là chính mình và không phải bot, thêm nút Kick
+            if (myId === hostId && player.id !== myId && !player.isBot) {
+                const kickBtn = document.createElement('button');
+                kickBtn.textContent = 'Đuổi';
+                kickBtn.className = 'kick-btn';
+                kickBtn.onclick = () => {
+                    Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId: player.id });
+                };
+                li.appendChild(kickBtn);
             }
-            li.innerHTML = `<div>${text}</div><div>${controls}</div>`;
             this.roomElements.playerList.appendChild(li);
         });
-        this.roomElements.hostControls.style.display = isHost ? 'block' : 'none';
-        this.roomElements.startGameBtn.disabled = state.players.length < 2;
+        
+        // Bật/tắt nút Bắt Đầu dựa trên số lượng người chơi
+        this.roomElements.startGameBtn.disabled = players.length < 2;
+        // Hiển thị/ẩn khu vực điều khiển của chủ phòng
+        this.roomElements.hostControls.style.display = (myId === hostId) ? 'block' : 'none';
+    },
+	
+	 /**
+     * Hiển thị giao diện để chọn 2 người chơi để hoán đổi.
+     * @param {Array} players - Danh sách người chơi hợp lệ [{id, name}].
+     * @param {function} onSwapSelected - Callback được gọi với {player1Id, player2Id}.
+     */
+    promptForPlayerSwap(players, onSwapSelected) {
+        let firstSelection = null;
+        this.updatePhaseDisplay('Bùa Lú Lẫn', '<p>Chọn người chơi đầu tiên để hoán đổi hành động.</p>');
+        document.body.classList.add('selecting-target');
+
+        const handleTargetClick = (event) => {
+            const card = event.currentTarget;
+            const targetId = card.getAttribute('data-player-id');
+            card.style.border = '3px solid var(--primary-gold)'; // Highlight lựa chọn
+
+            if (!firstSelection) {
+                firstSelection = targetId;
+                this.updatePhaseDisplay('Bùa Lú Lẫn', '<p>Chọn người chơi thứ hai.</p>');
+            } else {
+                // Đã có lựa chọn thứ hai
+                document.body.classList.remove('selecting-target');
+                document.querySelectorAll('.player-card').forEach(c => c.replaceWith(c.cloneNode(true))); // Xóa listener
+                onSwapSelected({ player1Id: firstSelection, player2Id: targetId });
+            }
+        };
+
+        document.querySelectorAll('.player-card:not(.disconnected)').forEach(card => {
+            card.addEventListener('click', handleTargetClick, { once: !firstSelection });
+        });
+    },
+	
+	/** Hiển thị giao diện chọn 2 Đấu Sĩ.
+     */
+    promptForDuelistPick(players, onPickComplete) {
+        let firstDuelist = null;
+        this.updatePhaseDisplay('Đấu Trường Sinh Tử', '<p>Chọn Đấu Sĩ đầu tiên.</p>');
+        document.body.classList.add('selecting-target');
+
+        const handlePick = (event) => {
+            const card = event.currentTarget;
+            const targetId = card.getAttribute('data-player-id');
+            card.style.border = '3px solid var(--accent-red)';
+
+            if (!firstDuelist) {
+                firstDuelist = targetId;
+                this.updatePhaseDisplay('Đấu Trường Sinh Tử', '<p>Chọn Đấu Sĩ thứ hai.</p>');
+                // Ngăn chọn lại chính người này
+                card.classList.remove('selecting-target');
+                card.replaceWith(card.cloneNode(true));
+            } else {
+                document.body.classList.remove('selecting-target');
+                document.querySelectorAll('.player-card').forEach(c => c.replaceWith(c.cloneNode(true)));
+                onPickComplete({ player1Id: firstDuelist, player2Id: targetId });
+            }
+        };
+
+        document.querySelectorAll('.player-card:not(.disconnected)').forEach(card => {
+            card.addEventListener('click', handlePick);
+        });
     },
 
-    renderPlayerCards() {
+    /**
+     * Hiển thị giao diện đặt cược cho Khán Giả.
+     */
+    promptForArenaBet(data, onBetPlaced) {
+        Swal.fire({
+            title: 'Đặt Cược Cho Đấu Trường!',
+            html: `
+                <p>Chọn Đấu Sĩ bạn tin sẽ thắng và đặt cược (tối đa ${data.maxBet} điểm).</p>
+                <div style="display: flex; justify-content: center; gap: 20px; margin: 20px 0;">
+                    <button id="bet-d1" class="swal2-styled">${data.duelist1.name}</button>
+                    <button id="bet-d2" class="swal2-styled">${data.duelist2.name}</button>
+                </div>
+                <input id="bet-amount" type="number" min="0" max="${data.maxBet}" value="1" class="swal2-input">
+            `,
+            showConfirmButton: false, // Ẩn nút mặc định
+            background: '#2d3748',
+            color: '#e2e8f0',
+            allowOutsideClick: false,
+        });
+
+        document.getElementById('bet-d1').addEventListener('click', () => {
+            const amount = parseInt(document.getElementById('bet-amount').value);
+            onBetPlaced({ targetId: data.duelist1.id, amount: amount });
+            Swal.close();
+        });
+
+        document.getElementById('bet-d2').addEventListener('click', () => {
+            const amount = parseInt(document.getElementById('bet-amount').value);
+            onBetPlaced({ targetId: data.duelist2.id, amount: amount });
+            Swal.close();
+        });
+    },
+
+    /**
+     * Vẽ lại toàn bộ các thẻ người chơi trên màn hình game.
+     * @param {Array} players - Mảng đối tượng người chơi trong gameState.
+     * @param {string} myId - ID của người chơi hiện tại.
+     */
+    updatePlayerCards(players, myId) {
         this.gameElements.playersContainer.innerHTML = '';
-        state.players.forEach(player => {
+        players.forEach(player => {
             const card = document.createElement('div');
             card.className = 'player-card';
-            card.id = `player-card-${player.id}`;
-            if (player.id === state.myId) card.classList.add('is-self');
+            card.setAttribute('data-player-id', player.id);
             
-            let actionStatusHTML = '<p class="chosen-action info">Đang hành động...</p>';
-            if (player.disconnected) {
-                actionStatusHTML = '<p class="chosen-action error-text">Mất tích</p>';
-            } else if (player.chosenAction) {
-                 actionStatusHTML = '<p class="chosen-action success-text">✅ Đã hành động</p>';
-            }
+            if (player.id === myId) card.classList.add('is-self');
+            if (player.disconnected) card.classList.add('disconnected');
 
             card.innerHTML = `
-                <h3>${player.name}</h3>
-                <p>Tiến Độ: <span class="player-score">${player.score}</span></p>
-                <div class="chosen-action-wrapper">
-                    ${actionStatusHTML}
-                </div>`;
-                
-            if (player.disconnected) card.classList.add('disconnected');
+                <h3 class="player-name">${player.name}</h3>
+                <div class="player-score" id="score-${player.id}">${player.score}</div>
+                <div class="chosen-action-wrapper" id="action-${player.id}">
+                    ${player.chosenAction ? '✓ Đã chọn' : '... Đang nghĩ'}
+                </div>
+            `;
             this.gameElements.playersContainer.appendChild(card);
         });
     },
+	/**
+     * Bật "chế độ chọn mục tiêu" cho một kỹ năng.
+     * @param {string} skillName - Tên của kỹ năng để hiển thị cho người dùng.
+     * @param {function} onTargetSelected - Hàm callback sẽ được gọi với targetId khi người dùng chọn xong.
+     */
+    enterTargetSelectionMode(skillName, onTargetSelected) {
+        this.updatePhaseDisplay(
+            `Sử Dụng Kỹ Năng: ${skillName}`,
+            '<p>Hãy chọn một người chơi trên màn hình để áp dụng kỹ năng.</p><button id="cancel-skill-btn">Hủy</button>'
+        );
+        document.body.classList.add('selecting-target');
 
-    displayRole() {
-        const role = state.myRole;
-        if (!this.gameElements.roleDisplay || !role || !role.name) return;
+        // Hàm xử lý khi một mục tiêu được click
+        const handleTargetClick = (event) => {
+            const card = event.currentTarget;
+            const targetId = card.getAttribute('data-player-id');
+            
+            // Tắt chế độ chọn mục tiêu
+            document.body.classList.remove('selecting-target');
+            removeListeners();
+            
+            // Gọi callback với ID của mục tiêu đã chọn
+            onTargetSelected(targetId);
+        };
+
+        // Hàm xử lý khi bấm nút Hủy
+        const handleCancelClick = () => {
+            document.body.classList.remove('selecting-target');
+            removeListeners();
+            // Quay lại giao diện của giai đoạn hiện tại
+            // (Bạn cần có hàm để render lại phase hiện tại, ví dụ renderChoiceButtons)
+            UI.updatePhaseDisplay('', 'Bạn đã hủy sử dụng kỹ năng.');
+        };
+
+        // Hàm để xóa tất cả các listener đã gán
+        const removeListeners = () => {
+            document.querySelectorAll('.player-card').forEach(card => card.removeEventListener('click', handleTargetClick));
+            const cancelBtn = document.getElementById('cancel-skill-btn');
+            if (cancelBtn) cancelBtn.removeEventListener('click', handleCancelClick);
+        };
+
+        // Gán listener cho các thẻ người chơi hợp lệ
+        document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
+            card.addEventListener('click', handleTargetClick);
+        });
+
+        // Gán listener cho nút Hủy
+        document.getElementById('cancel-skill-btn').addEventListener('click', handleCancelClick);
+    },
+
+    /**
+     * Hiển thị hộp thoại đặc biệt cho Kẻ Tẩy Não chọn hành động.
+     * @param {function} onActionSelected - Callback được gọi với hành động đã chọn.
+     */
+    promptForMindControlAction(onActionSelected) {
+        Swal.fire({
+            title: 'Điều Khiển Tâm Trí',
+            text: 'Chọn hành động bạn muốn mục tiêu phải thực hiện:',
+            html: `
+                <div class="accusation-choices" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+                    <button class="swal2-styled" data-guess="Giải Mã">📜 Giải Mã</button>
+                    <button class="swal2-styled" data-guess="Phá Hoại">💣 Phá Hoại</button>
+                    <button class="swal2-styled" data-guess="Quan Sát">👁️ Quan Sát</button>
+                </div>
+            `,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Hủy',
+            background: '#2d3748',
+            color: '#e2e8f0',
+        }).then(result => {
+            if (!result.isDismissed) {
+                // Logic được xử lý trong didOpen
+            }
+        });
+        
+        // Gán sự kiện cho các nút bên trong hộp thoại
+        const popup = Swal.getPopup();
+        popup.querySelectorAll('.swal2-styled[data-guess]').forEach(button => {
+            button.addEventListener('click', () => {
+                const chosenAction = button.getAttribute('data-guess');
+                onActionSelected(chosenAction); // Gọi callback
+                Swal.close();
+            });
+        });
+    },
+
+    
+    /**
+     * Hiển thị vai trò và kỹ năng của người chơi.
+     * @param {object} role - Đối tượng vai trò từ server.
+     */
+    displayRole(role) {
         let skillButtonHTML = '';
         if (role.hasActiveSkill) {
-            skillButtonHTML = `<button id="skill-btn" class="skill-button">${role.skillName || 'Dùng Kỹ Năng'}</button>`;
+            skillButtonHTML = `<button class="skill-button" id="skill-btn" data-role-id="${role.id}">${role.skillName}</button>`;
         }
-        this.gameElements.roleDisplay.innerHTML = `<h4>Thiên Mệnh Của Bạn</h4><strong>${role.name}</strong><p>${role.description}</p>${skillButtonHTML}`;
+        this.gameElements.roleDisplay.innerHTML = `
+            <h4>Vai Trò Của Bạn</h4>
+            <strong>${role.name}</strong>
+            <p>${role.description}</p>
+            ${skillButtonHTML}
+        `;
         this.gameElements.roleDisplay.style.display = 'block';
-        if (role.hasActiveSkill) {
-            document.getElementById('skill-btn').addEventListener('click', () => this.handleSkillClick());
-        }
+    },
+
+    /**
+     * Hiển thị Tiếng Vọng của vòng chơi.
+     * @param {object} decreeData - Dữ liệu Tiếng Vọng từ server.
+     */
+    displayDecree(decreeData) {
+        this.gameElements.decreeDisplay.innerHTML = `
+            <p><span class="decree-title">Tiếng Vọng từ ${decreeData.drawerName}:</span> ${decreeData.decrees.map(d => `<strong>${d.name}</strong> - ${d.description}`).join('<br>')}</p>
+        `;
+        this.gameElements.decreeDisplay.style.display = 'block';
+    },
+
+    // --- IV. CÁC HÀM LIÊN QUAN ĐẾN GIAI ĐOẠN & HÀNH ĐỘNG ---
+
+    /**
+     * Cập nhật tiêu đề và mô tả của giai đoạn hiện tại.
+     * @param {string} title - Tiêu đề (ví dụ: 'Giai Đoạn Lựa Chọn').
+     * @param {string} description - HTML mô tả cho giai đoạn.
+     */
+    updatePhaseDisplay(title, description = '') {
+        this.gameElements.phaseTitle.textContent = title;
+        this.gameElements.actionControls.innerHTML = `${description}<div id="timer-display"></div>`;
+    },
+
+    /**
+     * Bắt đầu một bộ đếm ngược trên màn hình.
+     * @param {number} duration - Thời gian đếm ngược (giây).
+     * @param {function} onComplete - Hàm callback sẽ gọi khi hết giờ.
+     */
+    startTimer(duration, onComplete) {
+        const timerDisplay = document.getElementById('timer-display');
+        if (!timerDisplay) return;
+
+        let timeLeft = duration;
+        // Xóa timer cũ nếu có để tránh chạy nhiều timer cùng lúc
+        if (window.countdownInterval) clearInterval(window.countdownInterval);
+
+        window.countdownInterval = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(window.countdownInterval);
+                timerDisplay.textContent = "Hết giờ!";
+                if (onComplete) onComplete();
+            } else {
+                timerDisplay.textContent = timeLeft;
+            }
+            timeLeft--;
+        }, 1000);
     },
     
-    // --- IV. UPDATE FUNCTIONS ---
-    updateNewRoundUI(data) {
-        this.gameElements.roundIndicator.textContent = data.roundNumber;
-        this.gameElements.phaseTitle.textContent = 'Thám Hiểm';
-        this.gameElements.decreeDisplay.style.display = 'none';
-        let phaseHTML = `<div id="timer-display">${data.duration}</div><div id="player-choice-buttons-wrapper"><button class="choice-buttons loyal" onclick="handleSendPlayerChoice('Giải Mã')">Giải Mã</button><button class="choice-buttons corrupt" onclick="handleSendPlayerChoice('Phá Hoại')">Phá Hoại</button><button class="choice-buttons blank" onclick="handleSendPlayerChoice('Quan Sát')">Quan Sát</button></div>`;
-        this.gameElements.actionControls.innerHTML = phaseHTML;
-        this.logMessage('info', `--- Đêm thứ ${data.roundNumber} bắt đầu! ---`);
-        this.startCountdown(data.duration);
-        const skillBtn = document.getElementById('skill-btn');
-        if (skillBtn) {
-            skillBtn.disabled = false;
-            skillBtn.textContent = state.myRole.skillName || 'Dùng Kỹ Năng';
+    /** Dừng và xóa bộ đếm ngược. */
+    clearTimer() {
+        if (window.countdownInterval) {
+            clearInterval(window.countdownInterval);
         }
-    },
-	renderCoordinationPhase(data) {
-        this.gameElements.phaseTitle.textContent = 'Phối Hợp';
-        
-        let html = `
-            <div id="timer-display">${data.duration}</div>
-            <div class="chaos-actions">
-                <button onclick="handleStartTargetSelection('Phối Hợp')">Phối Hợp</button>
-            </div>
-            <p class="info">Nếu không ai Phối Hợp, giai đoạn sẽ tự kết thúc.</p>
-        `;
-        this.gameElements.actionControls.innerHTML = html;
-        this.startCountdown(data.duration);
+        const timerDisplay = document.getElementById('timer-display');
+        if(timerDisplay) timerDisplay.innerHTML = '';
     },
 
-    renderTwilightPhase(data) {
-        this.gameElements.phaseTitle.textContent = 'Giờ Hoàng Hôn';
-        
-        const totalPlayers = state.players.filter(p => !p.disconnected).length;
-        let html = `
-            <div id="timer-display">${data.duration}</div>
-            <div class="chaos-actions">
-                <button onclick="handleStartTargetSelection('Vạch Trần')">Vạch Trần</button>
+    /**
+     * Hiển thị các nút hành động chính cho người chơi.
+     */
+    renderChoiceButtons() {
+        this.updatePhaseDisplay(
+            'Giai Đoạn Thám Hiểm',
+            '<p>Bí mật chọn hành động của bạn trong đêm nay.</p>'
+        );
+        const buttonsHTML = `
+            <div class="choice-buttons-container">
+                <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
+                <button class="choice-buttons corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
+                <button class="choice-buttons blank" data-action="Quan Sát">👁️ Quan Sát</button>
             </div>
-            <button id="skip-chaos-btn" class="skip-button" onclick="handleVoteToSkipChaos()">Nghỉ Ngơi <span id="skip-vote-count">(0/${totalPlayers})</span></button>
         `;
-        this.gameElements.actionControls.innerHTML = html;
-        this.startCountdown(data.duration);
-    },
+        this.gameElements.actionControls.insertAdjacentHTML('afterbegin', buttonsHTML);
 
-    renderRoundResults(data) {
-        this.gameElements.phaseTitle.textContent = 'Phán Xét';
-        this.gameElements.actionControls.innerHTML = ''; 
-        const { finalVoteCounts: counts, results, players } = data;
-        this.logMessage('info', `Kết quả: ${counts['Giải Mã'] || 0} Giải Mã, ${counts['Phá Hoại'] || 0} Phá Hoại, ${counts['Quan Sát'] || 0} Quan Sát.`);
-        results.messages.forEach(msg => this.logMessage('info', msg));
-        players.forEach(p => {
-            const change = results.scoreChanges[p.id] || 0;
-            if (change > 0) this.logMessage('success', `👍 ${p.name} nhận được +${change} Tiến Độ.`);
-            else if (change < 0) this.logMessage('error', `👎 ${p.name} mất ${change} Tiến Độ.`);
-            const choiceClass = { 'Giải Mã': 'loyal-text', 'Phá Hoại': 'corrupt-text', 'Quan Sát': 'blank-text' }[p.chosenAction] || 'info';
-            this.updatePlayerCard(p.id, {
-                score: p.score,
-                actionText: `Hành động: <span class="${choiceClass}">${p.chosenAction || 'Không rõ'}</span>`
+        // Gán sự kiện cho các nút vừa tạo
+        document.querySelectorAll('.choice-buttons').forEach(button => {
+            button.addEventListener('click', () => {
+                const choice = button.getAttribute('data-action');
+                Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice: choice });
+                
+                // Vô hiệu hóa tất cả các nút sau khi đã chọn
+                document.querySelectorAll('.choice-buttons').forEach(btn => btn.disabled = true);
+                this.updatePhaseDisplay('Đã chọn!', '<p>Đang chờ những người khác...</p>');
             });
         });
     },
+    
+    /**
+     * Hiển thị hộp thoại để người chơi chọn phán đoán khi Vạch Trần.
+     * @param {string} targetId - ID của người chơi bị Vạch Trần.
+     * @param {string} targetName - Tên của người chơi bị Vạch Trần.
+     */
+    promptForAccusation(targetId, targetName) {
+        document.body.classList.remove('selecting-target'); // Tạm dừng việc chọn mục tiêu
 
-    renderGameOver(data) {
-        this.gameElements.phaseTitle.textContent = '🏆 CUỘC THÁM HIỂM KẾT THÚC 🏆';
-        this.gameElements.actionControls.innerHTML = '';
-        let message = 'Một kết quả không ngờ tới!';
+        Swal.fire({
+            title: `Vạch Trần ${targetName}`,
+            html: `
+                <p>Bạn nghĩ họ đã thực hiện hành động gì?</p>
+                <div class="accusation-choices" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+                    <button class="swal2-styled" data-guess="Giải Mã">📜 Giải Mã</button>
+                    <button class="swal2-styled" data-guess="Phá Hoại">💣 Phá Hoại</button>
+                    <button class="swal2-styled" data-guess="Quan Sát">👁️ Quan Sát</button>
+                </div>
+            `,
+            showConfirmButton: false, // Ẩn nút OK mặc định
+            showCancelButton: true,
+            cancelButtonText: 'Hủy',
+            background: '#2d3748',
+            color: '#e2e8f0',
+            didOpen: () => {
+                const popup = Swal.getPopup();
+                popup.querySelectorAll('.swal2-styled[data-guess]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const guess = button.getAttribute('data-guess');
+                        // Gửi sự kiện Vạch Trần lên server
+                        Network.emit('requestAccusation', {
+                            roomCode: state.currentRoomCode,
+                            targetId: targetId,
+                            guess: guess
+                        });
+                        Swal.close();
+                    });
+                });
+            },
+        }).then((result) => {
+            // Nếu người dùng bấm "Hủy" hoặc đóng hộp thoại, cho phép họ chọn lại mục tiêu khác
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                document.body.classList.add('selecting-target');
+            }
+        });
+    },
+
+    /**
+     * Hiển thị kết quả cuối vòng, cập nhật điểm và hành động.
+     * @param {object} resultData - Dữ liệu kết quả từ server.
+     * @param {Array} players - Mảng người chơi đã cập nhật.
+     */
+    renderResults(resultData, players) {
+        // 1. Cập nhật hành động đã chọn của mọi người lên thẻ
+        players.forEach(player => {
+            const actionEl = document.getElementById(`action-${player.id}`);
+            if (actionEl) {
+                let actionText = player.chosenAction;
+                let actionClass = '';
+                if(actionText === 'Giải Mã') actionClass = 'loyal-text';
+                if(actionText === 'Phá Hoại') actionClass = 'corrupt-text';
+                if(actionText === 'Quan Sát') actionClass = 'blank-text';
+                actionEl.innerHTML = `<span class="${actionClass}">${actionText}</span>`;
+            }
+        });
+        
+        // 2. Log các thông điệp của vòng
+        resultData.messages.forEach(msg => this.addLogMessage('info', msg));
+
+        // 3. Cập nhật điểm với hiệu ứng
+        setTimeout(() => {
+            players.forEach(player => {
+                const scoreEl = document.getElementById(`score-${player.id}`);
+                if (scoreEl) {
+                    const oldScore = parseInt(scoreEl.textContent);
+                    const newScore = player.score;
+                    if(oldScore !== newScore) {
+                        scoreEl.textContent = newScore;
+                        const change = newScore - oldScore;
+                        const animationClass = change > 0 ? 'score-up' : 'score-down';
+                        scoreEl.classList.add(animationClass);
+                        // Xóa class animation sau khi nó chạy xong
+                        setTimeout(() => scoreEl.classList.remove(animationClass), 800);
+                    }
+                }
+            });
+        }, 1000); // Đợi 1 giây để người dùng đọc hành động trước khi thấy điểm thay đổi
+    },
+
+    /**
+     * Hiển thị màn hình kết thúc game.
+     * @param {object} data - Dữ liệu người thắng/thua từ server.
+     */
+    showGameOver(data) {
+        let title = "Hòa!";
+        let text = "Không ai hoàn thành được mục tiêu của mình.";
         if (data.winner) {
-            this.playSound('game-over-win');
-            let reasonText = `đã tìm thấy Cổ Vật với ${data.winner.score} Tiến Độ!`;
-            if (data.winner.reason) reasonText = data.winner.reason;
-            message = `🎉 **${data.winner.name}** ${reasonText} 🎉`;
+            title = `${data.winner.name} đã chiến thắng!`;
+            text = `Lý do: ${data.winner.reason}`;
         } else if (data.loser) {
-            this.playSound('game-over-lose');
-            message = `☠️ **${data.loser.name}** đã bị Lời Nguyền nuốt chửng! ☠️`;
+            title = `${data.loser.name} đã thất bại!`;
+            text = "Tiến độ của họ đã chạm đáy.";
         }
-        this.logMessage('warning', message);
-        let finalHTML = `<h2 class="warning">${message}</h2>`;
+        
+        // Sử dụng SweetAlert để thông báo kết quả cuối cùng
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: data.winner ? 'success' : 'info',
+            background: '#2d3748',
+            color: '#e2e8f0',
+            confirmButtonText: 'Tuyệt vời!',
+        });
+
+        // Hiển thị nút "Chơi Lại" cho chủ phòng
         if (state.myId === state.currentHostId) {
-            finalHTML += `<button class="skip-button" onclick="Network.emit('playAgain', state.currentRoomCode)">Thám Hiểm Lần Nữa</button>`;
-        } else {
-            finalHTML += `<p class="info">Đang chờ Trưởng Đoàn bắt đầu cuộc thám hiểm mới...</p>`;
+             this.gameElements.actionControls.innerHTML = `<button id="play-again-btn">Chơi Lại</button>`;
+             document.getElementById('play-again-btn').addEventListener('click', () => {
+                 Network.emit('playAgain', state.currentRoomCode);
+             });
         }
-        this.gameElements.actionControls.innerHTML = finalHTML;
-    },
-    
-    addChatMessage(sender, message) {
-        const chatMessages = document.getElementById('chat-messages');
-        const messageEl = document.createElement('div');
-        messageEl.classList.add('chat-message');
-        const senderEl = document.createElement('span');
-        senderEl.className = 'chat-sender';
-        senderEl.textContent = `${sender}: `;
-        const messageContentEl = document.createElement('span');
-        messageContentEl.textContent = message;
-        messageEl.appendChild(senderEl);
-        messageEl.appendChild(messageContentEl);
-        chatMessages.prepend(messageEl);
-    },
-
-    // --- V. EVENT HANDLERS & HELPERS ---
-    // (Toàn bộ mục V và VI đã được cung cấp chi tiết ở câu trả lời trước, bạn có thể dán lại vào đây)
-    // Dưới đây là phiên bản đầy đủ để bạn sao chép lại cho chắc chắn.
-    handleSkillClick() {
-        this.playSound('click');
-        const role = state.myRole;
-        if (!role) return;
-        if (role.id === 'MIMIC') {
-            const mimicTarget = state.players.find(p => p.id === state.myRole.mimicTargetId);
-            if (!mimicTarget) {
-                Swal.fire({ title: 'Lỗi', text: 'Không tìm thấy mục tiêu để bắt chước!', icon: 'error' });
-                return;
-            }
-            const targetRoleInfo = state.possibleRoles[mimicTarget.roleId];
-            if (targetRoleInfo && ROLES[mimicTarget.roleId]?.hasActiveSkill) {
-                const fakeRole = { id: mimicTarget.roleId, skillName: ROLES[mimicTarget.roleId].skillName };
-                // Gọi một hàm con để xử lý, tránh đệ quy vô hạn
-                this.executeSkillFlow(fakeRole);
-            } else {
-                Swal.fire({ title: 'Không Thể Sao Chép', text: 'Mục tiêu của bạn không có kỹ năng kích hoạt để sử dụng!', icon: 'info', background: '#2d3748', color: '#e2e8f0' });
-            }
-            return;
-        }
-        this.executeSkillFlow(role);
-    },
-    
-    executeSkillFlow(role) {
-        switch (role.id) {
-            case 'PROPHET': this.prophetSkillFlow(); break;
-            case 'PEACEMAKER': this.peacemakerSkillFlow(); break;
-            case 'INQUISITOR': this.inquisitorSkillFlow(); break;
-            case 'MAGNATE': this.magnateSkillFlow(); break;
-            case 'BALANCER': this.balancerSkillFlow(); break;
-            case 'REBEL': this.rebelSkillFlow(); break;
-            case 'PRIEST': this.priestSkillFlow(); break;
-            case 'THIEF': this.thiefSkillFlow(); break;
-            case 'MIND_BREAKER': this.mindBreakerSkillFlow(); break;
-            case 'CULTIST': this.cultistSkillFlow(); break;
-            case 'DOUBLE_AGENT': this.doubleAgentSkillFlow(); break;
-            case 'PHANTOM': this.phantomSkillFlow(); break;
-            default: Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: {} }); break;
-        }
-    },
-    
-    mindBreakerSkillFlow() {
-        const targetOptions = this.getTargetOptions();
-        Swal.fire({ title: 'Điều Khiển', text: 'Chọn một người để quyết định hành động của họ:', input: 'select', inputOptions: targetOptions, inputPlaceholder: 'Chọn mục tiêu...', showCancelButton: true, confirmButtonText: 'Chọn' })
-        .then(result => {
-            if (result.isConfirmed && result.value) {
-                Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: { targetId: result.value } });
-                const skillBtn = document.getElementById('skill-btn');
-                if (skillBtn) { skillBtn.disabled = true; skillBtn.textContent = 'Đang Điều Khiển...'; }
-            }
-        });
-    },
-
-    promptMindControlSelection(targetId) {
-        const target = state.players.find(p => p.id === targetId);
-        if (!target) return;
-        Swal.fire({ title: `Chọn Hành Động Cho ${target.name}`, text: 'Lựa chọn của bạn sẽ là hành động của họ.', showDenyButton: true, showCancelButton: true, confirmButtonText: 'Giải Mã', denyButtonText: 'Phá Hoại', cancelButtonText: 'Quan Sát' })
-        .then(result => {
-            let chosenAction = null;
-            if (result.isConfirmed) chosenAction = 'Giải Mã';
-            else if (result.isDenied) chosenAction = 'Phá Hoại';
-            else if (result.dismiss === Swal.DismissReason.cancel) chosenAction = 'Quan Sát';
-            if (chosenAction) {
-                Network.emit('mindControlAction', { roomCode: state.currentRoomCode, targetId: targetId, chosenAction: chosenAction });
-            }
-        });
-    },
-
-    getTargetOptions(excludeId = null) {
-        return state.players.reduce((opts, p) => {
-            if (p.id !== state.myId && p.id !== excludeId && !p.disconnected) { opts[p.id] = p.name; }
-            return opts;
-        }, {});
-    },
-
-    getPossibleRoles(excludeOwnRole = false) {
-        const roles = { ...state.possibleRoles };
-        if (excludeOwnRole && state.myRole && roles[state.myRole.id]) { delete roles[state.myRole.id]; }
-        return roles;
-    },
-    
-    promptAmnesiaSelection(players) {
-        const playerInputs = players.map(p => `<label class="swal2-checkbox"><input type="checkbox" value="${p.id}"><span class="swal2-label">${p.name}</span></label>`).join('');
-        Swal.fire({ title: 'Bùa Lú Lẫn', html: `<p>Bạn được quyền hoán đổi hành động của 2 người. Hãy chọn chính xác 2 người:</p><div id="amnesia-player-list" style="display: flex; flex-direction: column; align-items: flex-start; text-align: left;">${playerInputs}</div>`, confirmButtonText: 'Hoán Đổi',
-            preConfirm: () => {
-                const checkedBoxes = document.querySelectorAll('#amnesia-player-list input:checked');
-                if (checkedBoxes.length !== 2) { Swal.showValidationMessage('Bạn phải chọn chính xác 2 người!'); return false; }
-                return Array.from(checkedBoxes).map(box => box.value);
-            }
-        }).then(result => {
-            if (result.isConfirmed && result.value) {
-                const [player1Id, player2Id] = result.value;
-                Network.emit('amnesiaAction', { roomCode: state.currentRoomCode, player1Id, player2Id });
-            }
-        });
-    },
+    }
 };
 
-
-// ==========================================================
-// --- VI. GLOBAL EVENT HANDLERS (Hàm xử lý sự kiện toàn cục) ---
-// ==========================================================
-// Các hàm này phải được định nghĩa ở phạm vi toàn cục để onclick trong HTML có thể tìm thấy.
-
-function handleKickPlayer(playerId) {
-    UI.playSound('click');
-    Swal.fire({
-        title: 'Trục Xuất Thợ Săn?',
-        text: "Bạn có chắc muốn trục xuất người này khỏi đoàn?",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#e53e3e',
-        cancelButtonColor: '#718096',
-        confirmButtonText: 'Đúng, trục xuất!',
-        cancelButtonText: 'Hủy'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId });
+savePlayerName() {
+        const name = this.homeElements.nameInput.value;
+        if (name) {
+            localStorage.setItem('tho-san-co-vat-playerName', name);
         }
-    });
-}
+    },
 
-function handleSendPlayerChoice(choice) {
-    UI.playSound('click');
-    UI.gameElements.actionControls.innerHTML = '<p class="info">Đã hành động... Chờ đợi trong bóng tối...</p>';
-    Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice });
-}
-
-function handleStartTargetSelection(actionType) {
-    UI.playSound('click');
-    document.body.classList.add('selecting-target');
-    UI.logMessage('info', `Hãy chọn một người chơi trên màn hình để ${actionType}. Nhấn Esc hoặc click ra ngoài để hủy.`);
-
-    const cards = document.querySelectorAll('.player-card:not(.disconnected)');
+    /**
+     * (MỚI) Tải tên người chơi từ bộ nhớ và điền vào ô input.
+     */
+    loadPlayerName() {
+        const savedName = localStorage.getItem('tho-san-co-vat-playerName');
+        if (savedName) {
+            this.homeElements.nameInput.value = savedName;
+        }
+    },
     
-    // Hàm dọn dẹp: xóa hiệu ứng và các trình lắng nghe sự kiện tạm thời
-    const cleanup = () => {
-        document.body.classList.remove('selecting-target');
-        cards.forEach(card => card.onclick = null);
-        window.removeEventListener('keydown', handleEscape);
-        document.removeEventListener('click', handleOutsideClick);
-    };
-
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            cleanup();
-            UI.logMessage('info', 'Đã hủy hành động.');
+    /**
+     * (MỚI) Bật hoặc tắt nhạc nền.
+     */
+    toggleMusic() {
+        const music = document.getElementById('background-music');
+        const btn = document.getElementById('music-toggle-btn');
+        if (music.paused) {
+            music.play().catch(e => console.error("Không thể bật nhạc:", e));
+            btn.textContent = '🎵';
+        } else {
+            music.pause();
+            btn.textContent = '🔇';
         }
-    };
-
-    const handleOutsideClick = (e) => {
-        // Nếu click không phải là vào một player-card hoặc nút trong modal, thì hủy
-        if (!e.target.closest('.player-card') && !e.target.closest('.swal2-container')) {
-             cleanup();
-             UI.logMessage('info', 'Đã hủy hành động.');
-        }
-    };
-
-    // Gán các trình lắng nghe để hủy hành động
-    window.addEventListener('keydown', handleEscape, { once: true });
-    setTimeout(() => document.addEventListener('click', handleOutsideClick), 0);
-
-    // Gán sự kiện click cho từng thẻ người chơi
-    cards.forEach(card => {
-        const cardPlayerId = card.id.replace('player-card-', '');
-        if (cardPlayerId === state.myId) {
-            card.classList.add('is-self'); // Thêm class để CSS có thể vô hiệu hóa
-            return;
-        }
-
-        card.onclick = (e) => {
-            e.stopPropagation(); // Ngăn event lan ra document
-            const targetId = card.id.replace('player-card-', '');
-            cleanup(); // Dọn dẹp ngay sau khi chọn
-
-            // Gọi hàm xử lý logic tương ứng với hành động
-            if (actionType === 'Phối Hợp') {
-                Network.emit('requestCoordination', { roomCode: state.currentRoomCode, targetId });
-            } else if (actionType === 'Vạch Trần') {
-                handleTwilightActionSelection(targetId);
-            }
-        };
-    });
-}
-
-/**
- * Xử lý logic sau khi người chơi đã chọn mục tiêu để "Vạch Trần".
- * @param {string} targetId 
- */
-function handleTwilightActionSelection(targetId) {
-    const targetName = state.players.find(p => p.id === targetId)?.name || 'Không rõ';
+    },
     
-    Swal.fire({
-        title: `Đoán Hành Động Của ${targetName}`,
-        text: 'Bạn đoán hành động của họ là:',
-        showDenyButton: true,
-        showCancelButton: true,
-        confirmButtonText: 'Giải Mã',
-        denyButtonText: 'Phá Hoại',
-        cancelButtonText: 'Quan Sát',
-        background: '#2d3748',
-        color: '#e2e8f0',
-        confirmButtonColor: '#48bb78',
-        denyButtonColor: '#e53e3e'
-    }).then(result => {
-        let guess = null;
-        if (result.isConfirmed) guess = 'Giải Mã';
-        else if (result.isDenied) guess = 'Phá Hoại';
-        else if (result.dismiss === Swal.DismissReason.cancel) guess = 'Quan Sát';
-        
-        if (guess) {
-            // Gửi sự kiện đã đổi tên
-            Network.emit('requestTwilightAction', { 
-                roomCode: state.currentRoomCode, 
-                targetId, 
-                guess 
-            });
+    /**
+     * (MỚI) Áp dụng hiệu ứng rung lắc lên thẻ của một người chơi.
+     * @param {string} playerId ID của người chơi bị tác động.
+     */
+    applyShakeEffect(playerId) {
+        const card = document.querySelector(`.player-card[data-player-id="${playerId}"]`);
+        if (card) {
+            card.classList.add('shake');
+            // Xóa class sau khi animation kết thúc để có thể dùng lại
+            setTimeout(() => {
+                card.classList.remove('shake');
+            }, 820); // Thời gian animation là 0.82s
         }
-    });
-}
-
-/**
- * Xử lý khi người chơi bỏ phiếu "Nghỉ Ngơi" trong Giờ Hoàng Hôn.
- */
-function handleVoteToSkipChaos() { // Tên hàm có thể giữ nguyên hoặc đổi thành handleVoteToSkipTwilight
-    UI.playSound('click');
-    const btn = document.getElementById('skip-chaos-btn'); // ID của nút vẫn giữ nguyên
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Đã bỏ phiếu...';
     }
-    Network.emit('playerVotedToSkip', state.currentRoomCode);
-}
+
+addCopyToClipboard() {
+        const roomCode = this.roomElements.roomCodeDisplay.textContent;
+        const copyButton = document.createElement('button');
+        copyButton.textContent = 'Sao chép mã';
+        copyButton.style.marginLeft = '15px';
+        copyButton.onclick = () => {
+            navigator.clipboard.writeText(roomCode).then(() => {
+                UI.playSound('success');
+                copyButton.textContent = 'Đã chép!';
+                setTimeout(() => { copyButton.textContent = 'Sao chép mã'; }, 2000);
+            });
+        };
+        // Xóa nút cũ nếu có để tránh trùng lặp
+        const existingBtn = this.roomElements.roomCodeDisplay.nextElementSibling;
+        if (existingBtn && existingBtn.tagName === 'BUTTON') {
+            existingBtn.remove();
+        }
+        this.roomElements.roomCodeDisplay.parentNode.insertBefore(copyButton, this.roomElements.roomCodeDisplay.nextSibling);
+    },
+
+    /**
+     * (MỚI) Hiển thị bảng tổng kết vòng đấu chi tiết.
+     * @param {object} results - Đối tượng results từ server.
+     * @param {object} finalVoteCounts - Số phiếu bầu cuối cùng.
+     */
+    showRoundSummary(results, finalVoteCounts) {
+        const { winner, isDraw, roundSummary } = results;
+
+        let title = isDraw ? '⚖️ Đêm Nay Hoà!' : `🏆 Phe ${winner} Thắng!`;
+
+        let summaryHTML = `
+            <div style="text-align: left; margin-bottom: 20px;">
+                <strong>Tổng kết phiếu:</strong> 
+                📜 ${finalVoteCounts['Giải Mã']} | 💣 ${finalVoteCounts['Phá Hoại']} | 👁️ ${finalVoteCounts['Quan Sát']}
+            </div>
+            <table class="swal2-table" style="width: 100%;">
+                <thead>
+                    <tr><th>Người Chơi</th><th>Hành Động</th><th>Chi Tiết Điểm</th><th>Kết Quả</th></tr>
+                </thead>
+                <tbody>
+        `;
+
+        roundSummary.forEach(player => {
+            let totalChange = player.newScore - player.oldScore;
+            let changeClass = totalChange > 0 ? 'success-text' : (totalChange < 0 ? 'error-text' : '');
+            let changeText = totalChange > 0 ? `+${totalChange}` : totalChange;
+
+            let details = player.changes.map(c => `${c.reason}: ${c.amount > 0 ? '+' : ''}${c.amount}`).join('<br>');
+            if (player.changes.length === 0) details = 'Không đổi';
+
+            summaryHTML += `
+                <tr>
+                    <td>${player.name}</td>
+                    <td>${player.chosenAction}</td>
+                    <td>${details}</td>
+                    <td>${player.oldScore} <span class="${changeClass}">${changeText}</span> → <strong>${player.newScore}</strong></td>
+                </tr>
+            `;
+        });
+
+        summaryHTML += '</tbody></table>';
+
+        Swal.fire({
+            title: title,
+            html: summaryHTML,
+            width: '90%',
+            customClass: { container: 'rulebook-modal' },
+            background: '#2d3748',
+            color: '#e2e8f0',
+            confirmButtonText: 'OK'
+        });
+    }
+};

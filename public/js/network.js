@@ -1,22 +1,54 @@
 
 
+// public/js/network.js
+// ======================================================================
+// NETWORK MODULE ("The Messenger")
+// Nhiệm vụ: Đóng gói và quản lý giao tiếp Socket.IO.
+// Nó cung cấp một giao diện đơn giản cho client.js để gửi và nhận sự kiện.
+// ======================================================================
+
 const Network = {
     socket: null,
     state: null,
 
+    /**
+     * Khởi tạo kết nối Socket.IO.
+     * @param {object} clientState - Trạng thái của client để tham chiếu.
+     */
     initialize(clientState) {
         this.state = clientState;
-        this.socket = io();
-        this.setupEventListeners();
+        // Kiểm tra xem socket đã được kết nối chưa để tránh tạo lại
+        if (!this.socket) {
+            this.socket = io();
+        }
     },
 
+    /**
+     * Gửi một sự kiện đến server.
+     * @param {string} eventName - Tên của sự kiện.
+     * @param {object} data - Dữ liệu đi kèm.
+     */
     emit(eventName, data) {
         if (this.socket) {
             this.socket.emit(eventName, data);
         } else {
-            console.error("Socket not initialized. Cannot emit event.");
+            console.error("Socket chưa được khởi tạo. Không thể gửi sự kiện.");
         }
     },
+
+    /**
+     * Lắng nghe một sự kiện từ server.
+     * @param {string} eventName - Tên của sự kiện.
+     * @param {function} callback - Hàm sẽ được gọi khi sự kiện xảy ra.
+     */
+    on(eventName, callback) {
+        if (this.socket) {
+            this.socket.on(eventName, callback);
+        } else {
+            console.error("Socket chưa được khởi tạo. Không thể lắng nghe sự kiện.");
+        }
+    }
+};
 
     setupEventListeners() {
         const state = this.state;
