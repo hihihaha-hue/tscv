@@ -11,9 +11,6 @@ const { ROLES } = require('./config.js');   // "Sách Luật" chứa thông tin 
 
 
 function initialize(io, rooms) {
-    // Hàm này được gọi một lần duy nhất khi server khởi động.
-    // Nó thiết lập trình lắng nghe cho tất cả các kết nối trong tương lai.
-
     io.on('connection', (socket) => {
         // Mỗi khi có một người chơi mới mở game trên trình duyệt, một 'socket' mới sẽ được tạo ra.
         // Tất cả các sự kiện của người chơi đó sẽ được xử lý bên trong hàm này.
@@ -31,35 +28,37 @@ function initialize(io, rooms) {
          */
         function handleJoinRoom(code, name) {
             const room = rooms[code];
+            if (!room) return socket.emit('roomError', `Phòng '${code}' không tồn tại!`);
+            if (room.gameState) return socket.emit('roomError', 'Cuộc thám hiểm đã bắt đầu!');
+            if (room.players.length >= room.maxPlayers) return socket.emit('roomError', 'Đoàn đã đủ người!');
 
-            // --- Các bước kiểm tra an toàn ---
-            if (!room) {
-                return socket.emit('roomError', `Phòng '${code}' không tồn tại!`);
-            }
-            if (room.gameState) {
-                return socket.emit('roomError', 'Cuộc thám hiểm đã bắt đầu, không thể tham gia!');
-            }
-            if (room.players.length >= room.maxPlayers) {
-                return socket.emit('roomError', 'Đoàn đã đủ người!');
-            }
-
-            // --- Thêm người chơi vào phòng ---
             const newPlayer = {
                 id: socket.id,
                 name: (name || `Thợ Săn ${room.players.length + 1}`).substring(0, 15).trim(),
-                isBot: false
+                isBot: false,
+                isReady: false // <-- THÊM DÒNG NÀY
             };
             room.players.push(newPlayer);
-            socket.join(code); // Cho socket này vào "kênh" của phòng
-
-            // --- Thông báo cho mọi người trong phòng và người chơi mới ---
-            // Gửi cho TẤT CẢ mọi người trong phòng (bao gồm cả người mới) danh sách người chơi đã cập nhật.
+            socket.join(code);
             io.to(code).emit('updatePlayerList', room.players, room.hostId);
-            // Gửi RIÊNG cho người chơi vừa tham gia để xác nhận họ đã vào phòng thành công.
             socket.emit('joinedRoom', { roomCode: code, hostId: room.hostId, myId: socket.id, players: room.players });
             console.log(`[Join] Người chơi ${newPlayer.name} (${socket.id}) đã vào phòng ${code}`);
         }
 
+        // THÊM MỚI: Lắng nghe sự kiện khi người chơi bấm nút Sẵn sàng
+        socket.on('playerReady', (roomCode) => {
+            const room = rooms[roomCode];
+            // Chỉ xử lý khi phòng tồn tại và game chưa bắt đầu
+            if (room && !room.gameState) {
+                const player = room.players.find(p => p.id === socket.id);
+                if (player) {
+                    // Đảo ngược trạng thái sẵn sàng của người chơi (true -> false, false -> true)
+                    player.isReady = !player.isReady;
+                    // Thông báo cho tất cả mọi người trong phòng về danh sách người chơi đã cập nhật
+                    io.to(roomCode).emit('updatePlayerList', room.players, room.hostId);
+                }
+            }
+        });
         // ==========================================================
         // --- II. SỰ KIỆN QUẢN LÝ PHÒNG CHỜ (LOBBY EVENTS) ---
         // ==========================================================
