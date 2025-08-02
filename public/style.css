@@ -372,7 +372,19 @@ body.selecting-target .player-card.is-self {
     background-color: var(--bg-medium);
     border: 2px solid var(--bg-light);
 }
-
+#history-log-btn {
+    position: fixed;
+    top: 140px; /* Dưới các nút khác */
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.8em;
+    z-index: 1000;
+    padding: 0;
+    background-color: var(--bg-medium);
+    border: 2px solid var(--bg-light);
+}
 /* Animation rung lắc cho thẻ người chơi */
 @keyframes shake {
   10%, 90% { transform: translate3d(-1px, 0, 0); }
@@ -411,4 +423,16 @@ body.selecting-target .player-card.is-self {
 /* Lớp .active sẽ kích hoạt hiệu ứng */
 #night-transition-overlay.active {
     opacity: 1;
+}
+#quick-chat-area {
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    border-bottom: 1px solid var(--bg-light);
+}
+.quick-chat-btn {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    background-color: var(--bg-medium);
 }
