@@ -61,8 +61,10 @@ UI.roomElements.startGameBtn.addEventListener('click', () => {
 });
 
 // C. Các nút chức năng chung
-document.getElementById('rulebook-btn').addEventListener('click', () => {
+document.getElementById('music-toggle-btn').addEventListener('click', () => {
     UI.playSound('click');
+    UI.toggleMasterMute(); // <-- THAY ĐỔI TỪ toggleMusic() thành toggleMasterMute()
+});
     const rulebookHTML = document.getElementById('rulebook-template').innerHTML;
     Swal.fire({
         title: 'Sách Luật Thợ Săn Cổ Vật',
