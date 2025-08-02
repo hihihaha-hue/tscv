@@ -104,6 +104,22 @@ function initialize(io, rooms) {
                 io.to(roomCode).emit('updatePlayerList', room.players, room.hostId);
             }
         });
+	    // THÊM MỚI: Lắng nghe sự kiện bỏ phiếu bỏ qua Phối hợp
+socket.on('voteSkipCoordination', (roomCode) => {
+    const room = rooms[roomCode];
+    if (room && room.gameState && room.gameState.phase === 'coordination') {
+        // Gọi logic để xử lý việc bỏ phiếu
+        gameLogic.handleVoteToSkip(roomCode, socket.id, 'coordination', rooms, io);
+    }
+});
+
+// THÊM MỚI: Lắng nghe sự kiện bỏ phiếu Nghỉ ngơi
+socket.on('voteSkipTwilight', (roomCode) => {
+    const room = rooms[roomCode];
+    if (room && room.gameState && room.gameState.phase === 'twilight') {
+        gameLogic.handleVoteToSkip(roomCode, socket.id, 'twilight', rooms, io);
+    }
+});
 
         // Lắng nghe sự kiện khi chủ phòng muốn đuổi một người chơi.
         socket.on('kickPlayer', (data) => {
