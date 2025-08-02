@@ -1,9 +1,6 @@
 // ======================================================================
 // MODULE ĐIỀU KHIỂN CHÍNH CỦA CLIENT ("The Conductor")
-// Nhiệm vụ:
-// 1. Quản lý trạng thái của người chơi.
-// 2. Gán các sự kiện cho các nút bấm trên giao diện.
-// 3. Lắng nghe và xử lý tất cả các sự kiện từ server.
+// Quản lý trạng thái, xử lý UI, sự kiện từ server
 // ======================================================================
 
 // --- I. TRẠNG THÁI TOÀN CỤC (GLOBAL STATE) ---
@@ -22,14 +19,12 @@ Network.initialize();
 UI.loadPlayerName();
 console.log("Client application initialized.");
 
-// --- III. GÁN SỰ KIỆN TĨNH CHO CÁC THÀNH PHẦN GIAO DIỆN ---
-// A. Màn hình chính (Home Screen)
+// --- III. SỰ KIỆN UI ---
 UI.homeElements.createRoomBtn.addEventListener('click', () => {
     UI.playSound('click');
     UI.savePlayerName();
     Network.emit('createRoom', { name: UI.homeElements.nameInput.value });
 });
-
 UI.homeElements.joinRoomBtn.addEventListener('click', () => {
     UI.playSound('click');
     UI.savePlayerName();
@@ -40,8 +35,6 @@ UI.homeElements.joinRoomBtn.addEventListener('click', () => {
         UI.homeElements.roomCodeInput.focus();
     }
 });
-
-// B. Phòng chờ (Room Screen)
 UI.roomElements.addBotBtn.addEventListener('click', () => {
     UI.playSound('click');
     if (!state.currentRoomCode) {
@@ -58,8 +51,6 @@ UI.roomElements.readyBtn.addEventListener('click', () => {
     UI.playSound('click');
     Network.emit('playerReady', state.currentRoomCode);
 });
-
-// C. Các nút chức năng chung
 document.getElementById('music-toggle-btn').addEventListener('click', () => {
     UI.playSound('click');
     UI.toggleMasterMute();
@@ -81,7 +72,6 @@ document.getElementById('history-log-btn').addEventListener('click', () => {
     UI.playSound('click');
     UI.showGameHistory(state.gameHistory);
 });
-
 document.querySelectorAll('.quick-chat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         UI.playSound('click');
@@ -95,8 +85,6 @@ document.querySelectorAll('.quick-chat-btn').forEach(btn => {
         }
     });
 });
-
-// D. Chức năng Chat
 const chatInput = document.getElementById('chat-input');
 const sendChatBtn = document.getElementById('send-chat-btn');
 function sendChatMessage() {
@@ -109,21 +97,18 @@ function sendChatMessage() {
 sendChatBtn.addEventListener('click', sendChatMessage);
 chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
-// --- IV. LẮNG NGHE VÀ XỬ LÝ SỰ KIỆN TỪ SERVER ---
+// --- IV. SỰ KIỆN TỪ SERVER ---
 Network.on('connect', () => {
     state.myId = Network.socket.id;
 });
-
 Network.on('roomError', (msg) => {
     UI.playSound('error');
     Swal.fire({ icon: 'error', title: 'Lỗi', text: msg, background: '#2d3748', color: '#e2e8f0' });
 });
-
 Network.on('kicked', () => {
     UI.playSound('error');
     Swal.fire('Bạn đã bị đuổi!').then(() => window.location.reload());
 });
-
 Network.on('joinedRoom', (data) => {
     UI.playSound('success');
     state.currentRoomCode = data.roomCode;
@@ -139,13 +124,11 @@ Network.on('joinedRoom', (data) => {
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addCopyToClipboard();
 });
-
 Network.on('updatePlayerList', (players, hostId) => {
     state.players = players;
     state.currentHostId = hostId;
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
 });
-
 Network.on('backToLobby', (data) => {
     state.gamePhase = 'lobby';
     state.players = data.players;
@@ -154,7 +137,6 @@ Network.on('backToLobby', (data) => {
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addLogMessage('info', 'Trò chơi kết thúc, trở về phòng chờ.');
 });
-
 Network.on('gameStarted', (data) => {
     UI.playSound('success');
     state.gamePhase = 'started';
@@ -164,7 +146,6 @@ Network.on('gameStarted', (data) => {
     const rolesList = data.rolesInGame.map(r => r.name).join(', ');
     UI.addLogMessage('info', `<strong>Các vai trò trong đêm nay:</strong> ${rolesList}`);
 });
-
 Network.on('newRound', (data) => {
     UI.showNightTransition(data.roundNumber);
     UI.playSound('new-round');
@@ -182,7 +163,6 @@ Network.on('decreeRevealed', (data) => {
     UI.playSound('decree');
     UI.displayDecree(data);
 });
-
 Network.on('roundResult', (data) => {
     state.gameHistory.push({ round: data.roundNumber, results: data.results, votes: data.finalVoteCounts });
     state.gamePhase = 'reveal';
@@ -203,7 +183,6 @@ Network.on('roundResult', (data) => {
         }, 8000);
     }
 });
-
 Network.on('gameOver', (data) => {
     if (data.winner && data.winner.id === state.myId) {
         UI.playSound('success');
@@ -214,7 +193,6 @@ Network.on('gameOver', (data) => {
     UI.clearTimer();
     UI.showGameOver(data);
 });
-
 Network.on('yourRoleIs', (roleData) => {
     state.myRole = roleData;
     UI.displayRole(roleData);
@@ -251,28 +229,23 @@ Network.on('yourRoleIs', (roleData) => {
         });
     }
 });
-
 Network.on('privateInfo', (data) => {
     Swal.fire({ title: data.title, html: data.text, icon: 'info', background: '#2d3748', color: '#e2e8f0' });
 });
-
 Network.on('playerChose', (playerId) => {
     const actionEl = document.getElementById(`action-${playerId}`);
     if (actionEl) actionEl.innerHTML = '✓ Đã chọn';
 });
-
 Network.on('playerAccused', (data) => {
     UI.playSound('accusation');
     UI.applyShakeEffect(data.targetId);
 });
-
 Network.on('chaosActionResolved', (data) => {
     document.body.classList.remove('selecting-target');
     UI.clearTimer();
     UI.addLogMessage('info', `<strong>[Hoàng Hôn]</strong> ${data.message}`);
     document.querySelectorAll('.player-card').forEach(card => card.parentNode.replaceChild(card.cloneNode(true), card));
 });
-
 Network.on('coordinationPhaseStarted', (data) => {
     state.gamePhase = 'coordination';
     UI.updatePhaseDisplay('Giai Đoạn Thám Hiểm', '<p>Chọn một người để đề nghị Phối Hợp, hoặc chọn hành động một mình.</p>');
@@ -303,7 +276,6 @@ Network.on('coordinationPhaseStarted', (data) => {
         document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
     }, { once: true });
 });
-
 Network.on('twilightPhaseStarted', (data) => {
     state.gamePhase = 'twilight';
     UI.updatePhaseDisplay('Hoàng Hôn', '<p>Chọn một người để Vạch Trần, hoặc chọn nghỉ ngơi.</p>');
@@ -334,11 +306,9 @@ Network.on('twilightPhaseStarted', (data) => {
         document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
     }, { once: true });
 });
-
 Network.on('newMessage', (data) => {
     UI.addChatMessage(data.senderName, data.message);
 });
-
 Network.on('promptAmnesiaAction', (data) => {
     state.gamePhase = 'amnesia_selection';
     UI.promptForPlayerSwap(data.validTargets, (selection) => {
