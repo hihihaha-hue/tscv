@@ -667,7 +667,7 @@ showGameHistory(history) {
         });
     }
 };
-Hàm chọn mục tiêu cho tin nhắn nhanh
+// THÊM MỚI:Hàm chọn mục tiêu cho tin nhắn nhanh
 promptForPlayerTarget(title, onSelected) {
     const inputOptions = {};
     state.players.filter(p => p.id !== state.myId).forEach(p => {
