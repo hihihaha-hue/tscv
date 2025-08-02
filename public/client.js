@@ -178,7 +178,7 @@ Network.on('decreeRevealed', (data) => {
 Network.on('roundResult', (data) => {
     Object.assign(state, { gamePhase: 'reveal', players: data.players });
     UI.clearTimer();
-    UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
+   UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
     
     // Hiển thị bảng tổng kết chi tiết, hấp dẫn
     UI.showRoundSummary(data.results, data.finalVoteCounts);
@@ -270,14 +270,19 @@ Network.on('chaosActionResolved', (data) => {
 });
 
 Network.on('coordinationPhaseStarted', (data) => {
+    Network.on('coordinationPhaseStarted', (data) => {
     state.gamePhase = 'coordination';
-    UI.updatePhaseDisplay('Giai Đoạn Phối Hợp', '<p>Chọn một người để đề nghị Phối Hợp.</p>');
-    UI.startTimer(data.duration);
+    UI.updatePhaseDisplay('Giai Đoạn Thám Hiểm', '<p>Chọn một người để đề nghị Phối Hợp, hoặc chọn hành động một mình.</p>');
+    UI.gameElements.skipCoordinationBtn.style.display = 'inline-block'; // Hiện nút
+    UI.gameElements.skipCoordinationBtn.disabled = false;
+    UI.gameElements.skipCoordinationBtn.textContent = 'Hành động một mình';
     document.body.classList.add('selecting-target');
     document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
         card.addEventListener('click', function handleCoordinationTarget() {
-            UI.playSound('click');
-            Network.emit('requestCoordination', { roomCode: state.currentRoomCode, targetId: card.getAttribute('data-player-id') });
+           UI.gameElements.skipCoordinationBtn.addEventListener('click', () => {
+    UI.playSound('click');
+    Network.emit('voteSkipCoordination', state.currentRoomCode);
+    UI.gameElements.skipCoordinationBtn.disabled = true; // Vô hiệu hóa sau khi bấm
             document.body.classList.remove('selecting-target');
             document.querySelectorAll('.player-card').forEach(c => c.parentNode.replaceChild(c.cloneNode(true), c));
         });
@@ -286,13 +291,17 @@ Network.on('coordinationPhaseStarted', (data) => {
 
 Network.on('twilightPhaseStarted', (data) => {
     state.gamePhase = 'twilight';
-    UI.updatePhaseDisplay('Giờ Hoàng Hôn', '<p>Chọn một người để Vạch Trần.</p>');
-    UI.startTimer(data.duration);
+    UI.updatePhaseDisplay('Hoàng Hôn', '<p>Chọn một người để Vạch Trần, hoặc chọn nghỉ ngơi.</p>');
+    UI.gameElements.skipTwilightBtn.style.display = 'inline-block'; // Hiện nút
+    UI.gameElements.skipTwilightBtn.disabled = false;
+    UI.gameElements.skipTwilightBtn.textContent = 'Nghỉ ngơi';
     document.body.classList.add('selecting-target');
     document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
         card.addEventListener('click', function handleAccusationTarget() {
-            UI.playSound('click');
-            UI.promptForAccusation(card.getAttribute('data-player-id'), card.querySelector('.player-name').textContent);
+            UI.gameElements.skipTwilightBtn.addEventListener('click', () => {
+    UI.playSound('click');
+    Network.emit('voteSkipTwilight', state.currentRoomCode);
+    UI.gameElements.skipTwilightBtn.disabled = true; // Vô hiệu hóa sau khi bấm
         });
     });
 });
@@ -327,4 +336,10 @@ Network.on('promptArenaBet', (data) => {
         Network.emit('submitArenaBet', { roomCode: state.currentRoomCode, ...bet });
         UI.updatePhaseDisplay('Đã Đặt Cược!', 'Đang chờ trận đấu diễn ra...');
     });
+});
+    Network.on('updateSkipVoteCount', (data) => {
+    const btn = document.getElementById(data.buttonId);
+    if (btn) {
+        btn.textContent = `${btn.textContent.split('(')[0].trim()} (${data.count}/${data.total})`;
+    }
 });
