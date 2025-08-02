@@ -142,19 +142,15 @@ Network.on('kicked', () => {
 Network.on('joinedRoom', (data) => {
     UI.playSound('success');
     const music = document.getElementById('background-music');
-    if (music.paused) {
-        music.play().catch(e => console.log("Người dùng cần tương tác để bật nhạc."));
-    }
-    
-    Object.assign(state, { myId: data.myId, currentRoomCode: data.roomCode, currentHostId: data.hostId, players: data.players });
+    if (music.paused) music.play().catch(e => console.log("Cần tương tác để bật nhạc."));
+    Object.assign(state, data);
     UI.showScreen('room');
     UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addCopyToClipboard();
 });
-
 Network.on('updatePlayerList', (players, hostId) => {
-    Object.assign(state, { players, currentHostId: hostId });
+    Object.assign(state, { players, hostId });
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
 });
 
@@ -167,8 +163,9 @@ Network.on('backToLobby', (data) => {
 
 // B. Nhóm sự kiện luồng game chính
 Network.on('gameStarted', (data) => {
-    UI.playSound('success'); // Hoặc một âm thanh game_start.mp3 hoành tráng
+    UI.playSound('success');
     state.gamePhase = 'started';
+    state.rolesInGame = data.rolesInGame;
     UI.showScreen('game');
     UI.addLogMessage('success', 'Cuộc thám hiểm bắt đầu!');
     const rolesList = data.rolesInGame.map(r => r.name).join(', ');
@@ -176,9 +173,17 @@ Network.on('gameStarted', (data) => {
 });
 
 Network.on('newRound', (data) => {
-    // 1. Gọi hiệu ứng chuyển cảnh và âm thanh ngay lập tức
     UI.showNightTransition(data.roundNumber);
     UI.playSound('new-round');
+    setTimeout(() => {
+        Object.assign(state, { gamePhase: 'choice', players: data.players });
+        UI.gameElements.currentRound.textContent = data.roundNumber;
+        UI.updatePlayerCards(state.players, state.myId);
+        UI.renderChoiceButtons();
+        UI.startTimer(data.duration);
+        UI.gameElements.decreeDisplay.style.display = 'none';
+    }, 1000);
+});
 
     // 2. Chờ 1 giây để hiệu ứng bắt đầu, sau đó mới cập nhật giao diện bên dưới
     setTimeout(() => {
@@ -196,11 +201,21 @@ Network.on('decreeRevealed', (data) => {
 });
 
 Network.on('roundResult', (data) => {
-    state.gameHistory.push({ round: gs.currentRound -1, results: data.results, votes: data.finalVoteCounts });
+    state.gameHistory.push({ round: state.currentRound, results: data.results, votes: data.finalVoteCounts });
     Object.assign(state, { gamePhase: 'reveal', players: data.players });
     UI.clearTimer();
-   UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
-    
+    UI.updatePhaseDisplay('Giai Đoạn Phán Xét', 'Kết quả đang được công bố...');
+    UI.showRoundSummary(data.results, data.finalVoteCounts);
+    if (state.myId === state.currentHostId) {
+        setTimeout(() => {
+            const btn = document.createElement('button');
+            btn.textContent = 'Bắt Đầu Đêm Tiếp Theo';
+            btn.onclick = () => { UI.playSound('click'); Network.emit('nextRound', state.currentRoomCode); };
+            UI.gameElements.actionControls.innerHTML = '';
+            UI.gameElements.actionControls.appendChild(btn);
+        }, 8000);
+    }
+});
     // Hiển thị bảng tổng kết chi tiết, hấp dẫn
     UI.showRoundSummary(data.results, data.finalVoteCounts);
 
