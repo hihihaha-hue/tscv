@@ -1,5 +1,6 @@
 // UI MODULE ("The Interior Decorator")
-// Chịu trách nhiệm cho việc cập nhật, hiển thị và thay đổi giao diện người dùng (HTML/CSS). Nhận lệnh từ client.js.
+// Chịu trách nhiệm cập nhật, hiển thị, và thao tác giao diện người dùng (HTML/CSS). Nhận lệnh từ client.js.
+
 const UI = {
     // --- I. BỘ NHỚ CACHE CÁC THÀNH PHẦN (ELEMENTS) ---
     homeElements: {
@@ -22,6 +23,7 @@ const UI = {
     gameElements: {
         screen: document.getElementById('game-screen'),
         roleDisplay: document.getElementById('role-display'),
+        roundIndicator: document.querySelector('.round-indicator'), // Thêm cho nhãn ngày
         currentRound: document.getElementById('current-round'),
         decreeDisplay: document.getElementById('decree-display'),
         playersContainer: document.getElementById('players-container'),
@@ -31,8 +33,6 @@ const UI = {
         chatMessages: document.getElementById('chat-messages'),
         skipCoordinationBtn: document.getElementById('skip-coordination-btn'),
         skipTwilightBtn: document.getElementById('skip-twilight-btn'),
-        // Thêm: label hiển thị vòng chơi (nếu muốn tùy chỉnh dễ hơn)
-        roundIndicator: document.querySelector('.round-indicator'),
     },
     audioCache: {},
     isMuted: false,
@@ -67,7 +67,7 @@ const UI = {
         }
     },
 
-    // --- III. HIỆU ỨNG, HIỂN THỊ ĐỘNG ---
+    // --- III. HIỆU ỨNG, CHUYỂN CẢNH, VÒNG CHƠI ---
     showScreen(screenName) {
         [this.homeElements.screen, this.roomElements.screen, this.gameElements.screen].forEach(el => {
             if (el) el.style.display = 'none';
@@ -77,9 +77,7 @@ const UI = {
         if (screenName === 'game') this.gameElements.screen.style.display = 'block';
     },
 
-    // Đổi hiệu ứng chuyển cảnh và label sang "Ngày thứ X"
     showDayTransition(dayNumber) {
-        // Sử dụng overlay chuyển cảnh
         const overlay = document.getElementById('night-transition-overlay');
         const text = document.getElementById('night-transition-text');
         if (text) text.textContent = `Ngày thứ ${dayNumber}`;
@@ -87,18 +85,30 @@ const UI = {
             overlay.classList.add('active');
             setTimeout(() => {
                 overlay.classList.remove('active');
-            }, 2500);
+            }, 2000);
         }
     },
 
-    // Đổi nhãn hiển thị vòng chơi sang "Ngày Thứ: X"
+    showNightTransition(dayNumber) {
+        // Đã chuyển thành ngày!
+        const overlay = document.getElementById('night-transition-overlay');
+        const text = document.getElementById('night-transition-text');
+        if (text) text.textContent = `Ngày thứ ${dayNumber}`;
+        if (overlay) {
+            overlay.classList.add('active');
+            setTimeout(() => {
+                overlay.classList.remove('active');
+            }, 2000);
+        }
+    },
+
     setRoundLabel(dayNumber) {
         if (this.gameElements.roundIndicator) {
             this.gameElements.roundIndicator.innerHTML = `Ngày Thứ: <span id="current-round">${dayNumber}</span>`;
         }
     },
 
-    // --- IV. HIỂN THỊ DANH SÁCH NGƯỜI CHƠI & QUẢN LÝ PHÒNG ---
+    // --- IV. DANH SÁCH NGƯỜI CHƠI & KICK ---
     updatePlayerList(players, hostId, myId) {
         this.roomElements.playerList.innerHTML = '';
         const allPlayersReady = players
@@ -114,14 +124,21 @@ const UI = {
             if (player.id === myId) nameHTML += ' (Bạn)';
             if (player.id === hostId) nameHTML = '👑 ' + nameHTML;
             if (player.isBot) nameHTML += ' [BOT]';
+
             li.innerHTML = `<span>${nameHTML}</span>`;
-            if (myId === hostId && player.id !== myId && !player.isBot) {
+
+            // Nút kick, áp dụng cho cả bot
+            if (myId === hostId && player.id !== myId) {
                 const kickBtn = document.createElement('button');
                 kickBtn.textContent = 'Đuổi';
                 kickBtn.className = 'kick-btn';
                 kickBtn.onclick = () => {
                     if (typeof Network !== "undefined" && Network.emit) {
-                        Network.emit('kickPlayer', { roomCode: state.currentRoomCode, playerId: player.id });
+                        Network.emit('kickPlayer', {
+                            roomCode: state.currentRoomCode,
+                            playerId: player.id,
+                            isBot: !!player.isBot
+                        });
                     }
                 };
                 li.appendChild(kickBtn);
@@ -160,7 +177,7 @@ const UI = {
         this.roomElements.roomCodeDisplay.parentNode.insertBefore(copyButton, this.roomElements.roomCodeDisplay.nextSibling);
     },
 
-    // --- V. HIỂN THỊ BÀI & THẺ NGƯỜI CHƠI ---
+    // --- V. HIỆN THẺ NGƯỜI CHƠI & HIỆU ỨNG SHAKE ---
     updatePlayerCards(players, myId) {
         this.gameElements.playersContainer.innerHTML = '';
         players.forEach(player => {
@@ -180,7 +197,15 @@ const UI = {
         });
     },
 
-    // --- VI. HIỂN THỊ VAI TRÒ, KỸ NĂNG, TIẾNG VỌNG ---
+    applyShakeEffect(playerId) {
+        const card = document.querySelector(`.player-card[data-player-id="${playerId}"]`);
+        if (card) {
+            card.classList.add('shake');
+            setTimeout(() => card.classList.remove('shake'), 800);
+        }
+    },
+
+    // --- VI. HIỂN THỊ VAI TRÒ, KỸ NĂNG ---
     displayRole(role) {
         let skillButtonHTML = '';
         if (role.hasActiveSkill) {
@@ -202,7 +227,7 @@ const UI = {
         this.gameElements.decreeDisplay.style.display = 'block';
     },
 
-    // --- VII. HIỆN GIAI ĐOẠN, ĐỒNG HỒ, HÀNH ĐỘNG ---
+    // --- VII. GIAI ĐOẠN, ĐỒNG HỒ, HÀNH ĐỘNG ---
     updatePhaseDisplay(title, description = '') {
         this.gameElements.phaseTitle.textContent = title;
         this.gameElements.actionControls.innerHTML = `${description}<div id="timer-display"></div>`;
@@ -256,6 +281,18 @@ const UI = {
                 this.updatePhaseDisplay('Đã chọn!', '<p>Đang chờ những người khác...</p>');
             });
         });
+    },
+
+    showNextDayButton(onClick) {
+        this.gameElements.actionControls.innerHTML = '';
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Bắt Đầu Ngày Tiếp Theo';
+        nextBtn.className = 'next-day-btn';
+        nextBtn.onclick = () => {
+            UI.playSound('click');
+            onClick();
+        };
+        this.gameElements.actionControls.appendChild(nextBtn);
     },
 
     // --- VIII. POPUP, CHỌN MỤC TIÊU, KỸ NĂNG ĐẶC BIỆT ---
@@ -321,7 +358,34 @@ const UI = {
         });
     },
 
-    // --- IX. HIỂN THỊ KẾT QUẢ, GAMEOVER ---
+    // --- IX. HIỆN LỊCH SỬ: Đổi nhãn "Ngày" ---
+    showGameHistory(history) {
+        if (!history || history.length === 0) {
+            return Swal.fire({ title: 'Lịch Sử Ván Đấu', text: 'Chưa có ngày nào kết thúc.', background: '#2d3748', color: '#e2e8f0' });
+        }
+        let historyHTML = '<div style="text-align: left;">';
+        history.forEach(roundData => {
+            historyHTML += `
+                <details>
+                    <summary><strong>Ngày ${roundData.round}:</strong> Phe ${roundData.results.winner || 'Hòa'} thắng</summary>
+                    <p>Phiếu: 📜${roundData.votes['Giải Mã']} 💣${roundData.votes['Phá Hoại']} 👁️${roundData.votes['Quan Sát']}</p>
+                    <ul>
+                        ${(roundData.results.roundSummary || []).map(p => `<li>${p.name}: ${p.oldScore} → ${p.newScore}</li>`).join('')}
+                    </ul>
+                </details>
+                <hr>
+            `;
+        });
+        historyHTML += '</div>';
+        Swal.fire({
+            title: 'Lịch Sử Ván Đấu',
+            html: historyHTML,
+            background: '#2d3748',
+            color: '#e2e8f0'
+        });
+    },
+
+    // --- X. HIỂN KẾT QUẢ, GAMEOVER ---
     showRoundSummary(results, finalVoteCounts) {
         const { winner, isDraw, roundSummary } = results;
         let title = isDraw ? '⚖️ Ngày Nay Hoà!' : `🏆 Phe ${winner} Thắng!`;
@@ -391,7 +455,7 @@ const UI = {
         }
     },
 
-    // --- X. LƯU & TẢI TÊN NGƯỜI CHƠI ---
+    // --- XI. LƯU & TẢI TÊN NGƯỜI CHƠI ---
     savePlayerName() {
         const name = this.homeElements.nameInput.value;
         if (name) {
@@ -404,5 +468,20 @@ const UI = {
         if (savedName) {
             this.homeElements.nameInput.value = savedName;
         }
+    },
+
+    // --- XII. HIỂN THỊ LOG MESSAGE ---
+    addLogMessage(message) {
+        // Hiển thị log ở giao diện chat nếu có, hoặc log ra console
+        if (this.gameElements.chatMessages) {
+            const div = document.createElement('div');
+            div.className = 'log-message';
+            div.textContent = message;
+            this.gameElements.chatMessages.appendChild(div);
+        } else {
+            console.log('[Log]', message);
+        }
     }
 };
+
+window.UI = UI;

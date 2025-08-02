@@ -144,10 +144,10 @@ Network.on('gameStarted', (data) => {
     UI.showScreen('game');
     UI.addLogMessage('success', 'Cuộc thám hiểm bắt đầu!');
     const rolesList = data.rolesInGame.map(r => r.name).join(', ');
-    UI.addLogMessage('info', `<strong>Các vai trò trong đêm nay:</strong> ${rolesList}`);
+    UI.addLogMessage('info', `<strong>Các vai trò trong ngày hôm nay:</strong> ${rolesList}`);
 });
 Network.on('newRound', (data) => {
-    UI.showNightTransition(data.roundNumber);
+    UI.showNightTransition(data.roundNumber); // vẫn dùng hàm này, nhưng nó hiển thị "Ngày thứ ..."
     UI.playSound('new-round');
     setTimeout(() => {
         state.gamePhase = 'choice';
@@ -173,7 +173,7 @@ Network.on('roundResult', (data) => {
     if (state.myId === state.currentHostId) {
         setTimeout(() => {
             const nextRoundBtn = document.createElement('button');
-            nextRoundBtn.textContent = 'Bắt Đầu Đêm Tiếp Theo';
+            nextRoundBtn.textContent = 'Bắt Đầu Ngày Tiếp Theo';
             nextRoundBtn.addEventListener('click', () => {
                 UI.playSound('click');
                 Network.emit('nextRound', state.currentRoomCode);
