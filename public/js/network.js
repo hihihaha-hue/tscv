@@ -7,17 +7,13 @@
 // Nó cung cấp một giao diện đơn giản cho client.js để gửi và nhận sự kiện.
 // ======================================================================
 
-const Network = {
+onst Network = {
     socket: null,
-    state: null,
 
     /**
      * Khởi tạo kết nối Socket.IO.
-     * @param {object} clientState - Trạng thái của client để tham chiếu.
      */
-    initialize(clientState) {
-        this.state = clientState;
-        // Kiểm tra xem socket đã được kết nối chưa để tránh tạo lại
+    initialize() {
         if (!this.socket) {
             this.socket = io();
         }

@@ -4,10 +4,8 @@
 // Nhiệm vụ: Chịu trách nhiệm hoàn toàn cho việc cập nhật, hiển thị,
 // và thay đổi giao diện người dùng (HTML/CSS). Nó nhận lệnh từ client.js.
 // ======================================================================
-
 const UI = {
     // --- I. BỘ NHỚ CACHE CÁC THÀNH PHẦN (ELEMENTS) ---
-    // Lưu trữ các element thường dùng để không phải query lại nhiều lần, giúp tăng hiệu suất.
     homeElements: {
         screen: document.getElementById('home-screen'),
         nameInput: document.getElementById('player-name-input'),
@@ -34,34 +32,22 @@ const UI = {
         messageArea: document.getElementById('message-area'),
         chatMessages: document.getElementById('chat-messages'),
     },
-    audioCache: {}, // Thêm bộ nhớ cache cho các file âm thanh
+    audioCache: {},
 
     // --- II. HÀM TIỆN ÍCH CHUNG (UTILITY FUNCTIONS) ---
-
-    /**
-     * Hiển thị một màn hình cụ thể và ẩn tất cả các màn hình khác.
-     * @param {string} screenId - ID của màn hình cần hiển thị ('home', 'room', 'game').
-     */
     showScreen(screenId) {
         this.homeElements.screen.style.display = 'none';
         this.roomElements.screen.style.display = 'none';
         this.gameElements.screen.style.display = 'none';
-        
         document.getElementById(`${screenId}-screen`).style.display = 'block';
     },
 
-    /**
-     * (ĐÃ NÂNG CẤP) Phát một file âm thanh từ thư mục public/assets/sounds.
-     * @param {string} soundName - Tên file âm thanh không có phần mở rộng (ví dụ: 'click').
-     */
     playSound(soundName) {
         try {
-            // Kiểm tra xem âm thanh đã được cache chưa
             if (this.audioCache[soundName]) {
-                this.audioCache[soundName].currentTime = 0; // Quay về đầu để phát lại
+                this.audioCache[soundName].currentTime = 0;
                 this.audioCache[soundName].play();
             } else {
-                // Nếu chưa, tạo mới và lưu vào cache
                 const audio = new Audio(`/assets/sounds/${soundName}.mp3`);
                 this.audioCache[soundName] = audio;
                 audio.play();
@@ -70,61 +56,37 @@ const UI = {
             console.error(`Không thể phát âm thanh '${soundName}':`, e);
         }
     },
-    
-    /**
-     * Thêm một tin nhắn vào khu vực nhật ký game.
-     * @param {'info'|'success'|'error'|'warning'} type - Loại tin nhắn (để tô màu).
-     * @param {string} message - Nội dung tin nhắn (hỗ trợ HTML).
-     */
+
     addLogMessage(type, message) {
         const p = document.createElement('p');
-        p.className = type; // 'info', 'success', 'error', 'warning'
-        p.innerHTML = message; // Dùng innerHTML để render được <strong>, <em>...
-        this.gameElements.messageArea.prepend(p); // Thêm vào đầu để tin mới nhất ở trên.
+        p.className = type;
+        p.innerHTML = message;
+        this.gameElements.messageArea.prepend(p);
     },
-    
-     /**
-     * Thêm một tin nhắn vào khu vực chat.
-     * @param {string} senderName - Tên người gửi.
-     * @param {string} message - Nội dung tin nhắn.
-     */
+
     addChatMessage(senderName, message) {
         const messageEl = document.createElement('div');
         messageEl.classList.add('chat-message');
-        
         const senderEl = document.createElement('span');
         senderEl.classList.add('chat-sender');
         senderEl.textContent = `${senderName}: `;
-        
         const contentEl = document.createElement('span');
         contentEl.textContent = message;
-        
         messageEl.appendChild(senderEl);
         messageEl.appendChild(contentEl);
-        
         this.gameElements.chatMessages.prepend(messageEl);
     },
 
     // --- III. CÁC HÀM CẬP NHẬT GIAO DIỆN CHÍNH ---
-    // ... (Các hàm còn lại giữ nguyên không thay đổi) ...
-    /**
-     * Cập nhật danh sách người chơi trong phòng chờ.
-     * @param {Array} players - Mảng đối tượng người chơi.
-     * @param {string} hostId - ID của chủ phòng.
-     * @param {string} myId - ID của người chơi hiện tại.
-     */
     updatePlayerList(players, hostId, myId) {
-        this.roomElements.playerList.innerHTML = ''; // Xóa danh sách cũ
+        this.roomElements.playerList.innerHTML = '';
         players.forEach(player => {
             const li = document.createElement('li');
             let nameHTML = player.name;
             if (player.id === myId) nameHTML += ' (Bạn)';
             if (player.id === hostId) nameHTML = '👑 ' + nameHTML;
             if (player.isBot) nameHTML += ' [BOT]';
-            
             li.innerHTML = `<span>${nameHTML}</span>`;
-
-            // Nếu người xem là chủ phòng, và người chơi không phải là chính mình và không phải bot, thêm nút Kick
             if (myId === hostId && player.id !== myId && !player.isBot) {
                 const kickBtn = document.createElement('button');
                 kickBtn.textContent = 'Đuổi';
@@ -136,13 +98,9 @@ const UI = {
             }
             this.roomElements.playerList.appendChild(li);
         });
-        
-        // Bật/tắt nút Bắt Đầu dựa trên số lượng người chơi
         this.roomElements.startGameBtn.disabled = players.length < 2;
-        // Hiển thị/ẩn khu vực điều khiển của chủ phòng
         this.roomElements.hostControls.style.display = (myId === hostId) ? 'block' : 'none';
     },
-	
 	 /**
      * Hiển thị giao diện để chọn 2 người chơi để hoán đổi.
      * @param {Array} players - Danh sách người chơi hợp lệ [{id, name}].
@@ -578,16 +536,13 @@ const UI = {
     }
 };
 
-savePlayerName() {
+ savePlayerName() {
         const name = this.homeElements.nameInput.value;
         if (name) {
             localStorage.setItem('tho-san-co-vat-playerName', name);
         }
     },
 
-    /**
-     * (MỚI) Tải tên người chơi từ bộ nhớ và điền vào ô input.
-     */
     loadPlayerName() {
         const savedName = localStorage.getItem('tho-san-co-vat-playerName');
         if (savedName) {
@@ -595,9 +550,6 @@ savePlayerName() {
         }
     },
     
-    /**
-     * (MỚI) Bật hoặc tắt nhạc nền.
-     */
     toggleMusic() {
         const music = document.getElementById('background-music');
         const btn = document.getElementById('music-toggle-btn');
@@ -610,22 +562,17 @@ savePlayerName() {
         }
     },
     
-    /**
-     * (MỚI) Áp dụng hiệu ứng rung lắc lên thẻ của một người chơi.
-     * @param {string} playerId ID của người chơi bị tác động.
-     */
     applyShakeEffect(playerId) {
         const card = document.querySelector(`.player-card[data-player-id="${playerId}"]`);
         if (card) {
             card.classList.add('shake');
-            // Xóa class sau khi animation kết thúc để có thể dùng lại
             setTimeout(() => {
                 card.classList.remove('shake');
-            }, 820); // Thời gian animation là 0.82s
+            }, 820);
         }
-    }
+    },
 
-addCopyToClipboard() {
+    addCopyToClipboard() {
         const roomCode = this.roomElements.roomCodeDisplay.textContent;
         const copyButton = document.createElement('button');
         copyButton.textContent = 'Sao chép mã';
@@ -637,7 +584,6 @@ addCopyToClipboard() {
                 setTimeout(() => { copyButton.textContent = 'Sao chép mã'; }, 2000);
             });
         };
-        // Xóa nút cũ nếu có để tránh trùng lặp
         const existingBtn = this.roomElements.roomCodeDisplay.nextElementSibling;
         if (existingBtn && existingBtn.tagName === 'BUTTON') {
             existingBtn.remove();
@@ -645,16 +591,9 @@ addCopyToClipboard() {
         this.roomElements.roomCodeDisplay.parentNode.insertBefore(copyButton, this.roomElements.roomCodeDisplay.nextSibling);
     },
 
-    /**
-     * (MỚI) Hiển thị bảng tổng kết vòng đấu chi tiết.
-     * @param {object} results - Đối tượng results từ server.
-     * @param {object} finalVoteCounts - Số phiếu bầu cuối cùng.
-     */
     showRoundSummary(results, finalVoteCounts) {
         const { winner, isDraw, roundSummary } = results;
-
         let title = isDraw ? '⚖️ Đêm Nay Hoà!' : `🏆 Phe ${winner} Thắng!`;
-
         let summaryHTML = `
             <div style="text-align: left; margin-bottom: 20px;">
                 <strong>Tổng kết phiếu:</strong> 
@@ -666,15 +605,12 @@ addCopyToClipboard() {
                 </thead>
                 <tbody>
         `;
-
         roundSummary.forEach(player => {
             let totalChange = player.newScore - player.oldScore;
             let changeClass = totalChange > 0 ? 'success-text' : (totalChange < 0 ? 'error-text' : '');
             let changeText = totalChange > 0 ? `+${totalChange}` : totalChange;
-
             let details = player.changes.map(c => `${c.reason}: ${c.amount > 0 ? '+' : ''}${c.amount}`).join('<br>');
             if (player.changes.length === 0) details = 'Không đổi';
-
             summaryHTML += `
                 <tr>
                     <td>${player.name}</td>
@@ -684,9 +620,7 @@ addCopyToClipboard() {
                 </tr>
             `;
         });
-
         summaryHTML += '</tbody></table>';
-
         Swal.fire({
             title: title,
             html: summaryHTML,
