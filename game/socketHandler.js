@@ -9,6 +9,7 @@
 const gameLogic = require('./logic.js'); // "Bộ Não" xử lý luật chơi
 const { ROLES } = require('./config.js');   // "Sách Luật" chứa thông tin về các vai trò
 
+
 function initialize(io, rooms) {
     // Hàm này được gọi một lần duy nhất khi server khởi động.
     // Nó thiết lập trình lắng nghe cho tất cả các kết nối trong tương lai.
