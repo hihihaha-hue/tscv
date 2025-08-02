@@ -126,22 +126,17 @@
     <!-- ==================================================================== -->
     <!-- ========================== SCRIPTS ================================= -->
     <!-- ==================================================================== -->
-    <!-- Thứ tự nạp script rất quan trọng! -->
-
-    <!-- 1. Thư viện Socket.IO client (từ server của bạn) -->
-    <script src="/socket.io/socket.io.js"></script>
-    
-    <!-- 2. Thư viện SweetAlert2 để có các thông báo đẹp mắt (từ CDN) -->
+  <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- 3. Các module JavaScript tùy chỉnh của bạn -->
-    <!-- Module Giao diện: Chịu trách nhiệm cập nhật HTML -->
+    <!-- CÁC MODULE PHẢI ĐƯỢC NẠP TRƯỚC FILE CLIENT CHÍNH -->
     <script src="/js/ui.js"></script>
-    <!-- Module Mạng: Chịu trách nhiệm giao tiếp với server -->
     <script src="/js/network.js"></script>
-    <!-- File Client chính: Khởi tạo ứng dụng và kết nối các module -->
+
+    <!-- FILE CLIENT CHÍNH, NẠP SAU CÙNG -->
     <script src="/client.js"></script>
-  <!-- SCRIPT CHỨA NỘI DUNG SÁCH LUẬT -->
+
+    <!-- TEMPLATE SÁCH LUẬT -->
     <script type="text/template" id="rulebook-template">
         <div class="rulebook-content" style="text-align: left; line-height: 1.6;">
             <h3>Giới Thiệu</h3>

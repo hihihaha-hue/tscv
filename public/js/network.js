@@ -7,31 +7,31 @@
 // Nó cung cấp một giao diện đơn giản cho client.js để gửi và nhận sự kiện.
 // ======================================================================
 
-onst Network = {
+const Network = {
     socket: null,
 
-    /**
-     * Khởi tạo kết nối Socket.IO.
-     */
     initialize() {
         if (!this.socket) {
             this.socket = io();
         }
     },
 
-    /**
-     * Gửi một sự kiện đến server.
-     * @param {string} eventName - Tên của sự kiện.
-     * @param {object} data - Dữ liệu đi kèm.
-     */
     emit(eventName, data) {
         if (this.socket) {
             this.socket.emit(eventName, data);
         } else {
-            console.error("Socket chưa được khởi tạo. Không thể gửi sự kiện.");
+            console.error("Socket chưa được khởi tạo.");
         }
     },
 
+    on(eventName, callback) {
+        if (this.socket) {
+            this.socket.on(eventName, callback);
+        } else {
+            console.error("Socket chưa được khởi tạo.");
+        }
+    }
+};
     /**
      * Lắng nghe một sự kiện từ server.
      * @param {string} eventName - Tên của sự kiện.

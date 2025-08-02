@@ -101,10 +101,9 @@ const UI = {
         this.roomElements.startGameBtn.disabled = players.length < 2;
         this.roomElements.hostControls.style.display = (myId === hostId) ? 'block' : 'none';
     },
-	 /**
+
+    /**
      * Hiển thị giao diện để chọn 2 người chơi để hoán đổi.
-     * @param {Array} players - Danh sách người chơi hợp lệ [{id, name}].
-     * @param {function} onSwapSelected - Callback được gọi với {player1Id, player2Id}.
      */
     promptForPlayerSwap(players, onSwapSelected) {
         let firstSelection = null;
@@ -114,15 +113,13 @@ const UI = {
         const handleTargetClick = (event) => {
             const card = event.currentTarget;
             const targetId = card.getAttribute('data-player-id');
-            card.style.border = '3px solid var(--primary-gold)'; // Highlight lựa chọn
-
+            card.style.border = '3px solid var(--primary-gold)';
             if (!firstSelection) {
                 firstSelection = targetId;
                 this.updatePhaseDisplay('Bùa Lú Lẫn', '<p>Chọn người chơi thứ hai.</p>');
             } else {
-                // Đã có lựa chọn thứ hai
                 document.body.classList.remove('selecting-target');
-                document.querySelectorAll('.player-card').forEach(c => c.replaceWith(c.cloneNode(true))); // Xóa listener
+                document.querySelectorAll('.player-card').forEach(c => c.replaceWith(c.cloneNode(true)));
                 onSwapSelected({ player1Id: firstSelection, player2Id: targetId });
             }
         };
@@ -131,9 +128,8 @@ const UI = {
             card.addEventListener('click', handleTargetClick, { once: !firstSelection });
         });
     },
-	
-	/** Hiển thị giao diện chọn 2 Đấu Sĩ.
-     */
+
+    /** Hiển thị giao diện chọn 2 Đấu Sĩ. */
     promptForDuelistPick(players, onPickComplete) {
         let firstDuelist = null;
         this.updatePhaseDisplay('Đấu Trường Sinh Tử', '<p>Chọn Đấu Sĩ đầu tiên.</p>');
@@ -143,11 +139,9 @@ const UI = {
             const card = event.currentTarget;
             const targetId = card.getAttribute('data-player-id');
             card.style.border = '3px solid var(--accent-red)';
-
             if (!firstDuelist) {
                 firstDuelist = targetId;
                 this.updatePhaseDisplay('Đấu Trường Sinh Tử', '<p>Chọn Đấu Sĩ thứ hai.</p>');
-                // Ngăn chọn lại chính người này
                 card.classList.remove('selecting-target');
                 card.replaceWith(card.cloneNode(true));
             } else {
@@ -176,7 +170,7 @@ const UI = {
                 </div>
                 <input id="bet-amount" type="number" min="0" max="${data.maxBet}" value="1" class="swal2-input">
             `,
-            showConfirmButton: false, // Ẩn nút mặc định
+            showConfirmButton: false,
             background: '#2d3748',
             color: '#e2e8f0',
             allowOutsideClick: false,
@@ -197,8 +191,6 @@ const UI = {
 
     /**
      * Vẽ lại toàn bộ các thẻ người chơi trên màn hình game.
-     * @param {Array} players - Mảng đối tượng người chơi trong gameState.
-     * @param {string} myId - ID của người chơi hiện tại.
      */
     updatePlayerCards(players, myId) {
         this.gameElements.playersContainer.innerHTML = '';
@@ -206,10 +198,8 @@ const UI = {
             const card = document.createElement('div');
             card.className = 'player-card';
             card.setAttribute('data-player-id', player.id);
-            
             if (player.id === myId) card.classList.add('is-self');
             if (player.disconnected) card.classList.add('disconnected');
-
             card.innerHTML = `
                 <h3 class="player-name">${player.name}</h3>
                 <div class="player-score" id="score-${player.id}">${player.score}</div>
@@ -220,10 +210,9 @@ const UI = {
             this.gameElements.playersContainer.appendChild(card);
         });
     },
-	/**
+
+    /**
      * Bật "chế độ chọn mục tiêu" cho một kỹ năng.
-     * @param {string} skillName - Tên của kỹ năng để hiển thị cho người dùng.
-     * @param {function} onTargetSelected - Hàm callback sẽ được gọi với targetId khi người dùng chọn xong.
      */
     enterTargetSelectionMode(skillName, onTargetSelected) {
         this.updatePhaseDisplay(
@@ -231,48 +220,31 @@ const UI = {
             '<p>Hãy chọn một người chơi trên màn hình để áp dụng kỹ năng.</p><button id="cancel-skill-btn">Hủy</button>'
         );
         document.body.classList.add('selecting-target');
-
-        // Hàm xử lý khi một mục tiêu được click
         const handleTargetClick = (event) => {
             const card = event.currentTarget;
             const targetId = card.getAttribute('data-player-id');
-            
-            // Tắt chế độ chọn mục tiêu
             document.body.classList.remove('selecting-target');
             removeListeners();
-            
-            // Gọi callback với ID của mục tiêu đã chọn
             onTargetSelected(targetId);
         };
-
-        // Hàm xử lý khi bấm nút Hủy
         const handleCancelClick = () => {
             document.body.classList.remove('selecting-target');
             removeListeners();
-            // Quay lại giao diện của giai đoạn hiện tại
-            // (Bạn cần có hàm để render lại phase hiện tại, ví dụ renderChoiceButtons)
             UI.updatePhaseDisplay('', 'Bạn đã hủy sử dụng kỹ năng.');
         };
-
-        // Hàm để xóa tất cả các listener đã gán
         const removeListeners = () => {
             document.querySelectorAll('.player-card').forEach(card => card.removeEventListener('click', handleTargetClick));
             const cancelBtn = document.getElementById('cancel-skill-btn');
             if (cancelBtn) cancelBtn.removeEventListener('click', handleCancelClick);
         };
-
-        // Gán listener cho các thẻ người chơi hợp lệ
         document.querySelectorAll('.player-card:not(.is-self):not(.disconnected)').forEach(card => {
             card.addEventListener('click', handleTargetClick);
         });
-
-        // Gán listener cho nút Hủy
         document.getElementById('cancel-skill-btn').addEventListener('click', handleCancelClick);
     },
 
     /**
      * Hiển thị hộp thoại đặc biệt cho Kẻ Tẩy Não chọn hành động.
-     * @param {function} onActionSelected - Callback được gọi với hành động đã chọn.
      */
     promptForMindControlAction(onActionSelected) {
         Swal.fire({
@@ -295,22 +267,18 @@ const UI = {
                 // Logic được xử lý trong didOpen
             }
         });
-        
-        // Gán sự kiện cho các nút bên trong hộp thoại
         const popup = Swal.getPopup();
         popup.querySelectorAll('.swal2-styled[data-guess]').forEach(button => {
             button.addEventListener('click', () => {
                 const chosenAction = button.getAttribute('data-guess');
-                onActionSelected(chosenAction); // Gọi callback
+                onActionSelected(chosenAction);
                 Swal.close();
             });
         });
     },
 
-    
     /**
      * Hiển thị vai trò và kỹ năng của người chơi.
-     * @param {object} role - Đối tượng vai trò từ server.
      */
     displayRole(role) {
         let skillButtonHTML = '';
@@ -328,7 +296,6 @@ const UI = {
 
     /**
      * Hiển thị Tiếng Vọng của vòng chơi.
-     * @param {object} decreeData - Dữ liệu Tiếng Vọng từ server.
      */
     displayDecree(decreeData) {
         this.gameElements.decreeDisplay.innerHTML = `
@@ -338,11 +305,8 @@ const UI = {
     },
 
     // --- IV. CÁC HÀM LIÊN QUAN ĐẾN GIAI ĐOẠN & HÀNH ĐỘNG ---
-
     /**
      * Cập nhật tiêu đề và mô tả của giai đoạn hiện tại.
-     * @param {string} title - Tiêu đề (ví dụ: 'Giai Đoạn Lựa Chọn').
-     * @param {string} description - HTML mô tả cho giai đoạn.
      */
     updatePhaseDisplay(title, description = '') {
         this.gameElements.phaseTitle.textContent = title;
@@ -351,17 +315,12 @@ const UI = {
 
     /**
      * Bắt đầu một bộ đếm ngược trên màn hình.
-     * @param {number} duration - Thời gian đếm ngược (giây).
-     * @param {function} onComplete - Hàm callback sẽ gọi khi hết giờ.
      */
     startTimer(duration, onComplete) {
         const timerDisplay = document.getElementById('timer-display');
         if (!timerDisplay) return;
-
         let timeLeft = duration;
-        // Xóa timer cũ nếu có để tránh chạy nhiều timer cùng lúc
         if (window.countdownInterval) clearInterval(window.countdownInterval);
-
         window.countdownInterval = setInterval(() => {
             if (timeLeft <= 0) {
                 clearInterval(window.countdownInterval);
@@ -373,7 +332,6 @@ const UI = {
             timeLeft--;
         }, 1000);
     },
-    
     /** Dừng và xóa bộ đếm ngược. */
     clearTimer() {
         if (window.countdownInterval) {
@@ -399,28 +357,21 @@ const UI = {
             </div>
         `;
         this.gameElements.actionControls.insertAdjacentHTML('afterbegin', buttonsHTML);
-
-        // Gán sự kiện cho các nút vừa tạo
         document.querySelectorAll('.choice-buttons').forEach(button => {
             button.addEventListener('click', () => {
                 const choice = button.getAttribute('data-action');
                 Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice: choice });
-                
-                // Vô hiệu hóa tất cả các nút sau khi đã chọn
                 document.querySelectorAll('.choice-buttons').forEach(btn => btn.disabled = true);
                 this.updatePhaseDisplay('Đã chọn!', '<p>Đang chờ những người khác...</p>');
             });
         });
     },
-    
+
     /**
      * Hiển thị hộp thoại để người chơi chọn phán đoán khi Vạch Trần.
-     * @param {string} targetId - ID của người chơi bị Vạch Trần.
-     * @param {string} targetName - Tên của người chơi bị Vạch Trần.
      */
     promptForAccusation(targetId, targetName) {
-        document.body.classList.remove('selecting-target'); // Tạm dừng việc chọn mục tiêu
-
+        document.body.classList.remove('selecting-target');
         Swal.fire({
             title: `Vạch Trần ${targetName}`,
             html: `
@@ -431,7 +382,7 @@ const UI = {
                     <button class="swal2-styled" data-guess="Quan Sát">👁️ Quan Sát</button>
                 </div>
             `,
-            showConfirmButton: false, // Ẩn nút OK mặc định
+            showConfirmButton: false,
             showCancelButton: true,
             cancelButtonText: 'Hủy',
             background: '#2d3748',
@@ -441,7 +392,6 @@ const UI = {
                 popup.querySelectorAll('.swal2-styled[data-guess]').forEach(button => {
                     button.addEventListener('click', () => {
                         const guess = button.getAttribute('data-guess');
-                        // Gửi sự kiện Vạch Trần lên server
                         Network.emit('requestAccusation', {
                             roomCode: state.currentRoomCode,
                             targetId: targetId,
@@ -452,7 +402,6 @@ const UI = {
                 });
             },
         }).then((result) => {
-            // Nếu người dùng bấm "Hủy" hoặc đóng hộp thoại, cho phép họ chọn lại mục tiêu khác
             if (result.dismiss === Swal.DismissReason.cancel) {
                 document.body.classList.add('selecting-target');
             }
@@ -461,11 +410,8 @@ const UI = {
 
     /**
      * Hiển thị kết quả cuối vòng, cập nhật điểm và hành động.
-     * @param {object} resultData - Dữ liệu kết quả từ server.
-     * @param {Array} players - Mảng người chơi đã cập nhật.
      */
     renderResults(resultData, players) {
-        // 1. Cập nhật hành động đã chọn của mọi người lên thẻ
         players.forEach(player => {
             const actionEl = document.getElementById(`action-${player.id}`);
             if (actionEl) {
@@ -477,11 +423,7 @@ const UI = {
                 actionEl.innerHTML = `<span class="${actionClass}">${actionText}</span>`;
             }
         });
-        
-        // 2. Log các thông điệp của vòng
         resultData.messages.forEach(msg => this.addLogMessage('info', msg));
-
-        // 3. Cập nhật điểm với hiệu ứng
         setTimeout(() => {
             players.forEach(player => {
                 const scoreEl = document.getElementById(`score-${player.id}`);
@@ -493,17 +435,15 @@ const UI = {
                         const change = newScore - oldScore;
                         const animationClass = change > 0 ? 'score-up' : 'score-down';
                         scoreEl.classList.add(animationClass);
-                        // Xóa class animation sau khi nó chạy xong
                         setTimeout(() => scoreEl.classList.remove(animationClass), 800);
                     }
                 }
             });
-        }, 1000); // Đợi 1 giây để người dùng đọc hành động trước khi thấy điểm thay đổi
+        }, 1000);
     },
 
     /**
      * Hiển thị màn hình kết thúc game.
-     * @param {object} data - Dữ liệu người thắng/thua từ server.
      */
     showGameOver(data) {
         let title = "Hòa!";
@@ -515,8 +455,6 @@ const UI = {
             title = `${data.loser.name} đã thất bại!`;
             text = "Tiến độ của họ đã chạm đáy.";
         }
-        
-        // Sử dụng SweetAlert để thông báo kết quả cuối cùng
         Swal.fire({
             title: title,
             text: text,
@@ -525,18 +463,16 @@ const UI = {
             color: '#e2e8f0',
             confirmButtonText: 'Tuyệt vời!',
         });
-
-        // Hiển thị nút "Chơi Lại" cho chủ phòng
         if (state.myId === state.currentHostId) {
              this.gameElements.actionControls.innerHTML = `<button id="play-again-btn">Chơi Lại</button>`;
              document.getElementById('play-again-btn').addEventListener('click', () => {
                  Network.emit('playAgain', state.currentRoomCode);
              });
         }
-    }
-};
+    },
 
- savePlayerName() {
+    // --- PHẦN BỔ SUNG, ĐƯA VÀO ĐÚNG VỊ TRÍ TRONG OBJECT ---
+    savePlayerName() {
         const name = this.homeElements.nameInput.value;
         if (name) {
             localStorage.setItem('tho-san-co-vat-playerName', name);
@@ -549,7 +485,7 @@ const UI = {
             this.homeElements.nameInput.value = savedName;
         }
     },
-    
+
     toggleMusic() {
         const music = document.getElementById('background-music');
         const btn = document.getElementById('music-toggle-btn');
@@ -561,7 +497,7 @@ const UI = {
             btn.textContent = '🔇';
         }
     },
-    
+
     applyShakeEffect(playerId) {
         const card = document.querySelector(`.player-card[data-player-id="${playerId}"]`);
         if (card) {
