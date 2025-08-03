@@ -27,50 +27,60 @@
 
         <!-- MÀN HÌNH PHÒNG CHỜ -->
         <div id="room-screen" style="display: none;">
-             <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
+            <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
             <ul id="player-list"></ul>
-            <div id="host-controls" style="display: none;"><button id="add-bot-btn">Thêm AI</button><button id="start-game-btn" disabled>Bắt Đầu</button></div>
-            <div id="player-controls" style="display: none;"><button id="ready-btn">Sẵn Sàng</button></div>
+            <div id="host-controls" class="controls-wrapper"><button id="add-bot-btn">Thêm AI</button><button id="start-game-btn" disabled>Bắt Đầu</button></div>
+            <div id="player-controls" class="controls-wrapper"><button id="ready-btn">Sẵn Sàng</button></div>
         </div>
 
         <!-- MÀN HÌNH CHƠI GAME -->
-        <div id="game-screen" style="display: none;">
-            <div class="top-row-layout">
-                <div id="role-display" class="top-box role-box"></div>
-                <div id="phase-info" class="top-box phase-box">
-                    <h2 id="phase-title"></h2>
-                    <div id="timer-display"></div>
-                </div>
-                <div id="leaderboard" class="top-box leaderboard-box">
-                    <h3>Bảng Xếp Hạng</h3>
-                    <ul id="leaderboard-list"></ul>
-                </div>
-            </div>
-
-            <div id="players-container" class="players-grid"></div>
-
-            <div class="bottom-row-layout">
-                <div id="chat-container" class="bottom-box chat-box">
-                    <div id="chat-messages"></div>
-                    <div id="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
-                        <button id="send-chat-btn">Gửi</button>
-                    </div>
-                </div>
-                <div id="action-container" class="bottom-box action-box">
-                    <p id="phase-description"></p>
-                    <div id="choice-buttons-container" class="action-buttons-grid" style="display: none;">
-                        <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
-                        <button class="choice-buttons corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
-                        <button class="choice-buttons blank" data-action="Quan Sát">👁️ Quan Sát</button>
-                    </div>
-                    <button id="skip-coordination-btn" class="skip-button" style="display: none;">Hành động một mình</button>
-                    <button id="next-day-btn" class="next-day-btn" style="display: none;">Bắt Đầu Ngày Tiếp Theo</button>
-                </div>
-                <div id="message-area" class="bottom-box log-box"></div>
+       <div id="game-screen" style="display: none;">
+    <!-- CỘT TRÁI: Dành cho chat hoặc thông tin phụ -->
+    <div id="left-column">
+        <div id="role-display" class="game-panel">
+            <!-- Nội dung vai trò sẽ được JS chèn vào đây -->
+        </div>
+        <div id="chat-container" class="game-panel">
+            <div id="chat-messages"></div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
+                <button id="send-chat-btn">Gửi</button>
             </div>
         </div>
     </div>
+
+    <!-- CỘT GIỮA: Khu vực chính hiển thị người chơi và giai đoạn -->
+    <div id="center-column">
+        <div id="phase-info" class="game-panel">
+            <h2 id="phase-title"></h2>
+            <div id="timer-display"></div>
+        </div>
+        <div id="players-container" class="players-grid">
+            <!-- Các avatar người chơi sẽ được JS chèn vào đây -->
+        </div>
+    </div>
+
+    <!-- CỘT PHẢI: Bảng xếp hạng, Nút hành động, và Log game -->
+    <div id="right-column">
+        <div id="leaderboard" class="game-panel">
+            <h3>Bảng Xếp Hạng</h3>
+            <ul id="leaderboard-list"></ul>
+        </div>
+        <div id="action-container" class="game-panel">
+            <p id="phase-description"></p>
+            <div id="choice-buttons-container" class="action-buttons-grid" style="display: none;">
+                <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
+                <button class="choice-buttons corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
+                <button class="choice-buttons blank" data-action="Quan Sát">👁️ Quan Sát</button>
+            </div>
+            <button id="skip-coordination-btn" class="skip-button" style="display: none;">Hành động một mình</button>
+            <button id="next-day-btn" class="next-day-btn" style="display: none;">Bắt Đầu Ngày Tiếp Theo</button>
+        </div>
+        <div id="message-area" class="game-panel">
+             <!-- Log game sẽ được JS chèn vào đây -->
+        </div>
+    </div>
+</div>
 
     <!-- OVERLAY HOÀNG HÔN -->
     <div id="twilight-overlay" style="display: none;">
@@ -95,83 +105,7 @@
     <script src="/js/network.js"></script>
     <script src="/client.js"></script>
     <script type="text/template" id="rulebook-template">
-        <div class="rulebook-content" style="text-align: left; line-height: 1.6;">
-            <h3>Giới Thiệu</h3>
-            <p>Mỗi người chơi là một Thợ Săn với một mục đích riêng. Không có phe phái, chỉ có những cá nhân với tham vọng, kỹ năng và Thiên Mệnh (điều kiện thắng) khác nhau. Hãy hoàn thành Thiên Mệnh của mình hoặc trở thành người có nhiều Tiến Độ nhất để giành chiến thắng.</p>
-
-            <h3>Luồng Một Đêm</h3>
-            <p>Một ván game diễn ra qua nhiều đêm. Một đêm bao gồm 4 giai đoạn chính:</p>
-            <ul>
-                <li><strong>1. Giai Đoạn Thám Hiểm:</strong> Mỗi người chơi bí mật chọn 1 trong 3 hành động (Giải Mã, Phá Hoại, Quan Sát). Sau đó, một người chơi nhanh nhất có thể đề nghị <strong>Phối Hợp</strong> với người khác.</li>
-                <li><strong>2. Giai Đoạn Tiếng Vọng:</strong> (Từ đêm thứ hai) Người có ít Tiến Độ nhất rút một lá bài Tiếng Vọng, một luật chơi đặc biệt cho đêm đó.</li>
-                <li><strong>3. Giai Đoạn Giờ Hoàng Hôn:</strong> Mọi người tập hợp lại. Giai đoạn này chỉ dành cho hành vi <strong>Vạch Trần</strong> người khác hoặc <strong>Nghỉ Ngơi</strong>.</li>
-                <li><strong>4. Giai Đoạn Phán Xét:</strong> Tất cả hành động được công bố, phe thắng/thua được quyết định và Tiến Độ của mọi người được cập nhật.</li>
-            </ul>
-
-            <h3>Chi Tiết Cách Tính Điểm</h3>
-            <ul>
-                <li><strong>Xác định phe thắng:</strong> Phe có <strong>ít phiếu hơn</strong> (Giải Mã hoặc Phá Hoại) sẽ thắng.</li>
-                <li><strong>Tính điểm cơ bản:</strong>
-                    <ul>
-                        <li>Thuộc phe thắng: <strong>+2 Tiến Độ</strong>.</li>
-                        <li>Thuộc phe thua: <strong>-1 Tiến Độ</strong>.</li>
-                    </ul>
-                </li>
-                <li><strong>Xử lý phiếu Quan Sát:</strong>
-                    <ul>
-                        <li>Nếu số người Quan Sát <strong>ít hơn một nửa</strong> số người chơi: họ theo phe thắng và được <strong>+3 Tiến Độ</strong>.</li>
-                        <li>Nếu số người Quan Sát <strong>bằng hoặc nhiều hơn một nửa</strong>: tất cả người Quan Sát bị <strong>-1 Tiến Độ</strong>, những người khác (đã chọn Giải Mã/Phá Hoại) được <strong>+1 Tiến Độ</strong>.</li>
-                    </ul>
-                </li>
-                 <li><strong>Trường hợp HÒA:</strong> (Xảy ra khi số phiếu Giải Mã = Phá Hoại, hoặc 1 phe không có ai chọn)
-                    <ul>
-                        <li>Nếu <strong>có người Quan Sát</strong>: người Quan Sát <strong>-1 Tiến Độ</strong>, những người khác <strong>+1 Tiến Độ</strong>.</li>
-                        <li>Nếu <strong>không có ai Quan Sát</strong>: TẤT CẢ người chơi bị <strong>-1 Tiến Độ</strong>.</li>
-                    </ul>
-                </li>
-            </ul>
-
-            <h3>Các Vai Trò (15)</h3>
-            <p><i>Chi phí kỹ năng kích hoạt tăng dần: Miễn phí, 1, 2, 3, 5, 10 điểm.</i></p>
-            <ul>
-                <li><strong>Nhà Tiên Tri:</strong> Thắng nếu Vạch Trần đúng 3 lần LIÊN TIẾP và điểm >= 2/3 mốc. Nội tại: Vạch Trần sai chỉ -1. Kỹ năng: Xem hành động 1 người.</li>
-                <li><strong>Người Gìn Giữ Hòa Bình:</strong> Thắng nếu có 3 đêm HÒA liên tiếp. Nội tại: +1 điểm mỗi khi HÒA. Kỹ năng: Vô hiệu hóa phiếu 1 người.</li>
-                <li><strong>Kẻ Đánh Cược:</strong> Thắng nếu đã từng đạt chính xác +7 và -7 điểm. Nội tại: Điểm mất có 50% x2, 50% /2. Kỹ năng: Nếu phe bạn chọn thắng +8, thua -4.</li>
-                <li><strong>Kẻ Phán Xử:</strong> Thắng khi đạt 15 điểm. Nội tại: Vạch Trần đúng kẻ 'Phá Hoại' +1. Kỹ năng: Tất cả người 'Phá Hoại' bị trừ điểm bằng số người đã Phá Hoại.</li>
-                <li><strong>Nhà Tài Phiệt:</strong> Thắng khi đạt mốc điểm cao nhất. Nội tại: Cuối đêm, nếu điểm > 0 nhận +1, nếu < 0 bị -1. Kỹ năng: Chọn 1 người, nếu phe họ thắng, cả hai +2.</li>
-                <li><strong>Người Cân Bằng:</strong> Thắng nếu tổng điểm dương = giá trị đối của tổng điểm âm. Nội tại: +1 điểm nếu số người điểm dương = số người điểm âm. Kỹ năng: Điểm của người cao nhất và thấp nhất được tính trung bình cộng.</li>
-                <li><strong>Kẻ Nổi Loạn:</strong> Thắng nếu thắng 3 đêm là người duy nhất của phe thắng. Nội tại: Hành động không thể bị thay đổi. Kỹ năng: Tuyên bố 1 hành động, nếu là người duy nhất làm, trừ điểm 1 người bằng chi phí kỹ năng đã trả.</li>
-                <li><strong>Thầy Tế:</strong> Thắng khi đạt điểm cơ bản. Nội tại: Ban phước đúng người bị mất điểm, bạn +1. Kỹ năng: Bảo vệ 1 người khỏi mất điểm.</li>
-                <li><strong>Kẻ Trộm:</strong> Thắng khi đạt 15 điểm. Nội tại: Nếu >= 2 người mất điểm, bạn nhận thêm điểm. Kỹ năng: Cắp một nửa số điểm được cộng của 1 người.</li>
-                <li><strong>Kẻ Tẩy Não:</strong> Thắng nếu có 5 đêm Vạch Trần thất bại. Nội tại: Mỗi lần Vạch Trần thất bại, bạn +2. Kỹ năng: Quyết định hành động của 1 người.</li>
-                <li><strong>Kẻ Hiến Tế:</strong> Thắng nếu đạt -15 điểm. Nội tại: Mỗi khi mất điểm, được giảm 1 điểm mất mát. Kỹ năng: Tự mất 2 điểm để nhận hiệu ứng ngẫu nhiên.</li>
-                <li><strong>Kẻ Hai Mang:</strong> Thắng khi đạt mốc điểm cao nhất. Nội tại: +1 điểm nếu không thuộc phe thắng. Kỹ năng: Tất cả phiếu 'Quan Sát' thành phiếu cho phe đối nghịch.</li>
-                <li><strong>Sát Thủ:</strong> Thắng khi đạt 15 điểm. Nội tại: Biết hành động của người tương tác với bạn đêm sau. Kỹ năng: Được giao 1 'Mục Tiêu', Vạch Trần đúng họ sẽ chia đôi điểm của họ.</li>
-                <li><strong>Bóng Ma:</strong> Thắng khi Ám Quẻ thành công 5 lần. Nội tại: Phiếu không tính, luôn +1 cuối đêm. Kỹ năng: Ám 1 người, nếu họ được cộng điểm, bạn cắp 1 điểm và lần ám sau miễn phí.</li>
-                <li><strong>Kẻ Bắt Chước:</strong> Thắng khi đạt điểm cơ bản. Nội tại: Tự động sao chép hành động của 1 người ngẫu nhiên. Kỹ năng: Trả 2 điểm để dùng ké kỹ năng của họ.</li>
-            </ul>
-
-            <h3>Các Tiếng Vọng (17)</h3>
-            <ul>
-                <li><strong>Vọng Âm Khuếch Đại:</strong> Nhân đôi mọi điểm nhận/mất.</li>
-                <li><strong>Đêm Tĩnh Lặng:</strong> Cấm Vạch Trần và Phối Hợp.</li>
-                <li><strong>Bùa Lú Lẫn:</strong> Người thấp điểm nhất hoán đổi hành động của 2 người.</li>
-                <li><strong>Ảo Giác Dịch Chuyển:</strong> Tất cả người chơi đổi hành động cho người bên cạnh.</li>
-                <li><strong>Phán Xét Đảo Ngược:</strong> Phe thường thắng (ít phiếu) giờ sẽ thua, và ngược lại.</li>
-                <li><strong>Giao Ước Bắt Buộc:</strong> Tất cả phải Vạch Trần hoặc Phối Hợp.</li>
-                <li><strong>Cống Nạp:</strong> Người cao điểm nhất cống nạp 2 điểm cho người thấp nhất.</li>
-                <li><strong>Lời Nguyền Hỉ Hả:</strong> Ai rơi xuống điểm âm sẽ về 0, những người khác bị -1 điểm.</li>
-                <li><strong>Lựa Chọn Của Kẻ Yếu:</strong> Phiếu 'Quan Sát' sẽ cộng cho phe đang yếu thế hơn.</li>
-                <li><strong>Cái Giá Của Sự Thờ Ơ:</strong> Người 'Quan Sát' bị trừ điểm bằng số phiếu 'Phá Hoại'.</li>
-                <li><strong>Vũ Điệu Hỗn Loạn:</strong> Hành động của mọi người bị xáo trộn và chia lại ngẫu nhiên.</li>
-                <li><strong>Đêm Suy Tàn:</strong> Phe thua cuộc bị chia đôi Tiến Độ. Hòa thì tất cả bị chia đôi.</li>
-                <li><strong>Vụ Nổ Hư Vô:</strong> Nếu kết quả là hòa, điểm của tất cả mọi người reset về 0.</li>
-                <li><strong>Thách Thức Kẻ Dẫn Đầu:</strong> Vạch Trần đúng người cao điểm nhất, bạn tráo đổi điểm với họ.</li>
-                <li><strong>Di Sản Kẻ Tiên Phong:</strong> Người thắng đêm nay được chọn Tiếng Vọng cho đêm sau.</li>
-                <li><strong>Đấu Trường Sinh Tử:</strong> Hai người thấp điểm nhất đấu tay đôi, những người khác đặt cược.</li>
-                <li><strong>Đêm Song Trùng:</strong> Có hai Tiếng Vọng được áp dụng trong cùng một đêm.</li>
-            </ul>
-        </div>
+        <!-- Nội dung sách luật -->
     </script>
 </body>
 </html>

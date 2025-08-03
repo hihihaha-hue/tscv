@@ -20,7 +20,7 @@ const UI = {
         readyBtn: document.getElementById('ready-btn'),
     },
     gameElements: {
-     screen: document.getElementById('game-screen'),
+   screen: document.getElementById('game-screen'),
         roleDisplay: document.getElementById('role-display'),
         phaseTitle: document.getElementById('phase-title'),
         timerDisplay: document.getElementById('timer-display'),
@@ -34,15 +34,15 @@ const UI = {
         nextDayBtn: document.getElementById('next-day-btn'),
         messageArea: document.getElementById('message-area'),
         twilightOverlay: document.getElementById('twilight-overlay'),
-        twilightGrid: document.getElementById('twilight-player-list'), // Sửa ID
+        twilightGrid: document.getElementById('twilight-player-list'),
         twilightRestBtn: document.getElementById('twilight-rest-btn'),
         twilightCloseBtn: document.getElementById('twilight-close-btn'),
     },
     audioCache: {},
     isMuted: false,
     // --- II. HÀM KHỞI TẠO ---
-    initEventListeners() {
-        // Gắn sự kiện cho các nút chỉ một lần
+   initEventListeners() {
+        // Sự kiện cho các nút chọn hành động chính
         this.gameElements.choiceButtonsContainer.querySelectorAll('.choice-buttons').forEach(button => {
             button.addEventListener('click', () => {
                 const choice = button.getAttribute('data-action');
@@ -50,14 +50,44 @@ const UI = {
                 this.setupPhaseUI('wait');
             });
         });
+        // Sự kiện cho nút Bỏ qua Phối hợp
+        this.gameElements.skipCoordinationBtn.addEventListener('click', () => {
+            this.playSound('click');
+            Network.emit('voteSkipCoordination', state.currentRoomCode);
+            this.setupPhaseUI('wait');
+        });
         
+        // Sự kiện cho nút Nghỉ ngơi trong màn hình Hoàng Hôn
         this.gameElements.twilightRestBtn.addEventListener('click', () => {
             this.gameElements.twilightOverlay.style.display = 'none';
             Network.emit('voteSkipTwilight', state.currentRoomCode);
         });
 
+        // Sự kiện cho nút Đóng màn hình Hoàng Hôn
         this.gameElements.twilightCloseBtn.addEventListener('click', () => {
             this.gameElements.twilightOverlay.style.display = 'none';
+        });
+
+        // Sự kiện cho nút Bắt đầu ngày tiếp theo
+        this.gameElements.nextDayBtn.addEventListener('click', () => {
+            if (state.myId === state.currentHostId) {
+                this.playSound('click');
+                Network.emit('nextRound', state.currentRoomCode);
+            }
+        });
+
+        // Gắn sự kiện động cho các avatar (sử dụng event delegation)
+        this.gameElements.playersContainer.addEventListener('click', (event) => {
+            const card = event.target.closest('.player-avatar-card');
+            if (!card) return;
+
+            // Chỉ xử lý khi đang trong giai đoạn Phối hợp
+            if (state.gamePhase === 'coordination') {
+                 if (card.querySelector('.is-self')) return; // Không thể chọn chính mình
+                 const targetId = card.getAttribute('data-player-id');
+                 Network.emit('voteCoordination', { roomCode: state.currentRoomCode, targetId });
+                 this.setupPhaseUI('wait', { title: 'Đã Phối Hợp!'});
+            }
         });
     },
 	// --- III. CÁC HÀM TIỆN ÍCH CƠ BẢN ---
@@ -117,16 +147,18 @@ loadPlayerName() {
 
 addCopyToClipboard() {
     const roomCodeDisplay = this.roomElements.roomCodeDisplay;
-    if (!roomCodeDisplay) return;
-    
+    if (!roomCodeDisplay || !roomCodeDisplay.textContent) return; // Thêm kiểm tra an toàn
+
     // Xóa nút cũ nếu có để tránh tạo nhiều nút
-    const existingBtn = roomCodeDisplay.parentNode.querySelector('.copy-btn');
-    if(existingBtn) existingBtn.remove();
+    const parent = roomCodeDisplay.parentNode;
+    const existingBtn = parent.querySelector('.copy-btn');
+    if (existingBtn) existingBtn.remove();
     
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Sao chép mã';
-    copyButton.className = 'copy-btn';
+    copyButton.className = 'copy-btn'; // Dùng class để dễ quản lý
     copyButton.style.marginLeft = '15px';
+
     copyButton.onclick = () => {
         navigator.clipboard.writeText(roomCodeDisplay.textContent).then(() => {
             this.playSound('success');
@@ -134,8 +166,11 @@ addCopyToClipboard() {
             setTimeout(() => { copyButton.textContent = 'Sao chép mã'; }, 2000);
         });
     };
-    roomCodeDisplay.parentNode.insertBefore(copyButton, roomCodeDisplay.nextSibling);
+    
+    // Chèn nút vào sau thẻ span chứa mã phòng
+    parent.insertBefore(copyButton, roomCodeDisplay.nextSibling);
 },
+
 
 applyShakeEffect(playerId) {
     const card = document.querySelector(`.player-avatar-card[data-player-id="${playerId}"] .avatar`);
@@ -213,20 +248,35 @@ updatePlayerList(players, hostId, myId) {
 
 // --- V. CẬP NHẬT GIAO DIỆN TRONG GAME ---
 displayRole(role) {
-        const container = this.gameElements.roleDisplay;
-        if (!container) return;
-        let skillButtonHTML = role.hasActiveSkill ? `<button class="skill-button" id="skill-btn">${role.skillName}</button>` : '';
-        container.innerHTML = `
-            <h4>Vai Trò Của Bạn: <strong>${role.name}</strong></h4>
-            <div style="text-align: left; line-height: 1.5;">
-                <p><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
-                <p><strong>Nội Tại:</strong> ${role.description.passive}</p>
-                <p><strong>Kỹ Năng:</strong> ${role.description.skill}</p>
-            </div>
-            ${skillButtonHTML}
-        `;
-        container.style.display = 'block';
-    },
+    const container = this.gameElements.roleDisplay;
+    if (!container) return;
+
+    let skillButtonHTML = '';
+    // Server sẽ gửi role.hasActiveSkill và role.currentSkillCost
+    if (role.hasActiveSkill) {
+        // Lấy chi phí trực tiếp từ đối tượng role mà server gửi
+        const cost = role.currentSkillCost; 
+        
+        // Hiển thị chi phí trên nút
+        const costText = cost > 0 ? ` (-${cost}💎)` : ''; // Bạn có thể đổi icon 💎 thành icon khác
+        skillButtonHTML = `<button class="skill-button" id="skill-btn">${role.skillName}${costText}</button>`;
+    }
+
+    // Cập nhật lại HTML, xóa bỏ thẻ [Mỗi Đêm] nếu bạn muốn
+    // (Lưu ý: bạn cần sửa file config.js để xóa hẳn, đây chỉ là xóa khi hiển thị)
+    const skillDescription = role.description.skill.replace('[Mỗi Đêm] ', '');
+
+    container.innerHTML = `
+        <h4>Vai Trò Của Bạn: <strong>${role.name}</strong></h4>
+        <div style="text-align: left; line-height: 1.5;">
+            <p><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
+            <p><strong>Nội Tại:</strong> ${role.description.passive}</p>
+            <p><strong>Kỹ Năng:</strong> ${skillDescription}</p>
+        </div>
+        ${skillButtonHTML}
+    `;
+    container.style.display = 'block';
+},
 
 displayRolesInGame(roles) {
     if (!roles || roles.length === 0) return;
@@ -281,49 +331,54 @@ updatePlayerCards(players, myId) {
         });
     },
 // --- VI. QUẢN LÝ GIAI ĐOẠN (HÀM TRUNG TÂM) ---
-setupPhaseUI(phaseName, options = {}) {
-        const { phaseTitle, phaseDescription, choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, twilightOverlay } = this.gameElements;
+ setupPhaseUI(phaseName, options = {}) {
+        const { phaseTitle, phaseDescription, choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, twilightOverlay, timerDisplay } = this.gameElements;
         
-        // Reset
+        // 1. Reset trạng thái chung
+        document.body.classList.remove('selecting-target');
+        phaseDescription.innerHTML = ''; // Xóa mô tả cũ
+        timerDisplay.innerHTML = ''; // Xóa đồng hồ cũ
+
+        // 2. Ẩn tất cả các nút điều khiển
         choiceButtonsContainer.style.display = 'none';
         skipCoordinationBtn.style.display = 'none';
         nextDayBtn.style.display = 'none';
         twilightOverlay.style.display = 'none';
 
+        // 3. Thiết lập giao diện dựa trên tên giai đoạn
         switch (phaseName) {
-         case 'choice':
+            case 'choice':
                 phaseTitle.textContent = 'Giai Đoạn Thám Hiểm';
                 phaseDescription.innerHTML = 'Bí mật chọn hành động của bạn.';
                 choiceButtonsContainer.style.display = 'flex';
+                choiceButtonsContainer.querySelectorAll('button').forEach(btn => btn.disabled = false);
                 break;
-        case 'coordination':
-            phaseTitle.textContent = 'Phối Hợp';
-            phaseDescription.innerHTML = 'Chọn một người chơi để đề nghị Phối Hợp.';
-            skipCoordinationBtn.style.display = 'inline-block';
-            skipCoordinationBtn.disabled = false;
-            document.body.classList.add('selecting-target');
-            break;
-        case 'twilight':
+            case 'coordination':
+                phaseTitle.textContent = 'Phối Hợp';
+                phaseDescription.innerHTML = 'Chọn một người chơi để đề nghị Phối Hợp.';
+                skipCoordinationBtn.style.display = 'inline-block';
+                document.body.classList.add('selecting-target');
+                break;
+            case 'twilight':
                 this.showTwilightUI(state.players, state.myId);
                 break;
-        case 'wait':
-            phaseTitle.textContent = options.title || 'Đã Chọn!';
-            phaseDescription.innerHTML = options.description || '<p>Đang chờ những người khác...</p>';
-            break;
-        case 'reveal':
-            phaseTitle.textContent = 'Giai Đoạn Phán Xét';
-            phaseDescription.innerHTML = '<p>Kết quả đang được công bố...</p>';
-            break;
-        case 'end_of_round':
-            phaseTitle.textContent = 'Đêm Đã Kết Thúc';
-            phaseDescription.innerHTML = 'Đang chờ Trưởng Đoàn...';
-            if (options.isHost && nextDayBtn) {
-                nextDayBtn.style.display = 'inline-block';
-            }
-            break;
-    }
-},
-
+            case 'wait':
+                phaseTitle.textContent = options.title || 'Đã Chọn!';
+                phaseDescription.innerHTML = options.description || '<p>Đang chờ những người khác...</p>';
+                break;
+            case 'reveal':
+                phaseTitle.textContent = 'Giai Đoạn Phán Xét';
+                phaseDescription.innerHTML = '<p>Kết quả đang được công bố...</p>';
+                break;
+            case 'end_of_round':
+                phaseTitle.textContent = 'Đêm Đã Kết Thúc';
+                phaseDescription.innerHTML = 'Đang chờ Trưởng Đoàn...';
+                if (options.isHost) {
+                    nextDayBtn.style.display = 'inline-block';
+                }
+                break;
+        }
+    },
 
 // --- VII. GIAO DIỆN TƯƠNG TÁC ĐẶC BIỆT (POPUPS & OVERLAYS) ---
   showTwilightUI(players, myId) {
@@ -366,6 +421,33 @@ promptForPlayerTarget(title, onSelected) {
         if (result.isConfirmed && result.value) {
             onSelected(result.value);
         }
+    });
+},
+promptForFactionChoice(title, onSelected) {
+    Swal.fire({
+        title: title,
+        html: `
+            <p>Chọn một phe để đặt cược hoặc tuyên bố.</p>
+            <div class="action-choices-popup" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+                <button class="swal2-styled loyal" data-action="Giải Mã">📜 Giải Mã</button>
+                <button class="swal2-styled corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
+                <button class="swal2-styled blank" data-action="Quan Sát">👁️ Quan Sát</button>
+            </div>`,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: 'Hủy',
+        background: '#2d3748',
+        color: '#e2e8f0',
+        didOpen: () => {
+            const popup = Swal.getPopup();
+            popup.querySelectorAll('.action-choices-popup button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const chosenAction = button.getAttribute('data-action');
+                    onSelected(chosenAction);
+                    Swal.close();
+                });
+            });
+        },
     });
 },
 
