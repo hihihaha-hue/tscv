@@ -25,3 +25,13 @@ jspm_packages/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Bỏ qua các gói phụ thuộc đã được cài đặt
+node_modules
+
+# Bỏ qua các biến môi trường (nếu có)
+.env
+
+# Các tệp log và rác của hệ điều hành
+npm-debug.log*
+.DS_Store
