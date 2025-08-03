@@ -276,25 +276,106 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 .shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
 
 /* --- VIII. THIẾT KẾ ĐÁP ỨNG (RESPONSIVE) --- */
-@media (max-width: 1200px) {
-    #game-screen {
-        grid-template-columns: 1fr 2fr; /* Chuyển thành 2 cột */
-        grid-template-areas: 
-            "center right"
-            "left   right";
+@media (max-width: 1024px) {
+    body {
+        padding: 0;
+        /* Cho phép cuộn toàn trang nếu nội dung quá dài trên một số thiết bị */
+        overflow-y: auto; 
     }
-    #left-column { grid-area: left; }
-    #center-column { grid-area: center; }
-    #right-column { grid-area: right; }
+
+    .container {
+        /* Cho phép container co giãn theo chiều cao nội dung */
+        height: auto; 
+        min-height: 100vh;
+        padding: 10px;
+        border-radius: 0;
+        border: none;
+    }
+
+    /* === [THAY ĐỔI CỐT LÕI] CHUYỂN TOÀN BỘ GAME SANG BỐ CỤC DỌC === */
+    #game-screen {
+        display: flex;
+        flex-direction: column; /* Xếp chồng mọi thứ lên nhau */
+        gap: 15px;
+    }
+
+    /* Biến các cột thành "vô hình" để các panel con được xếp chồng lên nhau */
+    #left-column, #center-column, #right-column {
+        display: contents;
+    }
+
+    /* === SẮP XẾP LẠI THỨ TỰ ƯU TIÊN CHO DI ĐỘNG BẰNG CSS `order` === */
+    /* Thứ tự hiển thị sẽ là: 1, 2, 3, 4, ... */
+    #phase-info { order: 1; text-align: center; }
+    #players-container { order: 2; }
+    #action-container { order: 3; }
+    #role-display { order: 4; }
+    #leaderboard { order: 5; }
+    #message-area { order: 6; }
+    #chat-container { order: 7; }
+
+    /* --- TÙY CHỈNH KÍCH THƯỚC CÁC PANEL --- */
+    .game-panel {
+        padding: 12px;
+    }
+
+    #phase-info h2 { font-size: 1.2em; }
+    #timer-display { font-size: 2.2em; }
+    
+    /* --- LƯỚI NGƯỜI CHƠI CHO DI ĐỘNG --- */
+    .players-grid {
+        /* Hiển thị tối đa 4 người một hàng */
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 10px;
+        /* Giới hạn chiều cao và cho phép cuộn bên trong */
+        max-height: 35vh;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .player-avatar-card .avatar {
+        width: 55px;
+        height: 55px;
+        font-size: 1.8em;
+    }
+    .player-avatar-card .player-name {
+        font-size: 0.75em;
+    }
+
+    /* --- KHU VỰC HÀNH ĐỘNG --- */
+    .action-buttons-grid {
+        grid-template-columns: 1fr 1fr 1fr; /* 3 nút trên một hàng */
+    }
+    button {
+        padding: 10px 12px;
+        font-size: 0.9em;
+    }
+    
+    /* --- CÁC KHUNG THÔNG TIN KHÁC --- */
+    /* Cho phép các khung này có chiều cao cố định và tự cuộn */
+    #role-display, #leaderboard, #message-area, #chat-container {
+        max-height: 250px;
+        overflow-y: hidden; /* Ẩn cuộn nếu không cần */
+    }
+
+    #role-display .skill-button, #leaderboard ul, #chat-messages, #message-area {
+        overflow-y: auto; /* Thêm cuộn cho nội dung bên trong */
+    }
 }
 
-@media (max-width: 900px) {
-    #game-screen {
-        display: flex; /* Quay về flex dọc trên di động */
-        flex-direction: column;
+
+/* === Tinh chỉnh thêm cho màn hình điện thoại rất nhỏ === */
+@media (max-width: 480px) {
+    .container {
+        padding: 5px;
     }
+
     .players-grid {
-        grid-template-columns: repeat(4, 1fr);
-        max-height: 40vh; /* Giới hạn chiều cao lưới */
+        /* Hiển thị 3 người một hàng để avatar to hơn, dễ bấm hơn */
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    h1 {
+        font-size: 2.2em;
     }
 }

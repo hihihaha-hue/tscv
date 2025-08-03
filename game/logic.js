@@ -9,15 +9,36 @@ const config = require('./config.js');
 const { ROLES, SKILL_COSTS } = require('./config.js'); // Đảm bảo đã import đầy đủ
 
 // --- CÁC HÀM KHỞI TẠO VÀ TIỆN ÍCH ---
-function initializeSpecialRoles(gs) {
-    const assassin = gs.players.find(p => p.roleId === 'ASSASSIN');
-    if (assassin) {
-        const potentialTargets = gs.players.filter(p => p.id !== assassin.id);
-        if (potentialTargets.length > 0) {
-            assassin.bountyTargetId = potentialTargets[Math.floor(Math.random() * potentialTargets.length)].id;
-			console.log(`[LOGIC] Sát Thủ ${assassin.name} đã được gán mục tiêu ID: ${assassin.bountyTargetId}`);
-        }
+function initializeAssassin(assassin, allPlayers) {
+    const potentialTargets = allPlayers.filter(p => p.id !== assassin.id);
+    if (potentialTargets.length > 0) {
+        assassin.bountyTargetId = potentialTargets[Math.floor(Math.random() * potentialTargets.length)].id;
+        console.log(`[LOGIC] Sát Thủ ${assassin.name} đã được gán mục tiêu ID: ${assassin.bountyTargetId}`);
     }
+}
+
+// Hàm dành riêng cho Kẻ Bắt Chước (ví dụ cho tương lai)
+function initializeMimic(mimic, allPlayers) {
+    const potentialTargets = allPlayers.filter(p => p.id !== mimic.id && !p.isDefeated);
+    if (potentialTargets.length > 0) {
+        const targetPlayer = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
+        mimic.mimicTargetId = targetPlayer.id;
+        // Có thể thêm logic thông báo cho Kẻ Bắt Chước ở đây nếu cần
+    }
+}const roleInitializers = {
+    'ASSASSIN': initializeAssassin,
+     'MIMIC': initializeMimic, 
+	};
+	function initializeSpecialRoles(gs) {
+    // Lặp qua tất cả người chơi trong game
+    gs.players.forEach(player => {
+        // Kiểm tra xem vai trò của người chơi này có trong "bảng chỉ dẫn" của chúng ta không
+        if (roleInitializers[player.roleId]) {
+            // Nếu có, gọi hàm khởi tạo tương ứng
+            // và truyền vào chính người chơi đó cùng danh sách tất cả người chơi
+            roleInitializers[player.roleId](player, gs.players);
+        }
+    });
 }
 function createGameState(players) {
     const numPlayers = players.length;
