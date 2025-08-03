@@ -494,11 +494,15 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs) return;
     gs.phase = 'reveal';
-    const { decrees } = gs.roundData;
+
     const results = { messages: [], roundSummary: [], isDraw: false, winner: null, roundWinners: [] };
     const activePlayers = gs.players.filter(p => !p.isDefeated && !p.disconnected);
-    if (activePlayers.length === 0) return handlePostRoundEvents(roomCode, rooms, io);
+    if (activePlayers.length === 0) {
+        handlePostRoundEvents(roomCode, rooms, io);
+        return;
+    }
 
+    // Khởi tạo summary
     activePlayers.forEach(p => {
         results.roundSummary.push({
             id: p.id, name: p.name, oldScore: p.score, newScore: 0,
@@ -507,11 +511,12 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
         });
     });
 
-    // --- LOGIC TÍNH ĐIỂM CƠ BẢN (ĐÃ SỬA VÀ CHÍNH XÁC) ---
+    // Đếm phiếu
     let votes = { 'Giải Mã': 0, 'Phá Hoại': 0, 'Quan Sát': 0 };
     activePlayers.forEach(p => {
-        if (p.chosenAction && !gs.roundData.votesToSkip?.has(p.id) && p.roleId !== 'PHANTOM') {
-            votes[p.chosenAction] += p.hasTripleVote ? 3 : 1;
+        const summary = results.roundSummary.find(s => s.id === p.id);
+        if (p.chosenAction && !summary.actionWasNullified) {
+            votes[p.chosenAction]++;
         }
     });
 
@@ -523,126 +528,87 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
         }
     }
 
-    let pointChanges = {};
     const loyalVotes = votes['Giải Mã'];
     const corruptVotes = votes['Phá Hoại'];
     const observerCount = votes['Quan Sát'];
     const totalPlayers = activePlayers.length;
     const observerThreshold = Math.floor(totalPlayers / 2);
 
+    // =================================================================
+    // --- LOGIC TÍNH ĐIỂM TUẦN TỰ VÀ MINH BẠCH ---
+    // =================================================================
+
+    // Hàm trợ giúp để thêm thay đổi điểm và lý do
+    const applyPointChange = (playerId, amount, reason) => {
+        const summary = results.roundSummary.find(s => s.id === playerId);
+        if (summary && amount !== 0) {
+            summary.changes.push({ reason, amount });
+        }
+    };
+
+    // Bước 1: Xác định Hòa hay Thắng/Thua và áp dụng điểm cơ bản
     if (loyalVotes === corruptVotes) {
         results.isDraw = true;
         gs.consecutiveDraws++;
         results.messages.push("⚖️ Kết quả là HÒA!");
-        activePlayers.forEach(p => {
-            if (observerCount > 0) {
-                pointChanges[p.id] = (p.chosenAction === 'Quan Sát') ? -1 : 1;
-            } else {
-                pointChanges[p.id] = -1;
-            }
-        });
+
+        if (observerCount > 0) {
+            activePlayers.forEach(p => {
+                const amount = p.chosenAction === 'Quan Sát' ? -1 : 1;
+                applyPointChange(p.id, amount, 'Hòa có Quan sát');
+            });
+        } else {
+            activePlayers.forEach(p => applyPointChange(p.id, -1, 'Hòa không Quan sát'));
+        }
     } else {
+        // Có phe thắng
         gs.consecutiveDraws = 0;
         const winner = loyalVotes < corruptVotes ? 'Giải Mã' : 'Phá Hoại';
         const loser = winner === 'Giải Mã' ? 'Phá Hoại' : 'Giải Mã';
         results.winner = winner;
         results.messages.push(`🏆 Phe **${winner}** thắng!`);
+        results.roundWinners = activePlayers.filter(p => p.chosenAction === winner).map(p => p.id);
+
+        // Áp dụng điểm cho phe thắng/thua
         activePlayers.forEach(p => {
-            if (p.chosenAction === winner) pointChanges[p.id] = 2;
-            else if (p.chosenAction === loser) pointChanges[p.id] = -1;
+            if (p.chosenAction === winner) applyPointChange(p.id, 2, 'Thuộc phe thắng');
+            else if (p.chosenAction === loser) applyPointChange(p.id, -1, 'Thuộc phe thua');
         });
+
+        // Bước 2: Xử lý điểm cho Quan Sát dựa trên kết quả Thắng/Thua
         if (observerCount > 0) {
             if (observerCount < observerThreshold) {
-                activePlayers.forEach(p => { if (p.chosenAction === 'Quan Sát') pointChanges[p.id] = 3; });
-            } else {
+                // Quan sát ít, theo phe thắng
                 activePlayers.forEach(p => {
-                    if (p.chosenAction === 'Quan Sát') pointChanges[p.id] = -1;
-                    else pointChanges[p.id] = (pointChanges[p.id] || 0) + 1;
+                    if (p.chosenAction === 'Quan Sát') applyPointChange(p.id, 3, 'Quan sát theo phe thắng');
+                });
+            } else {
+                // Quan sát đông, bị phạt
+                activePlayers.forEach(p => {
+                    const amount = p.chosenAction === 'Quan Sát' ? -1 : 1;
+                    applyPointChange(p.id, amount, 'Quan sát quá đông');
                 });
             }
         }
     }
-    // -----------------------------------------------------------------
-
-    // --- ÁP DỤNG KỸ NĂNG & NỘI TẠI VAI TRÒ ---
-    let tempScores = {};
-    activePlayers.forEach(p => tempScores[p.id] = p.score);
     
-    // Ghi điểm cơ bản vào summary trước
+    // Bước 3: Áp dụng các hiệu ứng từ vai trò và Tiếng Vọng
+    // (Phần này sẽ được thêm vào trong tương lai)
+
+
+    // Bước 4: Tổng kết tất cả các thay đổi và cập nhật điểm số cuối cùng
     activePlayers.forEach(p => {
-        const change = pointChanges[p.id] || 0;
-        if (change !== 0) {
-            results.roundSummary.find(s => s.id === p.id).changes.push({ reason: 'Kết quả ngày', amount: change });
-        }
-    });
-
-    // Kỹ năng chủ động ảnh hưởng điểm
-    activePlayers.forEach(p => {
-        if (p.skillActive && !p.isDefeated) {
-            const summary = results.roundSummary.find(s => s.id === p.id);
-            if (p.roleId === 'GAMBLER') {
-                const baseChange = pointChanges[p.id] || 0;
-                let skillChange = 0;
-                if (baseChange > 0) skillChange = 8 - baseChange; // Thắng được +8
-                else skillChange = -4 - baseChange; // Thua bị -4
-                pointChanges[p.id] += skillChange;
-                summary.changes.push({ reason: 'Kỹ năng Tất Tay', amount: skillChange });
-            }
-            if (p.roleId === 'THIEF' && p.skillTargetId) {
-                const targetSummary = results.roundSummary.find(s => s.id === p.skillTargetId);
-                if (targetSummary) {
-                    const targetPointChange = pointChanges[p.skillTargetId] || 0;
-                    if (targetPointChange > 0) {
-                        const stolenAmount = Math.floor(targetPointChange / 2);
-                        pointChanges[p.skillTargetId] -= stolenAmount;
-                        pointChanges[p.id] = (pointChanges[p.id] || 0) + stolenAmount;
-                        summary.changes.push({ reason: 'Kỹ năng Móc Túi', amount: stolenAmount });
-                        targetSummary.changes.push({ reason: 'Bị Móc Túi', amount: -stolenAmount });
-                    }
-                }
-            }
-        }
-    });
-
-    // Áp dụng các thay đổi điểm
-    activePlayers.forEach(p => {
-        let finalChange = pointChanges[p.id] || 0;
-
-        // Nội tại Kẻ Đánh Cược (ảnh hưởng điểm mất)
-        if (p.roleId === 'GAMBLER' && finalChange < 0) {
-            if (Math.random() < 0.5) finalChange *= 2;
-            else finalChange = Math.ceil(finalChange / 2);
-        }
-        
-        // Ban Phước
-        if (p.isBlessed && finalChange < 0) finalChange = 0;
-
-        tempScores[p.id] += finalChange;
-    });
-
-    // Cập nhật điểm và áp dụng Nội tại cuối vòng
-    activePlayers.forEach(p => {
-        p.score = tempScores[p.id];
         const summary = results.roundSummary.find(s => s.id === p.id);
-        let oldScoreForEffect = p.score;
-
-        if (p.roleId === 'PEACEMAKER' && results.isDraw) p.score++;
-        if (p.roleId === 'DOUBLE_AGENT' && !results.isDraw && !results.roundWinners.includes(p.id)) p.score++;
-        if (p.roleId === 'MIND_BREAKER' && gs.failedAccusationsThisRound > 0) p.score += 2 * gs.failedAccusationsThisRound;
-        if (p.roleId === 'PHANTOM') p.score++;
-        
-        if (p.score !== oldScoreForEffect) {
-            summary.changes.push({ reason: 'Nội tại vai trò', amount: p.score - oldScoreForEffect });
-        }
+        const totalChange = summary.changes.reduce((sum, change) => sum + change.amount, 0);
+        p.score += totalChange;
+        summary.newScore = p.score;
     });
 
-    // Cập nhật điểm cuối cùng vào summary
-    results.roundSummary.forEach(s => s.newScore = activePlayers.find(p => p.id === s.id).score);
-     io.to(roomCode).emit('roundResult', { 
-        roundNumber: gs.currentRound, // <-- THÊM DÒNG NÀY
-        players: gs.players, 
-        results, 
-        finalVoteCounts: votes 
+    io.to(roomCode).emit('roundResult', {
+        roundNumber: gs.currentRound,
+        players: gs.players,
+        results,
+        finalVoteCounts: votes
     });
 
     handlePostRoundEvents(roomCode, rooms, io);

@@ -1,153 +1,99 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <!-- ======================= METADATA CƠ BẢN ======================= -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thợ Săn Cổ Vật - Cuộc Thám Hiểm Bất Tận</title>
-    <meta name="description" content="Một trò chơi ẩn vai trò và suy luận xã hội lấy bối cảnh trong một ngôi đền cổ bí ẩn.">
-
-    <!-- ======================= THƯ VIỆN & FONTS ======================= -->
-    <!-- Google Fonts: Phông chữ chủ đề cho game -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Thợ Săn Cổ Vật</title>
+    <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-    
-    <!-- Favicon: Biểu tượng nhỏ trên tab trình duyệt (thay 'favicon.ico' bằng file của bạn) -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16x16.png">
-<link rel="manifest" href="/assets/images/site.webmanifest">
-
-    <!-- ======================= STYLESHEET CHÍNH ======================= -->
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-   <!-- NÚT BẬT/TẮT NHẠC NỀN -->
     <button id="music-toggle-btn">🎵</button>
-
-    <!-- TRÌNH PHÁT NHẠC NỀN (ẨN) -->
     <audio id="background-music" src="/assets/sounds/background.mp3" loop></audio>
-    <!-- NÚT SÁCH LUẬT -->
     <button id="rulebook-btn">?</button>
     <button id="history-log-btn">📜</button>
 
-            <div class="menu">
-                <!-- Chú ý: Việc không dùng <label> ở đây là một lựa chọn thiết kế.
-                     Để tăng tính truy cập, bạn có thể thêm <label for="player-name-input">Tên của bạn:</label> -->
-                <input type="text" id="player-name-input" placeholder="NHẬP TÊN THỢ SĂN..." maxlength="15">
-                <button id="create-room-btn">Mở Cuộc Thám Hiểm Mới</button>
     <div class="container">
-        <!-- ==================================================================== -->
-        <!-- ======================= MÀN HÌNH CHÍNH (HOME) ====================== -->
-        <!-- ==================================================================== -->
+        <!-- MÀN HÌNH CHÍNH -->
         <div id="home-screen">
             <h1>Thợ Săn Cổ Vật</h1>
-                
-                <hr>
-                
-                <input type="text" id="room-code-input" placeholder="NHẬP MÃ ĐOÀN..." maxlength="4" style="text-transform:uppercase">
-                <button id="join-room-btn">Tham Gia Đoàn</button>
-            </div>
+            <input type="text" id="player-name-input" placeholder="NHẬP TÊN THỢ SĂN..." maxlength="15">
+            <button id="create-room-btn">Mở Cuộc Thám Hiểm Mới</button>
+            <hr>
+            <input type="text" id="room-code-input" placeholder="NHẬP MÃ ĐOÀN..." maxlength="4" style="text-transform:uppercase">
+            <button id="join-room-btn">Tham Gia Đoàn</button>
         </div>
 
-        <!-- ==================================================================== -->
-        <!-- ===================== MÀN HÌNH PHÒNG CHỜ (ROOM) ==================== -->
-        <!-- ==================================================================== -->
-        <!-- Ban đầu được ẩn, JavaScript sẽ hiển thị nó khi cần thiết -->
-       <div id="room-screen" style="display: none;">
-    <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
-    <h3>Các Thợ Săn Trong Đoàn:</h3>
-    <ul id="player-list"></ul>
-    
-    <!-- Khu vực điều khiển chỉ dành cho Host -->
-    <div id="host-controls" class="controls-wrapper" style="display: none;">
-        <button id="add-bot-btn">Thêm Thợ Săn AI</button>
-        <button id="start-game-btn" disabled>Bắt Đầu Thám Hiểm</button>
-    </div>
+        <!-- MÀN HÌNH PHÒNG CHỜ -->
+        <div id="room-screen" style="display: none;">
+             <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
+            <ul id="player-list"></ul>
+            <div id="host-controls" style="display: none;"><button id="add-bot-btn">Thêm AI</button><button id="start-game-btn" disabled>Bắt Đầu</button></div>
+            <div id="player-controls" style="display: none;"><button id="ready-btn">Sẵn Sàng</button></div>
+        </div>
 
-    <!-- THÊM MỚI: Khu vực điều khiển dành cho người chơi -->
-    <div id="player-controls" class="controls-wrapper" style="display: none;">
-        <button id="ready-btn">Sẵn Sàng</button>
-    </div>
-</div>
-
-        <!-- ==================================================================== -->
-        <!-- ===================== MÀN HÌNH CHƠI GAME (GAME) ==================== -->
-        <!-- ==================================================================== -->
-        <!-- Ban đầu được ẩn, JavaScript sẽ hiển thị nó khi game bắt đầu -->
+        <!-- MÀN HÌNH CHƠI GAME -->
         <div id="game-screen" style="display: none;">
-		
-
-            <!-- KHU VỰC HIỂN THỊ VAI TRÒ BÍ MẬT & KỸ NĂNG -->
-            <!-- Được ẩn ban đầu, JS sẽ điền nội dung và hiển thị khi nhận được vai trò -->
-            <div id="role-display" style="display: none;">
-                <!-- Nội dung vai trò và nút kỹ năng sẽ được render vào đây bởi ui.js -->
+            <div class="top-row-layout">
+                <div id="role-display" class="top-box role-box"></div>
+                <div id="phase-info" class="top-box phase-box">
+                    <h2 id="phase-title"></h2>
+                    <div id="timer-display"></div>
+                </div>
+                <div id="leaderboard" class="top-box leaderboard-box">
+                    <h3>Bảng Xếp Hạng</h3>
+                    <ul id="leaderboard-list"></ul>
+                </div>
             </div>
 
-            <!-- HIỂN THỊ VÒNG CHƠI HIỆN TẠI -->
-            <p class="round-indicator">Ngày Thứ: <span id="current-round">1</span></p>
-            
-            <!-- HIỂN THỊ TIẾNG VỌNG (DECREE) CỦA VÒNG -->
-            <!-- Được ẩn ban đầu, JS sẽ điền nội dung và hiển thị khi có Tiếng Vọng -->
-            <div id="decree-display" style="display: none;">
-                <!-- Nội dung Tiếng Vọng sẽ được render vào đây bởi ui.js -->
-            </div>
+            <div id="players-container" class="players-grid"></div>
 
-            <!-- KHU VỰC HIỂN THỊ TẤT CẢ NGƯỜI CHƠI (PLAYER CARDS) -->
-            <!-- Đây là khung chứa, các thẻ người chơi sẽ được JS render vào đây -->
-            <div id="players-container"></div>
-
-            <!-- KHU VỰC TƯƠNG TÁC CHÍNH -->
-            <!-- Nội dung của vùng này thay đổi liên tục theo từng giai đoạn của game (lựa chọn, hoàng hôn, kết quả) -->
-            <div id="round-phase">
-                 <!-- Tiêu đề giai đoạn (ví dụ: "Hành Động Trong Đêm") -->
-                 <h2 id="phase-title"></h2>
-                 
-                 <!-- Nơi chứa các nút hành động, đồng hồ đếm ngược, v.v. -->
-                 <div id="action-controls">
-                    <!-- Nội dung động sẽ được render vào đây bởi ui.js -->
-	 <button id="skip-coordination-btn" class="skip-button" style="display: none;">Hành động một mình</button>
-    <button id="skip-twilight-btn" class="skip-button" style="display: none;">Nghỉ ngơi</button>
-                 </div>
+            <div class="bottom-row-layout">
+                <div id="chat-container" class="bottom-box chat-box">
+                    <div id="chat-messages"></div>
+                    <div id="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
+                        <button id="send-chat-btn">Gửi</button>
+                    </div>
+                </div>
+                <div id="action-container" class="bottom-box action-box">
+                    <p id="phase-description"></p>
+                    <div id="choice-buttons-container" class="action-buttons-grid" style="display: none;">
+                        <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
+                        <button class="choice-buttons corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
+                        <button class="choice-buttons blank" data-action="Quan Sát">👁️ Quan Sát</button>
+                    </div>
+                    <button id="skip-coordination-btn" class="skip-button" style="display: none;">Hành động một mình</button>
+                    <button id="next-day-btn" class="next-day-btn" style="display: none;">Bắt Đầu Ngày Tiếp Theo</button>
+                </div>
+                <div id="message-area" class="bottom-box log-box"></div>
             </div>
-
-            <!-- KHU VỰC NHẬT KÝ TRÒ CHƠI (GAME LOG) -->
-            <div id="message-area">
-                <p class="info">Đang chờ Trưởng Đoàn bắt đầu cuộc thám hiểm...</p>
-            </div>
-			<!-- GIAO DIỆN CHAT MỚI -->
-        <div id="chat-container">
-		 <div id="quick-chat-area">
-        <button class="quick-chat-btn" data-key="Chicken">Gà!</button>
-        <button class="quick-chat-btn" data-key="praise">Hay lắm!</button>
-        <button class="quick-chat-btn" data-key="hurry">Nhanh lên!</button>
-    </div>
-            <div id="chat-messages">
-                <!-- Các tin nhắn sẽ hiện ở đây -->
-            </div>
-            <div id="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
-                <button id="send-chat-btn">Gửi</button>
         </div>
     </div>
-    <div id="night-transition-overlay">
-        <h2 id="night-transition-text"></h2>
-    </div>
-    <!-- ==================================================================== -->
-    <!-- ========================== SCRIPTS ================================= -->
-    <!-- ==================================================================== -->
-  <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- CÁC MODULE PHẢI ĐƯỢC NẠP TRƯỚC FILE CLIENT CHÍNH -->
+    <!-- OVERLAY HOÀNG HÔN -->
+    <div id="twilight-overlay" style="display: none;">
+        <div id="twilight-meeting-ui">
+            <div class="twilight-header">
+                <h2>Hoàng Hôn - Vạch Trần</h2>
+                <button id="twilight-close-btn" class="close-btn">×</button>
+            </div>
+            <ul id="twilight-player-list"></ul>
+            <div class="twilight-footer">
+                <button id="twilight-rest-btn" class="skip-button">Nghỉ Ngơi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERLAY CHUYỂN CẢNH -->
+    <div id="night-transition-overlay"><h2 id="night-transition-text"></h2></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/js/ui.js"></script>
     <script src="/js/network.js"></script>
-
-    <!-- FILE CLIENT CHÍNH, NẠP SAU CÙNG -->
     <script src="/client.js"></script>
-
-    <!-- TEMPLATE SÁCH LUẬT -->
     <script type="text/template" id="rulebook-template">
         <div class="rulebook-content" style="text-align: left; line-height: 1.6;">
             <h3>Giới Thiệu</h3>
