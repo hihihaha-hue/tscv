@@ -50,15 +50,32 @@ const UI = {
     },
     audioCache: {},
     isMuted: false,
-    gameData: { allRoles: {}, allDecrees: {} },
+    gameData: { allRoles: {}, allDecrees: {}, allArtifacts: {} },
 
     // --- II. HÀM KHỞI TẠO ---
-    initEventListeners() {
+        initEventListeners() {
+        // --- CÁC NÚT HÀNH ĐỘNG CHÍNH ---
         this.gameElements.choiceButtonsContainer.querySelectorAll('.choice-buttons').forEach(button => {
             button.addEventListener('click', () => {
                 const choice = button.getAttribute('data-action');
-                Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice: choice });
-                this.setupPhaseUI('wait', { title: 'Đã Chọn Hành Động' });
+                
+                if (choice === 'Phá Hoại') {
+                    // Nếu là Phá Hoại, yêu cầu chọn mục tiêu trước
+                    this.promptForPlayerTarget('Chọn mục tiêu để Phá Hoại', (targetId) => {
+                        if (targetId) {
+                            Network.emit('playerChoice', {
+                                roomCode: state.currentRoomCode,
+                                choice: choice,
+                                payload: { targetId: targetId }
+                            });
+                            this.setupPhaseUI('wait', { title: 'Đã Chọn Hành Động' });
+                        }
+                    });
+                } else {
+                    // Các hành động khác gửi đi như bình thường
+                    Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice: choice });
+                    this.setupPhaseUI('wait', { title: 'Đã Chọn Hành Động' });
+                }
             });
         });
 
@@ -135,57 +152,72 @@ const UI = {
             });
         }
     },
-
     // --- III. CÁC HÀM TIỆN ÍCH CƠ BẢN ---
-    toggleMasterMute() { /* ... không đổi ... */ },
-    playSound(soundName) { /* ... không đổi ... */ },
-
-    showScreen(screenName) {
+   toggleMasterMute() {
+        this.isMuted = !this.isMuted;
+        document.getElementById('music-toggle-btn').textContent = this.isMuted ? '🔇' : '🎵';
+        const music = document.getElementById('background-music');
+        if (music) music.muted = this.isMuted;
+        for (const sound in this.audioCache) {
+            this.audioCache[sound].muted = this.isMuted;
+        }
+    },
+ playSound(soundName) {
+        try {
+            const audio = this.audioCache[soundName] || new Audio(`/assets/sounds/${soundName}.mp3`);
+            this.audioCache[soundName] = audio;
+            audio.muted = this.isMuted;
+            audio.currentTime = 0;
+            audio.play().catch(e => console.error("Audio play failed:", e));
+        } catch (e) {
+            console.error(`Lỗi âm thanh '${soundName}':`, e);
+        }
+    },
+	showScreen(screenName) {
         ['home-screen', 'room-screen', 'game-screen'].forEach(id => {
             document.getElementById(id).style.display = 'none';
         });
         const targetScreen = document.getElementById(`${screenName}-screen`);
         if (targetScreen) {
-            // Sửa lại để game-screen dùng grid
             targetScreen.style.display = (screenName === 'game') ? 'grid' : 'block';
         }
     },
 
-    showNightTransition(dayNumber) { /* ... không đổi ... */ },
+
+    showNightTransition(dayNumber) {
+        const overlay = document.getElementById('night-transition-overlay');
+        const text = document.getElementById('night-transition-text');
+        if (text) text.textContent = `Ngày thứ ${dayNumber}`;
+        if (overlay) {
+            overlay.classList.add('active');
+            setTimeout(() => overlay.classList.remove('active'), 2000);
+        }
+    },
 	
 	updateArtifactDisplay(artifacts) {
         const displayPanel = this.gameElements.artifactDisplay;
+        if (!displayPanel) return;
+        displayPanel.style.display = (state.gamePhase !== 'lobby' && state.gamePhase !== 'gameover') ? 'block' : 'none';
+
         const infoContainer = this.gameElements.artifactInfo;
         const noArtifactMsg = this.gameElements.noArtifactMessage;
         const useBtn = this.gameElements.useArtifactBtn;
-    
-        if (!displayPanel) return;
         
-        // Luôn hiển thị panel cổ vật một khi game đã bắt đầu
-        displayPanel.style.display = (state.gamePhase !== 'lobby') ? 'block' : 'none';
-    
-        // Tạm thời chỉ xử lý 1 cổ vật đầu tiên
         const artifact = artifacts && artifacts.length > 0 ? artifacts[0] : null;
 
         if (artifact) {
-            if (infoContainer) infoContainer.style.display = 'block';
-            if (noArtifactMsg) noArtifactMsg.style.display = 'none';
-            
+            infoContainer.style.display = 'block';
+            noArtifactMsg.style.display = 'none';
             this.gameElements.artifactName.textContent = artifact.name;
-            this.gameElements.artifactDescription.textContent = artifact.description;
+            this.gameElements.artifactDescription.textContent = artifact.details.effect;
             
-            if (useBtn) {
-                useBtn.style.display = artifact.is_activatable ? 'block' : 'none';
-                useBtn.disabled = false;
-                useBtn.textContent = 'Kích hoạt';
-                useBtn.dataset.artifactId = artifact.id; // Lưu ID để dùng
-            }
+            useBtn.style.display = artifact.is_activatable ? 'block' : 'none';
+            useBtn.disabled = false;
+            useBtn.textContent = 'Kích hoạt';
+            useBtn.dataset.artifactId = artifact.id;
         } else {
-            if (infoContainer) infoContainer.style.display = 'none';
-            if (noArtifactMsg) {
-                 noArtifactMsg.style.display = 'block';
-                 noArtifactMsg.textContent = 'Bạn chưa có cổ vật nào.';
-            }
+            infoContainer.style.display = 'none';
+            noArtifactMsg.style.display = 'block';
         }
     },
     
@@ -298,7 +330,8 @@ const UI = {
         if (name) localStorage.setItem('tho-san-co-vat-playerName', name);
     },
 
-    loadPlayerName() {
+
+     loadPlayerName() {
         const savedName = localStorage.getItem('tho-san-co-vat-playerName');
         if (savedName) this.homeElements.nameInput.value = savedName;
     },
@@ -626,6 +659,41 @@ const UI = {
         }).then((result) => {
             if (result.isConfirmed && result.value) {
                 onSelected(result.value);
+            }
+        });
+    },
+	
+	promptForArtifactChoice(data, onSelected) {
+        const { currentArtifact, newArtifact } = data;
+        Swal.fire({
+            title: 'Tìm Thấy Cổ Vật Mới!',
+            html: `
+                <p>Bạn đã tìm thấy <strong>${newArtifact.name}</strong>, nhưng bạn chỉ có thể giữ một Cổ vật.</p>
+                <p>Hãy đưa ra lựa chọn:</p>
+                <div class="swal-artifact-choice-container">
+                    <div class="swal-artifact-option">
+                        <h4>GIỮ LẠI (Hiện tại)</h4>
+                        <strong>${currentArtifact.name}</strong>
+                        <p>${currentArtifact.details.effect}</p>
+                    </div>
+                    <div class="swal-artifact-option">
+                        <h4>LẤY MỚI</h4>
+                        <strong>${newArtifact.name}</strong>
+                        <p>${newArtifact.details.effect}</p>
+                    </div>
+                </div>`,
+            showCancelButton: true,
+            confirmButtonText: `Lấy ${newArtifact.name}`,
+            cancelButtonText: `Giữ ${currentArtifact.name}`,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#aaa',
+            allowOutsideClick: false, // Ngăn người chơi bỏ qua
+            allowEscapeKey: false,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                onSelected({ choice: 'take_new', newArtifactId: newArtifact.id });
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                onSelected({ choice: 'keep_current' });
             }
         });
     },

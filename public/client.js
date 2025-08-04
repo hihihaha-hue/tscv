@@ -99,6 +99,15 @@ Network.on('joinedRoom', (data) => {
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     UI.addCopyToClipboard();
 });
+Network.on('promptArtifactChoice', (data) => {
+    UI.promptForArtifactChoice(data, (decision) => {
+        // Gửi quyết định của người chơi về server
+        Network.emit('submitArtifactChoice', {
+            roomCode: state.currentRoomCode,
+            decision: decision
+        });
+    });
+});
 
 Network.on('updatePlayerList', (players, hostId) => {
     Object.assign(state, { players, currentHostId: hostId });

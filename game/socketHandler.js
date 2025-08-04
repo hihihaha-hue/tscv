@@ -151,12 +151,15 @@ function initialize(io, rooms) {
         });
 
         // --- SỰ KIỆN HÀNH ĐỘNG TRONG GAME ---
-        socket.on('playerChoice', (data) => gameLogic.handlePlayerChoice(data.roomCode, socket.id, data.choice, rooms, io));
+        socket.on('playerChoice', (data) => gameLogic.handlePlayerChoice(data.roomCode, socket.id, data.choice, rooms, io, data.payload));
         socket.on('voteCoordination', (data) => gameLogic.handleCoordination(data.roomCode, socket.id, data.targetId, rooms, io));
         socket.on('voteSkipCoordination', (roomCode) => gameLogic.handleVoteToSkip(roomCode, socket.id, 'coordination', rooms, io));
         socket.on('voteSkipTwilight', (roomCode) => gameLogic.handleVoteToSkip(roomCode, socket.id, 'twilight', rooms, io));
         socket.on('requestAccusation', (data) => gameLogic.handleTwilightAction(data.roomCode, socket.id, data.targetId, 'Vạch Trần', data.guess, rooms, io));
         socket.on('useRoleSkill', (data) => gameLogic.handleUseSkill(socket, data.roomCode, data.payload, rooms, io));
+		socket.on('submitArtifactChoice', (data) => {
+    gameLogic.handleArtifactDecision(data.roomCode, socket.id, data.decision, rooms, io);
+});
 
         socket.on('sendMessage', (data) => {
             const room = rooms[data.roomCode];

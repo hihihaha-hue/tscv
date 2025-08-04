@@ -31,7 +31,88 @@ function resetRoomForRematch(room) {
 
     console.log(`[Rematch] Đã reset phòng ${room.hostId}.`);
 }
+// --- HÀM MỚI CHO LOGIC CỔ VẬT ---
 
+/**
+ * Xử lý khi người chơi tìm thấy một Cổ vật.
+ * @param {object} player - Người chơi tìm thấy Cổ vật.
+ * @param {string} type - Loại Cổ vật ('Thám Hiểm' hoặc 'Hỗn Loạn').
+ * @param {object} gs - GameState.
+ * @param {object} io - Socket.IO instance.
+ */
+function handleFindArtifact(player, type, gs, io) {
+    const availableArtifacts = Object.values(ARTIFACTS).filter(a =>
+        a.type === type && gs.artifactPool.includes(a.id)
+    );
+
+    if (availableArtifacts.length === 0) {
+        // Không còn cổ vật nào trong bể để tìm
+        return;
+    }
+
+    const foundArtifact = availableArtifacts[Math.floor(Math.random() * availableArtifacts.length)];
+
+    if (player.artifacts.length === 0) {
+        // Nếu người chơi chưa có Cổ vật -> nhận luôn
+        player.artifacts.push(foundArtifact);
+        gs.artifactPool = gs.artifactPool.filter(id => id !== foundArtifact.id); // Xóa khỏi bể
+        
+        io.to(player.id).emit('artifactUpdate', {
+            artifacts: player.artifacts,
+            message: `Bạn đã tìm thấy: ${foundArtifact.name}!`
+        });
+        io.to(player.id).emit('logMessage', {type: 'success', message: `Bạn đã tìm thấy: <b>${foundArtifact.name}</b>!`});
+
+    } else {
+        // Nếu đã có Cổ vật -> Bắt buộc lựa chọn
+        const currentArtifact = player.artifacts[0];
+        io.to(player.id).emit('promptArtifactChoice', {
+            currentArtifact: currentArtifact,
+            newArtifact: foundArtifact
+        });
+    }
+}
+/**
+ * Xử lý quyết định của người chơi khi phải chọn giữa 2 Cổ vật.
+ * @param {string} roomCode
+ * @param {string} playerId
+ * @param {object} decision - { choice: 'keep_current' | 'take_new', newArtifactId: '...' }
+ * @param {object} rooms
+ * @param {object} io
+ */
+function handleArtifactDecision(roomCode, playerId, decision, rooms, io) {
+    const gs = rooms[roomCode]?.gameState;
+    if (!gs) return;
+    const player = gs.players.find(p => p.id === playerId);
+    if (!player) return;
+
+    if (decision.choice === 'take_new') {
+        const newArtifact = ARTIFACTS[decision.newArtifactId];
+        if (!newArtifact || !gs.artifactPool.includes(newArtifact.id)) {
+            // Ai đó đã nhặt mất hoặc có lỗi xảy ra
+            io.to(player.id).emit('logMessage', {type: 'error', message: 'Cổ vật mới không còn khả dụng.'});
+            return;
+        }
+
+        // 1. Trả Cổ vật cũ về bể
+        const oldArtifactId = player.artifacts[0].id;
+        gs.artifactPool.push(oldArtifactId);
+
+        // 2. Xóa Cổ vật mới khỏi bể
+        gs.artifactPool = gs.artifactPool.filter(id => id !== newArtifact.id);
+
+        // 3. Cập nhật Cổ vật mới cho người chơi
+        player.artifacts = [newArtifact];
+
+        io.to(player.id).emit('logMessage', {type: 'success', message: `Bạn đã nhận <b>${newArtifact.name}</b> và trả lại <b>${ARTIFACTS[oldArtifactId].name}</b>.`});
+    } else {
+        // Giữ cái cũ, không làm gì cả
+        io.to(player.id).emit('logMessage', {type: 'info', message: `Bạn đã quyết định giữ lại <b>${player.artifacts[0].name}</b>.`});
+    }
+
+    // Cập nhật lại giao diện Cổ vật cho người chơi
+    io.to(player.id).emit('artifactUpdate', { artifacts: player.artifacts });
+}
 
 // --- CÁC HÀM TIỆN ÍCH & KHỞI TẠO ---
 function getPlayersByScore(players, type) {
@@ -90,6 +171,7 @@ function createGameState(players, io) {
             ...p,
             score: 0,
             chosenAction: null,
+			sabotageTargetId: null, // [MỚI] Lưu mục tiêu Phá Hoại
             roleId: rolesInThisGame[index % rolesInThisGame.length],
             skillUses: 0,
             artifacts: [],
@@ -108,7 +190,7 @@ function createGameState(players, io) {
             isSkillDisabled: false,
             hasTripleVote: false,
         })),
-        currentRound: 0,
+       currentRound: 0,
         winScore, loseScore,
         phase: 'waiting',
         roundData: {},
@@ -117,7 +199,9 @@ function createGameState(players, io) {
         rolesInGame: rolesInThisGame,
         nextDecreeChooser: null,
         failedAccusationsThisRound: 0,
+        artifactPool: [...config.ALL_ARTIFACT_IDS], // [MỚI] Bể Cổ vật ban đầu
     };
+
 
     initializeSpecialRoles(gameState, io);
     shuffleDecreeDeck(gameState);
@@ -191,6 +275,9 @@ function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
         }
         
         player.chosenAction = choice;
+		if (choice === 'Phá Hoại' && payload.targetId) {
+            player.sabotageTargetId = payload.targetId;
+        }
         io.to(roomCode).emit('playerChose', playerId);
 
         const activePlayers = gs.players.filter(p => !p.isDefeated && !p.disconnected);
@@ -269,6 +356,10 @@ function handleUseArtifact(socket, roomCode, artifactId, payload, rooms, io) {
         player.artifacts.splice(artifactIndex, 1);
     }
     
+  player.artifacts.splice(artifactIndex, 1);
+    gs.artifactPool.push(artifactId);
+    
+    // Gửi lại thông tin cổ vật cho client
     io.to(player.id).emit('artifactUpdate', { artifacts: player.artifacts });
 }
 
@@ -889,6 +980,28 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
             summary.changes.push({ reason, amount });
         }
     };
+	// =================================================================================
+    // BƯỚC 0: [MỚI] XỬ LÝ HIỆU ỨNG HÀNH ĐỘNG (GIẢI MÃ, PHÁ HOẠI)
+    // =================================================================================
+    activePlayers.forEach(p => {
+        const rand = Math.random();
+        if (p.chosenAction === 'Giải Mã') {
+            if (rand < 0.10) { // 10% tìm Cổ Vật
+                handleFindArtifact(p, 'Thám Hiểm', gs, io);
+            } else if (rand < 0.40) { // 30% tiếp theo (tổng 40%) nhận 1 điểm
+                applyPointChange(p.id, 1, 'May mắn khi Giải Mã');
+            }
+        } else if (p.chosenAction === 'Phá Hoại') {
+            if (rand < 0.10) { // 10% tìm Cổ Vật
+                handleFindArtifact(p, 'Hỗn Loạn', gs, io);
+            } else if (rand < 0.40) { // 30% tiếp theo
+                const target = gs.players.find(t => t.id === p.sabotageTargetId);
+                if (target) {
+                    applyPointChange(target.id, -1, `Bị ${p.name} Phá Hoại`);
+                }
+            }
+        }
+    });
 
     // BƯỚC 1 & 2: THIẾT LẬP TỔ HỢP & ĐẾM PHIẾU CUỐI CÙNG
     const successfulPairs = [];
@@ -1239,5 +1352,6 @@ module.exports = {
     createGameState, startNewRound, handlePlayerChoice, handleCoordination, revealDecreeAndContinue,
     handleTwilightAction, handleUseSkill, handleAmnesiaAction, handleArenaPick, handleArenaBet,
     handleVoteToSkip, triggerBotPhaseAction, calculateScoresAndEndRound, handlePostRoundEvents, checkRoleVictory,
-    resetRoomForRematch, // <-- Thêm hàm mới vào export
+    resetRoomForRematch,
+    handleArtifactDecision, // <-- Export hàm mới
 };
