@@ -354,14 +354,16 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     /* --- CÁC KHUNG THÔNG TIN KHÁC --- */
     /* Cho phép các khung này có chiều cao cố định và tự cuộn */
     #role-display, #leaderboard, #message-area, #chat-container {
-        max-height: 250px;
-        overflow-y: hidden; /* Ẩn cuộn nếu không cần */
-    }
-
-    #role-display .skill-button, #leaderboard ul, #chat-messages, #message-area {
-        overflow-y: auto; /* Thêm cuộn cho nội dung bên trong */
-    }
+    max-height: 250px; /* Vẫn giữ chiều cao tối đa để không chiếm hết màn hình */
+    
+    /* [SỬA LỖI QUAN TRỌNG] */
+    overflow-y: auto; /* THAY ĐỔI từ 'hidden' thành 'auto' */
+    
+    display: flex; /* Thêm flex để quản lý nội dung bên trong tốt hơn */
+    flex-direction: column;
 }
+
+    
 
 
 /* === Tinh chỉnh thêm cho màn hình điện thoại rất nhỏ === */
