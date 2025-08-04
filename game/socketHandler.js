@@ -4,7 +4,8 @@
 // PHIÊN BẢN NÂNG CẤP TOÀN DIỆN - SỬA LỖI LUỒNG GAME & NGẮT KẾT NỐI
 // ======================================================================
 
-// [SỬA LỖI] Thêm ARTIFACTS vào đây để import nó từ config.js
+// [SỬA LỖI] Đảm bảo dòng này tồn tại để import logic game
+const gameLogic = require('./logic.js');
 const { ROLES, DECREES, ARTIFACTS } = require('./config.js');
 
 function initialize(io, rooms) {
@@ -43,12 +44,11 @@ function initialize(io, rooms) {
             handleJoinRoom(data.roomCode?.trim().toUpperCase(), data.name);
         });
 
-        // [SỬA LỖI] Đảm bảo sự kiện này gửi cả allRoles và allDecrees
         socket.on('requestGameData', () => {
             socket.emit('gameData', {
                 allRoles: ROLES,
                 allDecrees: DECREES,
-                allArtifacts: ARTIFACTS // Dòng này giờ sẽ hoạt động vì ARTIFACTS đã được import
+                allArtifacts: ARTIFACTS
             });
         });
 
@@ -61,6 +61,7 @@ function initialize(io, rooms) {
                 io.to(roomCode).emit('updatePlayerList', room.players, room.hostId);
             }
         });
+
 		 socket.on('useArtifact', (data) => {
             gameLogic.handleUseArtifact(socket, data.roomCode, data.artifactId, data.payload, rooms, io);
         });
@@ -126,7 +127,6 @@ function initialize(io, rooms) {
                 });
 
                 io.to(roomCode).emit('gameStarted', {
-                    // Dữ liệu này đảm bảo gửi đầy đủ các object vai trò
                     rolesInGame: room.gameState.rolesInGame.map(roleId => ({
                         id: roleId,
                         ...ROLES[roleId]
@@ -168,7 +168,8 @@ function initialize(io, rooms) {
                 });
             }
         });
-        
+
+        // SỰ KIỆN CHƠI LẠI
         socket.on('requestRematch', (roomCode) => {
             const room = rooms[roomCode];
             if (room && socket.id === room.hostId) {
@@ -181,8 +182,8 @@ function initialize(io, rooms) {
                 });
             }
         });
-        
-        // --- [NÂNG CẤP QUAN TRỌNG] XỬ LÝ NGẮT KẾT NỐI ---
+
+        // --- XỬ LÝ NGẮT KẾT NỐI ---
         socket.on('disconnect', () => {
             console.log(`[Disconnect] Người chơi đã ngắt kết nối: ${socket.id}`);
             for (const roomCode in rooms) {
