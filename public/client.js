@@ -14,9 +14,10 @@ const state = {
     myRole: null,
     rolesInGame: [],
     gameHistory: [],
-	myArtifacts: [], // Sửa thành mảng để chứa nhiều cổ vật
-	allGameRoles: {}, 
+	myArtifacts: [],
+	allGameRoles: {},
     allGameDecrees: {},
+    allGameArtifacts: {}, // Thêm thuộc tính mới để lưu tất cả Cổ vật
 };
 
 // --- II. KHỞI TẠO ---
@@ -73,8 +74,12 @@ Network.on('connect', () => {
 Network.on('gameData', (data) => {
     state.allGameRoles = data.allRoles;
     state.allGameDecrees = data.allDecrees;
+    state.allGameArtifacts = data.allArtifacts; // Lưu dữ liệu Cổ vật
+    
+    // Cung cấp dữ liệu cho module UI
     UI.gameData.allRoles = data.allRoles;
     UI.gameData.allDecrees = data.allDecrees;
+    UI.gameData.allArtifacts = data.allArtifacts;
 });
 
 Network.on('roomError', (msg) => { Swal.fire({ icon: 'error', title: 'Lỗi', text: msg }); });

@@ -4,8 +4,8 @@
 // PHIÊN BẢN NÂNG CẤP TOÀN DIỆN - SỬA LỖI LUỒNG GAME & NGẮT KẾT NỐI
 // ======================================================================
 
-const gameLogic = require('./logic.js');
-const { ROLES, DECREES } = require('./config.js');
+// [SỬA LỖI] Thêm ARTIFACTS vào đây để import nó từ config.js
+const { ROLES, DECREES, ARTIFACTS } = require('./config.js');
 
 function initialize(io, rooms) {
     io.on('connection', (socket) => {
@@ -23,7 +23,7 @@ function initialize(io, rooms) {
                 name: (name || `Thợ Săn ${room.players.length + 1}`).substring(0, 15).trim(),
                 isBot: false,
                 isReady: false,
-                disconnected: false, // Thêm trạng thái ngắt kết nối
+                disconnected: false,
             };
             room.players.push(newPlayer);
             socket.join(code);
@@ -43,10 +43,12 @@ function initialize(io, rooms) {
             handleJoinRoom(data.roomCode?.trim().toUpperCase(), data.name);
         });
 
+        // [SỬA LỖI] Đảm bảo sự kiện này gửi cả allRoles và allDecrees
         socket.on('requestGameData', () => {
             socket.emit('gameData', {
                 allRoles: ROLES,
-                allDecrees: DECREES
+                allDecrees: DECREES,
+                allArtifacts: ARTIFACTS // Dòng này giờ sẽ hoạt động vì ARTIFACTS đã được import
             });
         });
 
@@ -124,6 +126,7 @@ function initialize(io, rooms) {
                 });
 
                 io.to(roomCode).emit('gameStarted', {
+                    // Dữ liệu này đảm bảo gửi đầy đủ các object vai trò
                     rolesInGame: room.gameState.rolesInGame.map(roleId => ({
                         id: roleId,
                         ...ROLES[roleId]
@@ -165,15 +168,12 @@ function initialize(io, rooms) {
                 });
             }
         });
-
-        // [MỚI] SỰ KIỆN CHƠI LẠI
+        
         socket.on('requestRematch', (roomCode) => {
             const room = rooms[roomCode];
-            // Chỉ host mới có quyền bắt đầu lại
             if (room && socket.id === room.hostId) {
                 console.log(`[Rematch] Host ${socket.id} yêu cầu chơi lại phòng ${roomCode}`);
                 gameLogic.resetRoomForRematch(room);
-                // Thông báo cho tất cả người chơi trong phòng quay về lobby
                 io.to(roomCode).emit('returnToLobby', {
                     roomCode: roomCode,
                     hostId: room.hostId,
@@ -181,41 +181,30 @@ function initialize(io, rooms) {
                 });
             }
         });
-
-
+        
         // --- [NÂNG CẤP QUAN TRỌNG] XỬ LÝ NGẮT KẾT NỐI ---
         socket.on('disconnect', () => {
             console.log(`[Disconnect] Người chơi đã ngắt kết nối: ${socket.id}`);
             for (const roomCode in rooms) {
                 const room = rooms[roomCode];
                 let playerIndex = room.players.findIndex(p => p.id === socket.id);
-                // Cũng cần kiểm tra trong gameState nếu game đã bắt đầu
                 const gamePlayer = room.gameState?.players.find(p => p.id === socket.id);
-
 
                 if (playerIndex !== -1 || gamePlayer) {
                     const disconnectedPlayer = room.players[playerIndex] || gamePlayer;
                     console.log(`[Disconnect] Tìm thấy ${disconnectedPlayer.name} trong phòng ${roomCode}.`);
+                    
+                    if (gamePlayer) gamePlayer.disconnected = true;
+                    if(room.players[playerIndex]) room.players[playerIndex].disconnected = true;
 
-                    // Đánh dấu người chơi là disconnected
-                     const playerInLobby = room.players.find(p => p.id === socket.id);
-                     if(playerInLobby) playerInLobby.disconnected = true;
-
-                     if(gamePlayer) gamePlayer.disconnected = true;
-
-
-                    // Nếu host ngắt kết nối, chuyển host cho người tiếp theo
                     if (socket.id === room.hostId) {
-                        // [SỬA LỖI QUAN TRỌNG] Thêm điều kiện !p.disconnected khi tìm host mới
                         const newHost = room.players.find(p => p.id !== socket.id && !p.isBot && !p.disconnected);
-
                         if (newHost) {
                             room.hostId = newHost.id;
                             console.log(`[Host Change] Host mới là ${newHost.name}`);
                             io.to(roomCode).emit('logMessage', { type: 'info', message: `Do Trưởng Đoàn đã rời đi, ${newHost.name} giờ là Trưởng Đoàn mới.` });
-                            io.to(roomCode).emit('hostChanged', newHost.id); // Gửi sự kiện riêng để client cập nhật
+                            io.to(roomCode).emit('hostChanged', newHost.id);
                         } else {
-                             // Nếu không còn người chơi nào (hoặc chỉ còn bot), xóa phòng
                             const humanPlayersLeft = room.players.filter(p => !p.isBot && !p.disconnected);
                             if (humanPlayersLeft.length === 0) {
                                 console.log(`[Cleanup] Không còn người chơi, xóa phòng ${roomCode}.`);
@@ -225,19 +214,16 @@ function initialize(io, rooms) {
                         }
                     }
 
-                    // Nếu game ĐANG DIỄN RA, chỉ đánh dấu là disconnected
                     if (room.gameState) {
-                        io.to(roomCode).emit('logMessage', { type: 'error', message: `${disconnectedPlayer.name} đã bị ngắt kết nối.` });
+                         io.to(roomCode).emit('logMessage', { type: 'error', message: `${disconnectedPlayer.name} đã bị ngắt kết nối.` });
                     } else {
-                        // Nếu đang ở phòng chờ, xóa người chơi khỏi danh sách
                         room.players.splice(playerIndex, 1);
                     }
-                    
-                    // Cập nhật danh sách người chơi cho mọi người
+
                     const currentPlayers = room.gameState ? room.gameState.players : room.players;
                     io.to(roomCode).emit('updatePlayerList', currentPlayers, room.hostId);
                     
-                    break; // Thoát khỏi vòng lặp vì đã tìm thấy và xử lý
+                    break;
                 }
             }
         });

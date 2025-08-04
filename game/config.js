@@ -40,36 +40,66 @@ const ARTIFACTS = {
         id: 'EXPLORERS_JOURNAL',
         name: "Nhật Ký Của Kẻ Khai Phá",
         type: 'Thám Hiểm',
-        description: "(Kích hoạt) Ngay lập tức xem được hành động bí mật của 2 người chơi ngẫu nhiên.",
-        is_activatable: true
+        is_activatable: true,
+        details: {
+            category: "Thu thập thông tin",
+            activation_type: "Chủ động (Kích hoạt)",
+            flavor: "Những trang giấy ghi lại hành trình của một thợ săn đi trước. Đọc nó, ngươi sẽ thấy được ý định của những kẻ khác trong bóng tối.",
+            effect: "Khi kích hoạt, bạn ngay lập tức xem được hành động bí mật của 2 người chơi ngẫu nhiên trong đêm đó.",
+            impact: "Cung cấp thông tin tình báo cực kỳ giá trị, giúp bạn đưa ra quyết định \"Vạch Trần\" hoặc \"Phối Hợp\" chính xác để giành lợi thế."
+        }
     },
     'AMULET_OF_CLARITY': {
         id: 'AMULET_OF_CLARITY',
         name: "Bùa Chú Minh Mẫn",
         type: 'Thám Hiểm',
-        description: "(Bị động) Lần Vạch Trần tiếp theo của bạn được cường hóa: Đoán Đúng +4 điểm, Đoán Sai chỉ -1 điểm. Cổ vật biến mất sau khi dùng.",
-        is_activatable: false
+        is_activatable: false,
+        details: {
+            category: "Cường hóa hành động",
+            activation_type: "Bị động",
+            flavor: "Chiếc bùa này làm tâm trí ngươi trở nên sắc bén lạ thường, nhìn thấu những lớp màn dối trá.",
+            effect: "Lần \"Vạch Trần\" tiếp theo của bạn được cường hóa: Nếu Đoán Đúng bạn nhận +4 Tiến Độ (thay vì +2), nếu Đoán Sai bạn chỉ bị -1 Tiến Độ (thay vì -2). Cổ vật sẽ biến mất sau khi hiệu ứng này được kích hoạt.",
+            impact: "Biến hành động Vạch Trần từ một canh bạc rủi ro thành một cơ hội làm giàu cực lớn với rủi ro tối thiểu."
+        }
     },
     'GOLDEN_WARD': {
         id: 'GOLDEN_WARD',
         name: "Bùa Hộ Thân Bằng Vàng",
         type: 'Thám Hiểm',
-        description: "(Bị động) Vô hiệu hóa hoàn toàn lần mất điểm tiếp theo từ bất kỳ nguồn nào. Cổ vật sau đó biến mất.",
-        is_activatable: false
+        is_activatable: false,
+        details: {
+            category: "Phòng thủ",
+            activation_type: "Bị động",
+            flavor: "Một lá bùa bằng vàng ròng, tỏa ra một lớp hào quang bảo vệ mỏng manh nhưng kiên cố.",
+            effect: "Lần tiếp theo bạn bị mất điểm từ bất kỳ nguồn nào (Vạch Trần sai, kỹ năng, phe thua, Tiếng Vọng...), hiệu ứng mất điểm đó sẽ bị vô hiệu hóa hoàn toàn. Cổ vật sau đó biến mất.",
+            impact: "Một tấm \"bảo hiểm\" hoàn hảo, cho phép bạn thực hiện những lựa chọn rủi ro mà không sợ bị trừng phạt."
+        }
     },
     'COMPASS_OF_FORTUNE': {
         id: 'COMPASS_OF_FORTUNE',
         name: "La Bàn Vận May",
         type: 'Thám Hiểm',
-        description: "(Bị động) Nếu bạn thuộc phe thua trong đêm nay, bạn không bị trừ 1 điểm. Cổ vật sau đó biến mất.",
-        is_activatable: false
+        is_activatable: false,
+        details: {
+            category: "Phòng thủ có điều kiện",
+            activation_type: "Bị động",
+            flavor: "Chiếc la bàn không chỉ đường, mà chỉ đến nơi vận may trú ngụ, giúp ngươi tránh khỏi những kết cục tồi tệ nhất.",
+            effect: "Vào cuối đêm, nếu bạn thuộc phe thua, bạn sẽ không bị trừ 1 điểm. Cổ vật sau đó biến mất.",
+            impact: "Một công cụ bảo hiểm hữu ích, đặc biệt khi bạn không chắc chắn về lựa chọn hành động của mình trong đêm."
+        }
     },
     'ANCIENT_STAR_CHART': {
         id: 'ANCIENT_STAR_CHART',
         name: "Bản Đồ Sao Cổ Xưa",
         type: 'Thám Hiểm',
-        description: "(Kích hoạt) Xem trước 3 Tiếng Vọng của ngày mai và được quyền loại bỏ một.",
-        is_activatable: true
+        is_activatable: true,
+        details: {
+            category: "Chiến lược dài hạn",
+            activation_type: "Chủ động (Kích hoạt)",
+            flavor: "Tấm bản đồ không vẽ Trái Đất, mà vẽ các vì sao. Nó tiên đoán những biến động của định mệnh và cho ngươi quyền năng loại bỏ một tương lai đen tối.",
+            effect: "Kích hoạt để xem trước cả ba Tiếng Vọng có thể xuất hiện vào ngày mai. Sau khi xem, bạn được quyền loại bỏ một trong ba lựa chọn đó.",
+            impact: "Cung cấp quyền năng kiểm soát một phần cục diện ván đấu, giúp bạn tránh được các Tiếng Vọng bất lợi."
+        }
     },
 
     // === Cổ Vật Hỗn Loạn ===
@@ -77,36 +107,66 @@ const ARTIFACTS = {
         id: 'CHAIN_OF_MISTRUST',
         name: "Dây Xích Liên Kết",
         type: 'Hỗn Loạn',
-        description: "(Kích hoạt) Chọn 2 người chơi khác. Mọi thay đổi điểm số của người này cũng sẽ áp dụng cho người kia trong đêm nay.",
-        is_activatable: true
+        is_activatable: true,
+        details: {
+            category: "Thao túng vận mệnh",
+            activation_type: "Chủ động (Kích hoạt, chọn 2 mục tiêu)",
+            flavor: "Sợi dây xích ma thuật này buộc chặt vận mệnh của hai linh hồn, khiến họ phải chia sẻ cả vinh quang lẫn đớn đau.",
+            effect: "Chọn 2 người chơi khác. Trong đêm nay, mọi thay đổi điểm số (cả cộng và trừ) áp dụng cho người A cũng sẽ được áp dụng cho người B, và ngược lại.",
+            impact: "Một công cụ phá hoại cực mạnh để phá vỡ liên minh, nhân đôi hình phạt hoặc tạo ra sự hỗn loạn."
+        }
     },
     'ARROW_OF_AMNESIA': {
         id: 'ARROW_OF_AMNESIA',
         name: "Mũi Tên Gây Mất Trí",
         type: 'Hỗn Loạn',
-        description: "(Kích hoạt) Chọn 1 người chơi. Hành động bí mật của họ trong đêm nay sẽ bị hủy bỏ hoàn toàn.",
-        is_activatable: true
+        is_activatable: true,
+        details: {
+            category: "Vô hiệu hóa",
+            activation_type: "Chủ động (Kích hoạt, chọn 1 mục tiêu)",
+            flavor: "Mũi tên tẩm độc dược lãng quên. Kẻ trúng phải nó sẽ quên mất mục đích của mình trong đêm nay.",
+            effect: "Chọn 1 người chơi. Hành động bí mật mà họ đã chọn trong đêm nay sẽ bị hủy bỏ hoàn toàn (coi như họ không chọn gì và không đóng góp phiếu).",
+            impact: "Cách trực tiếp nhất để loại bỏ một lá phiếu quan trọng hoặc ngăn đối thủ nhận thưởng từ hành động của mình."
+        }
     },
     'ENERGY_STORM': {
         id: 'ENERGY_STORM',
         name: "Bão Tố Năng Lượng",
         type: 'Hỗn Loạn',
-        description: "(Kích hoạt) Vào cuối đêm, tất cả người chơi có điểm lớn hơn 0 sẽ bị trừ 1 điểm.",
-        is_activatable: true
+        is_activatable: true,
+        details: {
+            category: "Trừng phạt diện rộng",
+            activation_type: "Chủ động (Kích hoạt)",
+            flavor: "Một cơn bão năng lượng hỗn loạn quét qua ngôi đền, bào mòn sức mạnh của những kẻ đang dẫn đầu.",
+            effect: "Kích hoạt để hiệu ứng xảy ra vào cuối đêm. Tất cả người chơi có số điểm lớn hơn 0 sẽ bị trừ 1 điểm.",
+            impact: "Một cơ chế \"kéo top\" hiệu quả, làm chậm tiến độ của những người đang có lợi thế."
+        }
     },
     'DISTORTION_PRISM': {
         id: 'DISTORTION_PRISM',
         name: "Lăng Kính Bóp Méo",
         type: 'Hỗn Loạn',
-        description: "(Kích hoạt) Trong Giai Đoạn Vạch Trần, kết quả bị thay đổi: Đoán Đúng không đổi điểm, Đoán Sai bị -3 điểm và mục tiêu +3 điểm.",
-        is_activatable: true
+        is_activatable: true,
+        details: {
+            category: "Bẻ cong luật lệ",
+            activation_type: "Chủ động (Kích hoạt)",
+            flavor: "Lăng kính này bẻ cong ánh sáng của sự thật. Việc nhìn thấu kẻ khác trở nên cực kỳ nguy hiểm.",
+            effect: "Kích hoạt để thay đổi luật Vạch Trần trong đêm nay: Nếu đoán ĐÚNG, không ai đổi điểm. Nếu đoán SAI, người đoán bị -3 điểm và mục tiêu được +3 điểm.",
+            impact: "Vô hiệu hóa gần như hoàn toàn Giai Đoạn Vạch Trần, khiến nó trở nên quá rủi ro để sử dụng."
+        }
     },
     'MARK_OF_BETRAYAL': {
         id: 'MARK_OF_BETRAYAL',
         name: "Dấu Ấn Phản Bội",
         type: 'Hỗn Loạn',
-        description: "(Kích hoạt) Bí mật đặt một 'Dấu Ấn' lên một người chơi khác. Lần Phối Hợp thành công tiếp theo của họ sẽ bị đảo ngược thành thất bại và họ bị -2 điểm. Dấu Ấn sau đó biến mất.",
-        is_activatable: true
+        is_activatable: true,
+        details: {
+            category: "Cạm bẫy",
+            activation_type: "Chủ động (Kích hoạt, chọn 1 mục tiêu)",
+            flavor: "Dấu ấn này âm thầm chờ đợi khoảnh khắc của sự tin tưởng... để nghiền nát nó.",
+            effect: "Bí mật đặt một \"Dấu Ấn\" lên một người chơi khác. Lần tiếp theo người đó Phối Hợp thành công, cuộc Phối Hợp đó sẽ bị đảo ngược thành thất bại (người bị đánh dấu sẽ bị -1 điểm). Dấu Ấn sau đó biến mất.",
+            impact: "Một vũ khí tâm lý tinh vi, trừng phạt hành vi hợp tác và gieo rắc sự nghi ngờ, làm suy yếu khả năng liên minh."
+        }
     },
 };
 

@@ -189,65 +189,106 @@ const UI = {
         }
     },
     
-    showRulebook() {
-        const rulebookTemplate = document.getElementById('rulebook-template');
-        if (!rulebookTemplate) return;
+   showRulebook() {
+    const rulebookTemplate = document.getElementById('rulebook-template');
+    if (!rulebookTemplate) return;
 
-        const rulebookContent = rulebookTemplate.content.cloneNode(true);
-        const rolesContainer = rulebookContent.querySelector('#all-roles-list-container');
-        const decreesContainer = rulebookContent.querySelector('#all-decrees-list-container');
+    const rulebookContent = rulebookTemplate.content.cloneNode(true);
 
-        if (rolesContainer && state.allGameRoles) {
-            let rolesHTML = '';
-            for (const roleId in state.allGameRoles) {
-                const role = state.allGameRoles[roleId];
-                rolesHTML += `<div class="role-item"><h4>${role.name}</h4><p><strong>Thiên Mệnh:</strong> ${role.description.win}</p><p><strong>Nội Tại:</strong> ${role.description.passive}</p><p><strong>Kỹ Năng:</strong> ${role.description.skill}</p></div>`;
-            }
-            rolesContainer.innerHTML = rolesHTML;
+    const rolesContainer = rulebookContent.querySelector('#all-roles-list-container');
+    const decreesContainer = rulebookContent.querySelector('#all-decrees-list-container');
+    const artifactsThContainer = rulebookContent.querySelector('#artifact-list-thám-hiểm');
+    const artifactsHlContainer = rulebookContent.querySelector('#artifact-list-hỗn-loạn');
+
+    // Điền danh sách vai trò
+    if (rolesContainer && this.gameData.allRoles) {
+        let rolesHTML = '';
+        for (const roleId in this.gameData.allRoles) {
+            const role = this.gameData.allRoles[roleId];
+            rolesHTML += `<div class="role-item"><h4>${role.name}</h4><p><strong>Thiên Mệnh:</strong> ${role.description.win}</p><p><strong>Nội Tại:</strong> ${role.description.passive}</p><p><strong>Kỹ Năng:</strong> ${role.description.skill}</p></div>`;
         }
+        rolesContainer.innerHTML = rolesHTML;
+    }
 
-        if (decreesContainer && state.allGameDecrees) {
-            let decreesHTML = '';
-            for (const decreeId in state.allGameDecrees) {
-                const decree = state.allGameDecrees[decreeId];
-                decreesHTML += `<div class="decree-item"><h4>${decree.name}</h4><p>${decree.description}</p></div>`;
-            }
-            decreesContainer.innerHTML = decreesHTML;
+    // Điền danh sách Tiếng Vọng
+    if (decreesContainer && this.gameData.allDecrees) {
+        let decreesHTML = '';
+        for (const decreeId in this.gameData.allDecrees) {
+            const decree = this.gameData.allDecrees[decreeId];
+            decreesHTML += `<div class="decree-item"><h4>${decree.name}</h4><p>${decree.description}</p></div>`;
         }
+        decreesContainer.innerHTML = decreesHTML;
+    }
+
+    // [NÂNG CẤP] Điền danh sách Cổ Vật chi tiết
+    if (this.gameData.allArtifacts && artifactsThContainer && artifactsHlContainer) {
+        let artifactsThHTML = '';
+        let artifactsHlHTML = '';
         
-        const tempDiv = document.createElement('div');
-        tempDiv.appendChild(rulebookContent);
-
-        Swal.fire({
-            html: tempDiv.innerHTML,
-            width: '90%',
-            maxWidth: '800px',
-            background: 'var(--bg-medium)',
-            color: 'var(--text-light)',
-            showCloseButton: true,
-            showConfirmButton: false,
-            customClass: { popup: 'rulebook-popup' },
-            didOpen: () => {
-                const popup = Swal.getPopup();
-                if (!popup) return;
-                const tabs = popup.querySelectorAll('.rulebook-tab');
-                const pages = popup.querySelectorAll('.rulebook-page');
-
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        const targetId = tab.getAttribute('data-target');
-                        const targetPage = popup.querySelector(`#${targetId}`);
-                        tabs.forEach(t => t.classList.remove('active'));
-                        pages.forEach(p => p.classList.remove('active'));
-                        tab.classList.add('active');
-                        if (targetPage) {
-                            targetPage.classList.add('active');
-                        }
-                    });
-                });
+        // Hàm trợ giúp để tạo HTML chi tiết cho một cổ vật
+        const createArtifactHTML = (artifact) => {
+            if (!artifact.details) return ''; // Bỏ qua nếu không có mô tả chi tiết
+            return `
+                <div class="artifact-detail-item">
+                    <h4>${artifact.name}</h4>
+                    <p class="artifact-flavor"><em>${artifact.details.flavor}</em></p>
+                    <ul class="artifact-specs">
+                        <li><strong>Loại:</strong> ${artifact.details.category}</li>
+                        <li><strong>Kích hoạt:</strong> ${artifact.details.activation_type}</li>
+                        <li><strong>Hiệu ứng:</strong> ${artifact.details.effect}</li>
+                        <li><strong>Tác động chiến thuật:</strong> ${artifact.details.impact}</li>
+                    </ul>
+                </div>
+            `;
+        };
+        
+        for (const artifactId in this.gameData.allArtifacts) {
+            const artifact = this.gameData.allArtifacts[artifactId];
+            const artifactHTML = createArtifactHTML(artifact);
+            
+            if (artifact.type === 'Thám Hiểm') {
+                artifactsThHTML += artifactHTML;
+            } else if (artifact.type === 'Hỗn Loạn') {
+                artifactsHlHTML += artifactHTML;
             }
-        });
-    },
+        }
+        artifactsThContainer.innerHTML = artifactsThHTML;
+        artifactsHlContainer.innerHTML = artifactsHlHTML;
+    }
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(rulebookContent);
+
+    Swal.fire({
+        html: tempDiv.innerHTML,
+        width: '90%',
+        maxWidth: '800px',
+        background: 'var(--bg-medium)',
+        color: 'var(--text-light)',
+        showCloseButton: true,
+        showConfirmButton: false,
+        customClass: { popup: 'rulebook-popup' },
+        didOpen: () => {
+            const popup = Swal.getPopup();
+            if (!popup) return;
+            const tabs = popup.querySelectorAll('.rulebook-tab');
+            const pages = popup.querySelectorAll('.rulebook-page');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetId = tab.getAttribute('data-target');
+                    const targetPage = popup.querySelector(`#${targetId}`);
+                    tabs.forEach(t => t.classList.remove('active'));
+                    pages.forEach(p => p.classList.remove('active'));
+                    tab.classList.add('active');
+                    if (targetPage) {
+                        targetPage.classList.add('active');
+                    }
+                });
+            });
+        }
+    });
+},
 
     // --- [FIXED] ĐOẠN MÃ THỪA ĐÃ BỊ XÓA ---
     // Khối `if (decreesContainer && allDecrees)` và hàm `updateArtifactDisplay` thứ hai đã bị xóa khỏi đây.

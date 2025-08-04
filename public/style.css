@@ -551,3 +551,41 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 #use-artifact-btn {
     width: 100%;
 }
+.artifact-detail-item {
+    margin-bottom: 25px; /* Tăng khoảng cách giữa các cổ vật */
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--bg-light);
+}
+
+.artifact-detail-item:last-child {
+    border-bottom: none;
+}
+
+.artifact-detail-item h4 {
+    color: var(--primary-gold);
+    font-size: 1.2em;
+    margin-bottom: 8px;
+}
+
+.artifact-flavor {
+    font-style: italic;
+    color: var(--text-medium);
+    margin-bottom: 12px;
+    padding-left: 15px;
+    border-left: 3px solid var(--accent-blue);
+}
+
+.artifact-specs {
+    list-style-type: none;
+    padding-left: 0;
+    margin-left: 5px;
+}
+
+.artifact-specs li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.artifact-specs li strong {
+    color: var(--text-light);
+}
