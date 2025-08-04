@@ -43,7 +43,6 @@ function initialize(io, rooms) {
             handleJoinRoom(data.roomCode?.trim().toUpperCase(), data.name);
         });
 
-        // [SỬA LỖI] Đảm bảo sự kiện này gửi cả allRoles và allDecrees
         socket.on('requestGameData', () => {
             socket.emit('gameData', {
                 allRoles: ROLES,
@@ -59,6 +58,9 @@ function initialize(io, rooms) {
                 player.isReady = !player.isReady;
                 io.to(roomCode).emit('updatePlayerList', room.players, room.hostId);
             }
+        });
+		 socket.on('useArtifact', (data) => {
+            gameLogic.handleUseArtifact(socket, data.roomCode, data.artifactId, data.payload, rooms, io);
         });
 
         socket.on('addBot', (roomCode) => {
@@ -122,7 +124,6 @@ function initialize(io, rooms) {
                 });
 
                 io.to(roomCode).emit('gameStarted', {
-                    // Dữ liệu này đảm bảo gửi đầy đủ các object vai trò
                     rolesInGame: room.gameState.rolesInGame.map(roleId => ({
                         id: roleId,
                         ...ROLES[roleId]
@@ -147,7 +148,6 @@ function initialize(io, rooms) {
         });
 
         // --- SỰ KIỆN HÀNH ĐỘNG TRONG GAME ---
-        // Các sự kiện này chủ yếu gọi đến gameLogic, giữ nguyên
         socket.on('playerChoice', (data) => gameLogic.handlePlayerChoice(data.roomCode, socket.id, data.choice, rooms, io));
         socket.on('voteCoordination', (data) => gameLogic.handleCoordination(data.roomCode, socket.id, data.targetId, rooms, io));
         socket.on('voteSkipCoordination', (roomCode) => gameLogic.handleVoteToSkip(roomCode, socket.id, 'coordination', rooms, io));
@@ -166,44 +166,73 @@ function initialize(io, rooms) {
             }
         });
 
+        // [MỚI] SỰ KIỆN CHƠI LẠI
+        socket.on('requestRematch', (roomCode) => {
+            const room = rooms[roomCode];
+            // Chỉ host mới có quyền bắt đầu lại
+            if (room && socket.id === room.hostId) {
+                console.log(`[Rematch] Host ${socket.id} yêu cầu chơi lại phòng ${roomCode}`);
+                gameLogic.resetRoomForRematch(room);
+                // Thông báo cho tất cả người chơi trong phòng quay về lobby
+                io.to(roomCode).emit('returnToLobby', {
+                    roomCode: roomCode,
+                    hostId: room.hostId,
+                    players: room.players
+                });
+            }
+        });
+
+
         // --- [NÂNG CẤP QUAN TRỌNG] XỬ LÝ NGẮT KẾT NỐI ---
         socket.on('disconnect', () => {
             console.log(`[Disconnect] Người chơi đã ngắt kết nối: ${socket.id}`);
             for (const roomCode in rooms) {
                 const room = rooms[roomCode];
-                const playerIndex = room.players.findIndex(p => p.id === socket.id);
+                let playerIndex = room.players.findIndex(p => p.id === socket.id);
+                // Cũng cần kiểm tra trong gameState nếu game đã bắt đầu
+                const gamePlayer = room.gameState?.players.find(p => p.id === socket.id);
 
-                if (playerIndex !== -1) {
-                    const disconnectedPlayer = room.players[playerIndex];
+
+                if (playerIndex !== -1 || gamePlayer) {
+                    const disconnectedPlayer = room.players[playerIndex] || gamePlayer;
                     console.log(`[Disconnect] Tìm thấy ${disconnectedPlayer.name} trong phòng ${roomCode}.`);
+
+                    // Đánh dấu người chơi là disconnected
+                     const playerInLobby = room.players.find(p => p.id === socket.id);
+                     if(playerInLobby) playerInLobby.disconnected = true;
+
+                     if(gamePlayer) gamePlayer.disconnected = true;
+
 
                     // Nếu host ngắt kết nối, chuyển host cho người tiếp theo
                     if (socket.id === room.hostId) {
-                        const newHost = room.players.find(p => p.id !== socket.id && !p.isBot);
+                        // [SỬA LỖI QUAN TRỌNG] Thêm điều kiện !p.disconnected khi tìm host mới
+                        const newHost = room.players.find(p => p.id !== socket.id && !p.isBot && !p.disconnected);
+
                         if (newHost) {
                             room.hostId = newHost.id;
                             console.log(`[Host Change] Host mới là ${newHost.name}`);
                             io.to(roomCode).emit('logMessage', { type: 'info', message: `Do Trưởng Đoàn đã rời đi, ${newHost.name} giờ là Trưởng Đoàn mới.` });
+                            io.to(roomCode).emit('hostChanged', newHost.id); // Gửi sự kiện riêng để client cập nhật
                         } else {
-                            // Nếu không còn người chơi nào, xóa phòng
-                            console.log(`[Cleanup] Không còn người chơi, xóa phòng ${roomCode}.`);
-                            delete rooms[roomCode];
-                            return; // Thoát khỏi hàm
+                             // Nếu không còn người chơi nào (hoặc chỉ còn bot), xóa phòng
+                            const humanPlayersLeft = room.players.filter(p => !p.isBot && !p.disconnected);
+                            if (humanPlayersLeft.length === 0) {
+                                console.log(`[Cleanup] Không còn người chơi, xóa phòng ${roomCode}.`);
+                                delete rooms[roomCode];
+                                return;
+                            }
                         }
                     }
 
-                    // Nếu game đang diễn ra, đánh dấu người chơi là 'disconnected' thay vì xóa
+                    // Nếu game ĐANG DIỄN RA, chỉ đánh dấu là disconnected
                     if (room.gameState) {
-                        const gamePlayer = room.gameState.players.find(p => p.id === socket.id);
-                        if (gamePlayer) {
-                            gamePlayer.disconnected = true;
-                        }
-                         io.to(roomCode).emit('logMessage', { type: 'error', message: `${disconnectedPlayer.name} đã bị ngắt kết nối.` });
+                        io.to(roomCode).emit('logMessage', { type: 'error', message: `${disconnectedPlayer.name} đã bị ngắt kết nối.` });
                     } else {
                         // Nếu đang ở phòng chờ, xóa người chơi khỏi danh sách
                         room.players.splice(playerIndex, 1);
                     }
-
+                    
                     // Cập nhật danh sách người chơi cho mọi người
                     const currentPlayers = room.gameState ? room.gameState.players : room.players;
                     io.to(roomCode).emit('updatePlayerList', currentPlayers, room.hostId);

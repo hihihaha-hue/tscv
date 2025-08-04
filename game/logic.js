@@ -6,7 +6,32 @@
 // ======================================================================
 
 const config = require('./config.js');
-const { ROLES, SKILL_COSTS, DECREES } = require('./config.js');
+const { ROLES, DECREES, SKILL_COSTS, GAME_CONSTANTS, ARTIFACTS } = config;
+
+// --- [MỚI] HÀM CHO CHỨC NĂNG CHƠI LẠI ---
+function resetRoomForRematch(room) {
+    if (!room) return;
+    
+    // 1. Xóa trạng thái game cũ
+    room.gameState = null;
+
+    // 2. Reset trạng thái của từng người chơi về trạng thái phòng chờ
+    room.players.forEach(player => {
+        // Giữ lại thông tin cơ bản: id, name, isBot, disconnected, personality
+        // Xóa hoặc reset các thuộc tính trong game
+        if (!player.isBot) {
+            player.isReady = false; // Yêu cầu sẵn sàng lại
+        }
+        // Xóa các thuộc tính không cần thiết cho phòng chờ
+        delete player.score;
+        delete player.chosenAction;
+        delete player.roleId;
+        // ... xóa các thuộc tính khác nếu có ...
+    });
+
+    console.log(`[Rematch] Đã reset phòng ${room.hostId}.`);
+}
+
 
 // --- CÁC HÀM TIỆN ÍCH & KHỞI TẠO ---
 function getPlayersByScore(players, type) {
@@ -59,7 +84,7 @@ function createGameState(players, io) {
         [rolesToAssign[i], rolesToAssign[j]] = [rolesToAssign[j], rolesToAssign[i]];
     }
     const rolesInThisGame = rolesToAssign.slice(0, numPlayers);
-
+  
     const gameState = {
         players: players.map((p, index) => ({
             ...p,
@@ -67,13 +92,12 @@ function createGameState(players, io) {
             chosenAction: null,
             roleId: rolesInThisGame[index % rolesInThisGame.length],
             skillUses: 0,
-            // --- THÊM CÁC BIẾN THEO DÕI CHO VAI TRÒ ---
-            consecutiveSuccessAccusations: 0, // Cho Nhà Tiên Tri
-            hauntSuccessCount: 0,           // Cho Bóng Ma
-            hasReached7: false,             // Cho Kẻ Đánh Cược
-            hasReachedMinus7: false,        // Cho Kẻ Đánh Cược
-            loneWolfWins: 0,                // Cho Kẻ Nổi Loạn
-            // ------------------------------------------
+            artifacts: [],
+            consecutiveSuccessAccusations: 0,
+            hauntSuccessCount: 0,
+            hasReached7: false,
+            hasReachedMinus7: false,
+            loneWolfWins: 0,
             bountyTargetId: null,
             mimicTargetId: null,
             isBlessed: false,
@@ -92,10 +116,10 @@ function createGameState(players, io) {
         consecutiveDraws: 0,
         rolesInGame: rolesInThisGame,
         nextDecreeChooser: null,
-        failedAccusationsThisRound: 0, // Theo dõi cho Kẻ Tẩy Não
+        failedAccusationsThisRound: 0,
     };
 
-      initializeSpecialRoles(gameState, io);
+    initializeSpecialRoles(gameState, io);
     shuffleDecreeDeck(gameState);
     return gameState;
 }
@@ -132,10 +156,10 @@ function startNewRound(roomCode, rooms, io) {
         initializeMimic(mimic, gs.players, io);
     }
 
-    io.to(roomCode).emit('newRound', {
+ io.to(roomCode).emit('newRound', {
         roundNumber: gs.currentRound,
         players: gs.players,
-        duration: config.CHOICE_DURATION
+        duration: GAME_CONSTANTS.CHOICE_DURATION
     });
     console.log(`[LOGIC] Bắt đầu vòng ${gs.currentRound} cho phòng ${roomCode}.`);
 
@@ -149,10 +173,11 @@ function startNewRound(roomCode, rooms, io) {
                 io.to(roomCode).emit('playerChose', p.id);
             }
         });
-        revealDecreeAndContinue(roomCode, rooms, io);
-    }, config.CHOICE_DURATION * 1000);
+         revealDecreeAndContinue(roomCode, rooms, io);
+    }, GAME_CONSTANTS.CHOICE_DURATION * 1000);
 
     triggerBotChoices(roomCode, rooms, io);
+
 }
 function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
@@ -160,11 +185,9 @@ function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
     const player = gs.players.find(p => p.id === playerId);
 
      if (player && !player.chosenAction && !player.isDefeated) {
-        // [SỬA LẠI LOGIC KẺ NỔI LOẠN]
         if (player.roleId === 'REBEL' && player.skillActive) {
-            // Gửi phản hồi cho người chơi biết hành động đã bị khóa
             io.to(player.id).emit('privateInfo', { type: 'error', message: 'Hành động của bạn đã bị khóa bởi kỹ năng Khiêu Khích!' });
-            return; // Ngăn không cho chọn lại
+            return;
         }
         
         player.chosenAction = choice;
@@ -173,7 +196,7 @@ function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
         const activePlayers = gs.players.filter(p => !p.isDefeated && !p.disconnected);
         if (activePlayers.every(p => p.chosenAction)) {
             clearTimeout(gs.roundData.choiceTimer);
-            revealDecreeAndContinue(roomCode, rooms, io);
+             startCoordinationPhase(roomCode, rooms, io);
         }
     }
 }
@@ -181,16 +204,20 @@ function handleVoteToSkip(roomCode, playerId, phase, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs || (gs.phase !== 'coordination' && gs.phase !== 'twilight')) return;
 
-    gs.roundData.actedInTwilight.add(playerId); // Dùng chung set để đảm bảo mỗi người chỉ hành động 1 lần
+    gs.roundData.actedInTwilight.add(playerId);
     const voteSet = phase === 'coordination' ? gs.roundData.votesToSkipcoordination : gs.roundData.votesToSkiptwilight;
-    if (!voteSet) return; 
+    if (!voteSet) {
+        // Khởi tạo nếu chưa tồn tại
+        if(phase === 'coordination') gs.roundData.votesToSkipcoordination = new Set();
+        else gs.roundData.votesToSkiptwilight = new Set();
+    };
 
-    voteSet.add(playerId);
+    (phase === 'coordination' ? gs.roundData.votesToSkipcoordination : gs.roundData.votesToSkiptwilight).add(playerId);
     
-    const buttonId = phase === 'coordination' ? 'skip-coordination-btn' : 'skip-twilight-btn';
+    const buttonId = phase === 'coordination' ? 'skip-coordination-btn' : 'twilight-rest-btn';
     io.to(roomCode).emit('updateSkipVoteCount', { 
         buttonId: buttonId,
-        count: voteSet.size,
+        count: (phase === 'coordination' ? gs.roundData.votesToSkipcoordination : gs.roundData.votesToSkiptwilight).size,
         total: gs.players.filter(p => !p.isDefeated && !p.disconnected).length
     });
 
@@ -208,33 +235,42 @@ function handleVoteToSkip(roomCode, playerId, phase, rooms, io) {
 }
 
 function startCoordinationPhase(roomCode, rooms, io) {
-    // [LÍNH GÁC] Đây là nơi lỗi đã xảy ra. Thêm kiểm tra an toàn.
     const gs = rooms[roomCode]?.gameState;
-    if (!gs) {
-        console.warn(`[LOGIC-WARN] Cố gắng bắt đầu Coordination Phase cho phòng không tồn tại: ${roomCode}`);
-        return;
-    }
+    if (!gs) return;
 
-    gs.roundData.votesToSkipcoordination = new Set();
     gs.phase = 'coordination';
-    if (gs.roundData.decrees.some(d => d.id === 'DEM_TINH_LANG')) {
-        // ... (logic hiện có)
-        return;
-    }
-    const DURATION = 15;
+    gs.roundData.actedInTwilight = new Set(); // Reset hành động cho giai đoạn này
+    gs.roundData.votesToSkipcoordination = new Set(); // Khởi tạo set
+
+    const DURATION = 15; // Thời gian cho giai đoạn phối hợp
     io.to(roomCode).emit('coordinationPhaseStarted', { duration: DURATION });
-
-    // KÍCH HOẠT BOT
-    triggerBotPhaseAction(roomCode, rooms, io, 'coordination');
-
-    // [GIA CỐ] Cũng nên bọc callback của timer này
+    
     gs.roundData.coordinationTimer = setTimeout(() => {
-        if (!rooms[roomCode]) return; // Kiểm tra an toàn
-        console.log(`[LOGIC] Hết giờ Giai Đoạn Phối Hợp.`);
+        if (!rooms[roomCode] || rooms[roomCode].gameState.phase !== 'coordination') return;
         revealDecreeAndContinue(roomCode, rooms, io);
     }, DURATION * 1000);
 }
+function handleUseArtifact(socket, roomCode, artifactId, payload, rooms, io) {
+    const gs = rooms[roomCode]?.gameState;
+    if (!gs) return;
+    const player = gs.players.find(p => p.id === socket.id);
+    const artifactIndex = player.artifacts.findIndex(a => a.id === artifactId);
 
+    if (!player || artifactIndex === -1) {
+        return socket.emit('privateInfo', { type: 'error', text: 'Bạn không sở hữu cổ vật này.' });
+    }
+    const artifact = player.artifacts[artifactIndex];
+
+    io.to(roomCode).emit('logMessage', { type: 'warning', message: `📜 **${player.name}** đã kích hoạt một Cổ vật bí ẩn!` });
+    
+    artifact.usedThisRound = true;
+
+    if (artifact.id !== 'AMULET_OF_CLARITY') { 
+        player.artifacts.splice(artifactIndex, 1);
+    }
+    
+    io.to(player.id).emit('artifactUpdate', { artifacts: player.artifacts });
+}
 
 
 
@@ -259,9 +295,9 @@ function handleCoordination(roomCode, initiatorId, targetId, rooms, io) {
 function revealDecreeAndContinue(roomCode, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs) return;
+    gs.phase = 'decree';
     if (gs.currentRound === 1) {
         io.to(roomCode).emit('logMessage', { type: 'info', message: "Đêm đầu tiên yên tĩnh, không có Tiếng Vọng." });
-        // Sau đó mới bắt đầu giai đoạn Hoàng Hôn
         startTwilightPhase(roomCode, rooms, io);
         return;
     }
@@ -327,10 +363,10 @@ function revealDecreeAndContinue(roomCode, rooms, io) {
     });
     
     if (continueToTwilight) {
-        setTimeout(() => startTwilightPhase(roomCode, rooms, io), DECREE_REVEAL_DELAY);
+        // [SỬA LỖI] Sử dụng biến đã được destructuring
+        setTimeout(() => startTwilightPhase(roomCode, rooms, io), GAME_CONSTANTS.DECREE_REVEAL_DELAY);
     }
 }
-
 function handleAmnesiaAction(roomCode, data, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs || gs.phase !== 'amnesia_selection') return;
@@ -412,12 +448,12 @@ function startTwilightPhase(roomCode, rooms, io) {
     gs.roundData.votesToSkiptwilight = new Set();
     // =============================================================
 
-    io.to(roomCode).emit('twilightPhaseStarted', { duration: config.CHAOS_DURATION });
+    io.to(roomCode).emit('twilightPhaseStarted', { duration: GAME_CONSTANTS.CHAOS_DURATION });
 
     gs.roundData.twilightTimer = setTimeout(() => {
         console.log(`[LOGIC] Hết giờ Giai Đoạn Hoàng Hôn.`);
         endTwilightPhase("Hết giờ cho giai đoạn Hoàng Hôn.", roomCode, rooms, io);
-    }, config.CHAOS_DURATION * 1000);
+    }, GAME_CONSTANTS.CHAOS_DURATION * 1000);
 }
 
 
@@ -721,7 +757,6 @@ function handleUseSkill(socket, roomCode, payload, rooms, io) {
         case 'PRIEST':
         case 'PHANTOM':
             player.skillTargetId = payload.targetId;
-            // Xử lý hiệu ứng tức thì nếu có
             if (player.roleId === 'PROPHET') {
                 const targetPlayer = gs.players.find(p => p.id === payload.targetId);
                 if (targetPlayer) io.to(player.id).emit('privateInfo', { title: 'Thiên Lý Nhãn', text: `Hành động của ${targetPlayer.name} là: **${targetPlayer.chosenAction || 'Chưa chọn'}**.` });
@@ -741,7 +776,7 @@ function handleUseSkill(socket, roomCode, payload, rooms, io) {
         case 'THIEF':
         case 'DOUBLE_AGENT':
             player.skillActive = true;
-            player.skillTargetId = payload.targetId; // Magnate & Thief
+            player.skillTargetId = payload.targetId;
             break;
             
         case 'GAMBLER':
@@ -967,6 +1002,34 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
             results.messages.push(`👁️ Phe Quan Sát ít và đã đoán đúng, nhận được nhiều điểm thưởng!`);
         }
     }
+	  activePlayers.forEach(p => {
+        const rand = Math.random(); // Quay số một lần duy nhất
+        if (p.chosenAction === 'Giải Mã') {
+            if (rand < 0.10) { // 10% nhận cổ vật
+                const artifactPool = Object.values(config.ARTIFACTS).filter(a => a.type === 'Thám Hiểm');
+                const foundArtifact = artifactPool[Math.floor(Math.random() * artifactPool.length)];
+                p.artifacts.push(foundArtifact); // Thêm vào túi đồ
+                io.to(p.id).emit('artifactUpdate', { 
+                    artifact: foundArtifact, 
+                    message: `Trong lúc giải mã, bạn đã tìm thấy: ${foundArtifact.name}!`
+                });
+            } else if (rand < 0.40) { // 30% tiếp theo (tổng 40%) nhận 1 điểm
+                applyPointChange(p.id, 1, 'May mắn khi Giải Mã');
+            }
+        } else if (p.chosenAction === 'Phá Hoại') {
+             // Logic Phá Hoại mới sẽ cần mục tiêu
+             // Tạm thời để logic tìm cổ vật ở đây
+             if (rand < 0.10) { // 10% nhận cổ vật
+                const artifactPool = Object.values(config.ARTIFACTS).filter(a => a.type === 'Hỗn Loạn');
+                const foundArtifact = artifactPool[Math.floor(Math.random() * artifactPool.length)];
+                p.artifacts.push(foundArtifact);
+                io.to(p.id).emit('artifactUpdate', { 
+                    artifact: foundArtifact, 
+                    message: `Trong lúc phá hoại, bạn đã nhặt được: ${foundArtifact.name}!`
+                });
+            }
+        }
+    });
  // =================================================================================
     // BƯỚC 5: ÁP DỤNG ĐIỂM TỪ KỸ NĂNG, NỘI TẠI & TIẾNG VỌNG
     // =================================================================================
@@ -1173,18 +1236,8 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
     handlePostRoundEvents(roomCode, rooms, io);
 }
 module.exports = {
-    createGameState,
-    startNewRound,
-    handlePlayerChoice,
-    handleCoordination,
-    revealDecreeAndContinue, // Đảm bảo hàm này được export
-    handleTwilightAction,
-    handleUseSkill,
-    handleAmnesiaAction, // Đảm bảo hàm này được export
-    handleArenaPick, // Đảm bảo hàm này được export
-    handleArenaBet, // Đảm bảo hàm này được export
-    handleVoteToSkip, // Đảm bảo hàm này được export
-    triggerBotPhaseAction,
-    calculateScoresAndEndRound, // Đảm bảo hàm này được export
-    handlePostRoundEvents, // Đảm bảo hàm này được export
-}; 
+    createGameState, startNewRound, handlePlayerChoice, handleCoordination, revealDecreeAndContinue,
+    handleTwilightAction, handleUseSkill, handleAmnesiaAction, handleArenaPick, handleArenaBet,
+    handleVoteToSkip, triggerBotPhaseAction, calculateScoresAndEndRound, handlePostRoundEvents, checkRoleVictory,
+    resetRoomForRematch, // <-- Thêm hàm mới vào export
+};

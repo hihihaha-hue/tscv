@@ -536,3 +536,18 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     color: var(--text-medium);
     margin: 5px 0;
 }
+#artifact-display {
+    flex-shrink: 0; /* Không cho co lại */
+}
+#artifact-name {
+    color: var(--primary-gold);
+    font-size: 1.1em;
+}
+#artifact-description {
+    font-size: 0.9em;
+    color: var(--text-medium);
+    margin: 5px 0 10px 0;
+}
+#use-artifact-btn {
+    width: 100%;
+}

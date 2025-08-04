@@ -34,6 +34,81 @@ const DECREES = {
     'DAU_TRUONG_SINH_TU': { id: 'DAU_TRUONG_SINH_TU', name: "Đấu Trường Sinh Tử", description: "Người thấp điểm nhất chọn ra hai 'Đấu Sĩ' buộc phải 'Vạch Trần' lẫn nhau. Khán Giả sẽ đặt cược tối đa 2 Tiến Độ vào Đấu Sĩ mà họ tin sẽ thắng. Cược đúng được nhân đôi số điểm đã cược." },
     'DEM_SONG_TRUNG': { id: 'DEM_SONG_TRUNG', name: "Đêm Song Trùng", description: "Sẽ có hai Tiếng Vọng được áp dụng trong cùng một đêm." }
 };
+const ARTIFACTS = {
+    // === Cổ Vật Thám Hiểm ===
+    'EXPLORERS_JOURNAL': {
+        id: 'EXPLORERS_JOURNAL',
+        name: "Nhật Ký Của Kẻ Khai Phá",
+        type: 'Thám Hiểm',
+        description: "(Kích hoạt) Ngay lập tức xem được hành động bí mật của 2 người chơi ngẫu nhiên.",
+        is_activatable: true
+    },
+    'AMULET_OF_CLARITY': {
+        id: 'AMULET_OF_CLARITY',
+        name: "Bùa Chú Minh Mẫn",
+        type: 'Thám Hiểm',
+        description: "(Bị động) Lần Vạch Trần tiếp theo của bạn được cường hóa: Đoán Đúng +4 điểm, Đoán Sai chỉ -1 điểm. Cổ vật biến mất sau khi dùng.",
+        is_activatable: false
+    },
+    'GOLDEN_WARD': {
+        id: 'GOLDEN_WARD',
+        name: "Bùa Hộ Thân Bằng Vàng",
+        type: 'Thám Hiểm',
+        description: "(Bị động) Vô hiệu hóa hoàn toàn lần mất điểm tiếp theo từ bất kỳ nguồn nào. Cổ vật sau đó biến mất.",
+        is_activatable: false
+    },
+    'COMPASS_OF_FORTUNE': {
+        id: 'COMPASS_OF_FORTUNE',
+        name: "La Bàn Vận May",
+        type: 'Thám Hiểm',
+        description: "(Bị động) Nếu bạn thuộc phe thua trong đêm nay, bạn không bị trừ 1 điểm. Cổ vật sau đó biến mất.",
+        is_activatable: false
+    },
+    'ANCIENT_STAR_CHART': {
+        id: 'ANCIENT_STAR_CHART',
+        name: "Bản Đồ Sao Cổ Xưa",
+        type: 'Thám Hiểm',
+        description: "(Kích hoạt) Xem trước 3 Tiếng Vọng của ngày mai và được quyền loại bỏ một.",
+        is_activatable: true
+    },
+
+    // === Cổ Vật Hỗn Loạn ===
+    'CHAIN_OF_MISTRUST': {
+        id: 'CHAIN_OF_MISTRUST',
+        name: "Dây Xích Liên Kết",
+        type: 'Hỗn Loạn',
+        description: "(Kích hoạt) Chọn 2 người chơi khác. Mọi thay đổi điểm số của người này cũng sẽ áp dụng cho người kia trong đêm nay.",
+        is_activatable: true
+    },
+    'ARROW_OF_AMNESIA': {
+        id: 'ARROW_OF_AMNESIA',
+        name: "Mũi Tên Gây Mất Trí",
+        type: 'Hỗn Loạn',
+        description: "(Kích hoạt) Chọn 1 người chơi. Hành động bí mật của họ trong đêm nay sẽ bị hủy bỏ hoàn toàn.",
+        is_activatable: true
+    },
+    'ENERGY_STORM': {
+        id: 'ENERGY_STORM',
+        name: "Bão Tố Năng Lượng",
+        type: 'Hỗn Loạn',
+        description: "(Kích hoạt) Vào cuối đêm, tất cả người chơi có điểm lớn hơn 0 sẽ bị trừ 1 điểm.",
+        is_activatable: true
+    },
+    'DISTORTION_PRISM': {
+        id: 'DISTORTION_PRISM',
+        name: "Lăng Kính Bóp Méo",
+        type: 'Hỗn Loạn',
+        description: "(Kích hoạt) Trong Giai Đoạn Vạch Trần, kết quả bị thay đổi: Đoán Đúng không đổi điểm, Đoán Sai bị -3 điểm và mục tiêu +3 điểm.",
+        is_activatable: true
+    },
+    'MARK_OF_BETRAYAL': {
+        id: 'MARK_OF_BETRAYAL',
+        name: "Dấu Ấn Phản Bội",
+        type: 'Hỗn Loạn',
+        description: "(Kích hoạt) Bí mật đặt một 'Dấu Ấn' lên một người chơi khác. Lần Phối Hợp thành công tiếp theo của họ sẽ bị đảo ngược thành thất bại và họ bị -2 điểm. Dấu Ấn sau đó biến mất.",
+        is_activatable: true
+    },
+};
 
 // --- III. DỮ LIỆU CÁC VAI TRÒ (ROLES) 
 const ROLES = {
@@ -163,12 +238,13 @@ const ALL_DECREE_IDS = Object.keys(DECREES);
 const ALL_ROLE_IDS = Object.keys(ROLES);
 
 module.exports = {
-    ...GAME_CONSTANTS,
+    GAME_CONSTANTS, // <-- DÒNG QUAN TRỌNG NHẤT BỊ THIẾU
     DECREES,
     ROLES,
+    ARTIFACTS,
     ALL_DECREE_IDS,
     ALL_ROLE_IDS,
-	   SKILL_COSTS, 
+    SKILL_COSTS: [0, 1, 2, 3, 5, 10]
 };
 
 // --- V. CÁC HÀM TIỆN ÍCH NỘI BỘ (Không được export, chỉ dùng trong file này) ---
