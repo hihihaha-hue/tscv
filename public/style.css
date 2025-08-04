@@ -218,7 +218,7 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 
 
 /* Sửa lại log và chat để nhất quán */
-##chat-messages, #message-area {
+#chat-messages, #message-area {
     flex-grow: 1;
     overflow-y: auto;
     display: flex;
@@ -378,4 +378,159 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     h1 {
         font-size: 2.2em;
     }
+}
+
+/* === IX. STYLE CHO SÁCH LUẬT DẠNG TRANG === */
+.swal2-popup.rulebook-popup {
+    padding: 15px !important;
+    /* [SỬA LỖI] Quay lại màu nền gốc để đảm bảo độ tương phản */
+    background-color: var(--bg-medium) !important;
+    /* Giữ lại viền trang trí */
+    border: 2px solid var(--primary-gold);
+}
+.rulebook-title {
+    color: var(--primary-gold) !important;
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--bg-light);
+    padding-bottom: 15px;
+    font-size: 1.8em;
+}
+.rulebook-page p i {
+    color: var(--text-medium); /* Màu xám hơn một chút cho lời dẫn */
+    display: block;
+    margin-bottom: 1em;
+    border-left: 3px solid var(--primary-gold);
+    padding-left: 15px;
+    font-style: italic;
+}
+.rulebook-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--bg-light);
+}
+
+
+.rulebook-tab {
+    background: none;
+    border: none;
+    /* [SỬA LỖI] Dùng màu chữ sáng mặc định */
+    color: var(--text-medium);
+    font-size: 1.1em;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    font-family: var(--font-main);
+    font-weight: bold;
+}
+
+
+.rulebook-tab:hover {
+    color: var(--text-light);
+}
+
+.rulebook-tab.active {
+    color: var(--primary-gold);
+    border-bottom-color: var(--primary-gold);
+}
+
+
+.rulebook-page {
+    display: none;
+    animation: fadeIn 0.5s;
+    /* [SỬA LỖI] Đảm bảo nội dung bên trong trang có màu chữ sáng */
+    color: var(--text-light);
+}
+
+.rulebook-page.active {
+    display: block;
+}
+
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.swal2-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+.swal2-table th, .swal2-table td {
+    border: 1px solid var(--bg-light);
+    padding: 8px 12px;
+    text-align: center;
+}
+.swal2-table th {
+    background-color: var(--bg-dark);
+    color: var(--primary-gold);
+}
+.swal2-table .success-text {
+    color: var(--success-green);
+    font-weight: bold;
+}
+.swal2-table .error-text {
+    color: var(--accent-red);
+    font-weight: bold;
+}
+.scrollable-page {
+    max-height: 50vh; /* Giới hạn chiều cao */
+    overflow-y: auto; /* Thêm thanh cuộn */
+    padding-right: 10px; /* Tạo khoảng trống cho thanh cuộn */
+}
+
+/* Style cho danh sách trong sách luật */
+.role-item, .decree-item {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--bg-light);
+}
+.role-item h4, .decree-item h4 {
+    color: var(--primary-gold);
+    margin-bottom: 5px;
+}
+
+/* Style cho panel "Bể Vai Trò" trong game */
+#roles-in-game {
+    flex-grow: 1; 
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+}
+#roles-in-game h4 {
+    flex-shrink: 0;
+    margin-bottom: 10px;
+}
+#roles-in-game-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+.role-in-game-item details {
+    margin-bottom: 5px;
+    border-bottom: 1px solid var(--bg-light);
+    padding-bottom: 5px;
+}
+.role-in-game-item summary.role-name {
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--primary-gold);
+    padding: 5px;
+    border-radius: 4px;
+    outline: none;
+    transition: background-color 0.2s;
+}
+.role-in-game-item summary.role-name:hover {
+    background-color: var(--bg-light);
+}
+.role-in-game-item p.role-detail {
+    font-size: 0.9em;
+    padding-left: 20px;
+    color: var(--text-medium);
+    margin: 5px 0;
 }

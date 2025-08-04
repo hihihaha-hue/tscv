@@ -5,7 +5,7 @@
 // ======================================================================
 
 const gameLogic = require('./logic.js');
-const { ROLES } = require('./config.js');
+const { ROLES, DECREES } = require('./config.js');
 
 function initialize(io, rooms) {
     io.on('connection', (socket) => {
@@ -39,8 +39,16 @@ function initialize(io, rooms) {
             handleJoinRoom(code, data.name);
         });
 
-        socket.on('joinRoom', (data) => {
+       socket.on('joinRoom', (data) => {
             handleJoinRoom(data.roomCode?.trim().toUpperCase(), data.name);
+        });
+
+        // [SỬA LỖI] Đảm bảo sự kiện này gửi cả allRoles và allDecrees
+        socket.on('requestGameData', () => {
+            socket.emit('gameData', {
+                allRoles: ROLES,
+                allDecrees: DECREES
+            });
         });
 
         socket.on('playerReady', (roomCode) => {
@@ -98,17 +106,14 @@ function initialize(io, rooms) {
             const allReady = room?.players.filter(p => !p.isBot && p.id !== room.hostId).every(p => p.isReady);
 
             if (room && socket.id === room.hostId && room.players.length >= 2 && allReady) {
-                room.gameState = gameLogic.createGameState(room.players);
-
+               room.gameState = gameLogic.createGameState(room.players, io);
                 room.gameState.players.forEach(p => {
                     if (!p.isBot) {
                         const roleData = { ...ROLES[p.roleId], id: p.roleId };
                           roleData.currentSkillCost = 0;
 						   if (p.roleId === 'ASSASSIN' && p.bountyTargetId) {
-                            // Tìm đối tượng người chơi là mục tiêu để lấy tên
                             const target = room.gameState.players.find(t => t.id === p.bountyTargetId);
                             if (target) {
-                                // Nối tên mục tiêu vào phần mô tả kỹ năng
                                 roleData.description.skill += ` <strong>Mục tiêu của bạn: ${target.name}</strong>`;
                             }
                         }
@@ -117,7 +122,11 @@ function initialize(io, rooms) {
                 });
 
                 io.to(roomCode).emit('gameStarted', {
-                    rolesInGame: room.gameState.rolesInGame.map(roleId => ({ id: roleId, ...ROLES[roleId] })),
+                    // Dữ liệu này đảm bảo gửi đầy đủ các object vai trò
+                    rolesInGame: room.gameState.rolesInGame.map(roleId => ({
+                        id: roleId,
+                        ...ROLES[roleId]
+                    })),
                     players: room.gameState.players
                 });
                 
@@ -125,7 +134,6 @@ function initialize(io, rooms) {
                     gameLogic.startNewRound(roomCode, rooms, io);
                 }, 1500);
             
-
             } else if (room && socket.id === room.hostId && !allReady) {
                 socket.emit('roomError', 'Vẫn còn người chơi chưa sẵn sàng!');
             }

@@ -1,6 +1,7 @@
+// public/client.js
 // ======================================================================
 // MODULE ĐIỀU KHIỂN CHÍNH CỦA CLIENT ("The Conductor")
-// PHIÊN BẢN ĐÃ SỬA LỖI CÚ PHÁP (SyntaxError)
+// PHIÊN BẢN ĐÃ SỬA LỖI CÚ PHÁP
 // ======================================================================
 
 // --- I. TRẠNG THÁI TOÀN CỤC (GLOBAL STATE) ---
@@ -19,7 +20,6 @@ const state = {
 Network.initialize();
 UI.loadPlayerName();
 UI.initEventListeners();
-
 
 // --- III. SỰ KIỆN UI ---
 UI.homeElements.createRoomBtn.addEventListener('click', () => {
@@ -45,10 +45,10 @@ UI.roomElements.readyBtn.addEventListener('click', () => {
     Network.emit('playerReady', state.currentRoomCode);
 });
 document.getElementById('music-toggle-btn').addEventListener('click', () => UI.toggleMasterMute());
-document.getElementById('rulebook-btn').addEventListener('click', () => {
-    // Logic sách luật
-});
-document.getElementById('history-log-btn').addEventListener('click', () => UI.showGameHistory(state.gameHistory));
+
+// [FIX] Chuyển các sự kiện nút toàn cục vào initEventListeners trong UI.js để an toàn hơn
+// document.getElementById('rulebook-btn').addEventListener('click', ...);
+// document.getElementById('history-log-btn').addEventListener('click', ...);
 
 // KHỐI XỬ LÝ CHAT DUY NHẤT
 const chatInput = document.getElementById('chat-input');
@@ -65,7 +65,16 @@ if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'En
 
 
 // --- IV. SỰ KIỆN TỪ SERVER ---
-Network.on('connect', () => { state.myId = Network.socket.id; });
+Network.on('connect', () => {
+    state.myId = Network.socket.id;
+    Network.emit('requestGameData');
+});
+
+// [FIX] Lưu dữ liệu game để dùng sau
+Network.on('gameData', (data) => {
+    UI.gameData = data;
+});
+
 Network.on('roomError', (msg) => { Swal.fire({ icon: 'error', title: 'Lỗi', text: msg }); });
 Network.on('kicked', () => { Swal.fire('Bạn đã bị đuổi khỏi đoàn!').then(() => window.location.reload()); });
 
@@ -83,7 +92,6 @@ Network.on('joinedRoom', (data) => {
     UI.addCopyToClipboard();
 });
 
-
 Network.on('updatePlayerList', (players, hostId) => {
     Object.assign(state, { players, currentHostId: hostId });
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
@@ -93,24 +101,28 @@ Network.on('gameStarted', (data) => {
     Object.assign(state, { gamePhase: 'started', rolesInGame: data.rolesInGame, players: data.players });
     UI.showScreen('game');
     UI.addLogMessage('Cuộc thám hiểm bắt đầu!', 'success');
-    UI.displayRolesInGame(state.rolesInGame);
+    UI.displayRolesInGame(state.rolesInGame); 
     UI.updatePlayerCards(state.players, state.myId);
     UI.updateLeaderboard(state.players);
-
-    // Client chỉ cần chờ sự kiện 'newRound' từ server, không cần tự xử lý
     UI.setupPhaseUI('wait', { title: 'Chuẩn Bị', description: 'Đang chờ ngày đầu tiên bắt đầu...' });
 });
 
 Network.on('newRound', (data) => {
-    UI.showNightTransition(data.roundNumber);
-    UI.playSound('new-round');
-    setTimeout(() => {
+    const startChoicePhase = () => {
         Object.assign(state, { gamePhase: 'choice', players: data.players });
         UI.updatePlayerCards(state.players, state.myId);
         UI.updateLeaderboard(state.players);
         UI.setupPhaseUI('choice');
         UI.startTimer(data.duration);
-    }, 2500);
+    };
+
+    if (data.roundNumber > 1) {
+        UI.showNightTransition(data.roundNumber);
+        UI.playSound('new-round');
+        setTimeout(startChoicePhase, 2500);
+    } else {
+        startChoicePhase();
+    }
 });
 
 Network.on('roundResult', (data) => {
@@ -143,20 +155,12 @@ Network.on('yourRoleIs', (roleData) => {
             };
 
             switch (roleId) {
-                // Nhóm 1: Cần chọn mục tiêu người chơi
-                case 'PROPHET':
-                case 'PEACEMAKER':
-                case 'MAGNATE':
-                case 'PRIEST':
-                case 'THIEF':
-                case 'PHANTOM':
+                case 'PROPHET': case 'PEACEMAKER': case 'MAGNATE': case 'PRIEST': case 'THIEF': case 'PHANTOM':
                     UI.promptForPlayerTarget('Chọn mục tiêu cho kỹ năng', (targetId) => {
                         payload.targetId = targetId;
                         emitSkill(payload);
                     });
                     break;
-                
-                // Nhóm 2: Cần nhiều lựa chọn
                 case 'MIND_BREAKER':
                     UI.promptForPlayerTarget('Chọn người để điều khiển', (targetId) => {
                         UI.promptForMindControlAction((chosenAction) => {
@@ -175,24 +179,15 @@ Network.on('yourRoleIs', (roleData) => {
                         });
                     });
                     break;
-
-                // Nhóm 3: Cần chọn phe/hành động
                 case 'GAMBLER':
                     UI.promptForFactionChoice('Đặt cược vào phe thắng', (chosenFaction) => {
                         payload.chosenFaction = chosenFaction;
                         emitSkill(payload);
                     });
                     break;
-
-                // Nhóm 4: Không cần lựa chọn, chỉ cần kích hoạt
-                case 'INQUISITOR':
-                case 'BALANCER':
-                case 'CULTIST':
-                case 'DOUBLE_AGENT':
-                case 'MIMIC': // Dùng ké kỹ năng, server sẽ tự xử lý
+                case 'INQUISITOR': case 'BALANCER': case 'CULTIST': case 'DOUBLE_AGENT': case 'MIMIC':
                     emitSkill(payload);
                     break;
-
                 default:
                     console.warn("Chưa có logic cho kỹ năng của vai trò:", roleId);
                     break;
@@ -242,12 +237,11 @@ Network.on('updateSkipVoteCount', (data) => {
     const btn = document.getElementById(data.buttonId);
     if (btn) {
         let baseText = btn.textContent.split('(')[0].trim();
-        // Sửa lại logic lấy base text để an toàn hơn
         if (data.buttonId === 'skip-coordination-btn') {
             baseText = 'Hành động một mình';
-        } else if (data.buttonId === 'twilight-rest-btn') { // Giả sử id nút nghỉ ngơi là 'twilight-rest-btn'
-             baseText = 'Nghỉ Ngơi';
+        } else if (data.buttonId === 'twilight-rest-btn') {
+            baseText = 'Nghỉ Ngơi';
         }
         btn.textContent = `${baseText} (${data.count}/${data.total})`;
     }
-}); // <-- DẤU NGOẶC BỊ THIẾU ĐÃ ĐƯỢC THÊM VÀO ĐÂY
+});

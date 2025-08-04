@@ -61,12 +61,23 @@
     </div>
 
     <!-- CỘT PHẢI: Bảng xếp hạng, Nút hành động, và Log game -->
-    <div id="right-column">
-        <div id="leaderboard" class="game-panel">
-            <h3>Bảng Xếp Hạng</h3>
-            <ul id="leaderboard-list"></ul>
-        </div>
-        <div id="action-container" class="game-panel">
+   <div id="right-column">
+    <div id="leaderboard" class="game-panel">
+        <h3>Bảng Xếp Hạng</h3>
+        <ul id="leaderboard-list"></ul>
+    </div>
+    
+    <!-- ======================================================= -->
+    <!-- === KHU VỰC MỚI HIỂN THỊ "BỂ VAI TRÒ" === -->
+    <div id="roles-in-game" class="game-panel scrollable-panel">
+        <h4>Các Vai Trò Trong Ngày:</h4>
+        <ul id="roles-in-game-list">
+            <!-- JS sẽ điền các vai trò của ván đấu vào đây -->
+        </ul>
+    </div>
+    <!-- ======================================================= -->
+    
+    <div id="action-container" class="game-panel">
             <p id="phase-description"></p>
             <div id="choice-buttons-container" class="action-buttons-grid" style="display: none;">
                 <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
@@ -104,8 +115,112 @@
     <script src="/js/ui.js"></script>
     <script src="/js/network.js"></script>
     <script src="/client.js"></script>
-    <script type="text/template" id="rulebook-template">
-        <!-- Nội dung sách luật -->
-    </script>
+  <script type="text/template" id="rulebook-template">
+    <div class="rulebook-container">
+        <h2 class="rulebook-title">Di Cảo Của Ngôi Đền</h2>
+        
+        <div class="rulebook-tabs">
+            <button class="rulebook-tab active" data-target="page-foundation">Nền Tảng</button>
+            <button class="rulebook-tab" data-target="page-mechanics">Cơ Chế</button>
+            <button class="rulebook-tab" data-target="page-scoring">Phán Quyết</button>
+            <!-- [SỬA LỖI] Đổi lại tên tab cho nhất quán và dễ hiểu -->
+            <button class="rulebook-tab" data-target="page-roles-overview">Tổng Quan Vai Trò</button>
+            <button class="rulebook-tab" data-target="page-decrees-overview">Tổng Quan Tiếng Vọng</button>
+        </div>
+
+        <div class="rulebook-pages">
+            <!-- Trang 1: Nền Tảng -->
+            <div id="page-foundation" class="rulebook-page active" style="text-align: left; line-height: 1.7;">
+                <h3>Mục Đích & Nền Tảng</h3>
+                <p><i>"Nơi đây không tồn tại thiện ác, chỉ có tham vọng. Ngươi không thuộc về một phe phái nào; ngươi là một cá nhân theo đuổi mục đích của riêng mình."</i></p>
+                
+                <h4>Hai Con Đường Dẫn Đến Vinh Quang:</h4>
+                <ul>
+                    <li><strong>Thắng Bằng Tiến Độ:</strong> Tích lũy đủ số điểm Tiến Độ mà ngôi đền yêu cầu (15, 20, hoặc 25). Đây là con đường của kẻ mạnh.</li>
+                    <li><strong>Thắng Bằng Thiên Mệnh:</strong> Hoàn thành điều kiện thắng lợi bí mật của Vai Trò mà ngươi đang nắm giữ. Đây là con đường của những.</li>
+                </ul>
+                <p><strong>Thất Bại:</strong> Nếu Tiến Độ của ngươi rơi xuống mốc âm đối nghịch (-15, -20, hoặc -25), linh hồn ngươi sẽ bị ngôi đền nuốt chửng.</p>
+                <hr>
+                <h4>Diễn Biến Một Ngày:</h4>
+                <ol>
+                    <li><strong>Sáng (Thám Hiểm):</strong> Bí mật chọn Hành Động. Có thể đề nghị Phối Hợp.</li>
+                    <li><strong>Trưa (Tiếng Vọng):</strong> Ngôi đền ban bố một luật lệ đặc biệt cho ngày hôm đó.</li>
+                    <li><strong>Hoàng Hôn (Tập Trung):</strong> Mặt đối mặt. Đây là lúc để Vạch Trần kẻ khác.</li>
+                    <li><strong>Đêm (Phán Xét):</strong> Ngôi đền quyết toán điểm số.</li>
+                </ol>
+            </div>
+
+            <!-- Trang 2: Cơ Chế Mấu Chốt -->
+            <div id="page-mechanics" class="rulebook-page" style="text-align: left; line-height: 1.7;">
+                <h3>Cơ Chế Mấu Chốt</h3>
+                <h4>Hành Động Bí Mật:</h4>
+                <p>Vào buổi sáng, ngươi phải chọn 1 trong 3 hành động:</p>
+                <ul>
+                    <li><strong>📜 Giải Mã:</strong> Cố gắng giành chiến thắng bằng sự khôn khéo.</li>
+                    <li><strong>💣 Phá Hoại:</strong> Cố gắng giành chiến thắng bằng sự hỗn loạn.</li>
+                    <li><strong>👁️ Quan Sát:</strong> Đứng ngoài cuộc, chờ đợi thời cơ.</li>
+                </ul>
+
+                <h4>🤝 Phối Hợp:</h4>
+                <p>Một hành động chiến thuật cao, thực hiện trong Giai Đoạn Thám Hiểm. Ngươi chọn một người chơi khác:</p>
+                <ul>
+                    <li><strong>Thành công:</strong> Nếu hai người có cùng hành động (cùng 📜, 💣, hoặc 👁️), cả hai sẽ được gộp lại thành một "Nhóm", chỉ tính là <strong>một phiếu duy nhất</strong> vào cuối ngày.</li>
+                    <li><strong>Thất bại:</strong> Nếu khác hành động, ngươi (người chủ động) bị <strong>-1 điểm</strong>.</li>
+                </ul>
+                <p><i>"Nhiều nhóm nhỏ có thể được nối lại thành một liên minh lớn nếu có chung thành viên."</i></p>
+
+                <h4>🔥 Vạch Trần:</h4>
+                <p>Hành động chính trong Giờ Hoàng Hôn. Ngươi chọn một mục tiêu và đoán hành động bí mật của họ:</p>
+                <ul>
+                    <li><strong>Đoán Đúng:</strong> Ngươi <strong>+2 điểm</strong>, mục tiêu <strong>-2 điểm</strong>.</li>
+                    <li><strong>Đoán Sai:</strong> Ngươi <strong>-2 điểm</strong>, mục tiêu <strong>+2 điểm</strong>. (Nhà Tiên Tri chỉ bị -1).</li>
+                </ul>
+            </div>
+
+            <!-- Trang 3: Phán Quyết Điểm -->
+            <div id="page-scoring" class="rulebook-page" style="text-align: left; line-height: 1.7;">
+                <h3>Phán Quyết Điểm Chi Tiết</h3>
+                <h4>Khi Có Phe Thắng/Thua:</h4>
+                <ul>
+                    <li>Phe có <strong>ít phiếu hơn</strong> sẽ thắng.</li>
+                    <li>Người thuộc phe thắng: <strong>+2 điểm</strong>.</li>
+                    <li>Người thuộc phe thua: <strong>-1 điểm</strong>.</li>
+                </ul>
+                <p><strong>Số phận Kẻ Quan Sát (👁️):</strong></p>
+                <ul>
+                    <li>Nếu số phiếu 👁️ <strong>ít hơn</strong> (Số người chơi / 2), họ theo phe thắng và nhận <strong>+3 điểm</strong>.</li>
+                    <li>Nếu số phiếu 👁️ <strong>nhiều hơn hoặc bằng</strong> (Số người chơi / 2), họ bị <strong>-1 điểm</strong> và <strong>CHỈ phe thắng</strong> được <strong>+1 điểm</strong> nữa.</li>
+                </ul>
+
+                <h4>Khi Kết Quả Là HÒA:</h4>
+                <ul>
+                    <li><strong>Nếu không có phiếu 👁️:</strong> Tất cả người chơi <strong>-1 điểm</strong>.</li>
+                    <li><strong>Nếu có ít phiếu 👁️:</strong> Người chọn 📜/💣 <strong>-1 điểm</strong>. Người chọn 👁️ được an toàn (0 điểm).</li>
+                    <li><strong>Nếu có nhiều phiếu 👁️:</strong> Người chọn 👁️ <strong>-1 điểm</strong>. Người chọn 📜/💣 được <strong>+1 điểm</strong>.</li>
+                </ul>
+            </div>
+
+            <!-- Trang 4 MỚI: Liệt kê tất cả vai trò -->
+            <!-- [SỬA LỖI] Đổi ID cho khớp với data-target -->
+            <div id="page-roles-overview" class="rulebook-page scrollable-page" style="text-align: left; line-height: 1.6;">
+                <h3>Tổng Quan Các Linh Hồn</h3>
+                <p><i>"Đây là danh sách tất cả những linh hồn cổ xưa có thể vang vọng trong ngôi đền. Hãy nghiên cứu kỹ, vì ngươi không biết sẽ phải đối mặt với ai..."</i></p>
+                <div id="all-roles-list-container">
+                    <!-- JS sẽ tự động điền danh sách vai trò vào đây -->
+                </div>
+            </div>
+            
+            <!-- Trang 5 MỚI: Liệt kê tất cả Tiếng Vọng -->
+            <!-- [SỬA LỖI] Đổi ID cho khớp với data-target -->
+            <div id="page-decrees-overview" class="rulebook-page scrollable-page" style="text-align: left; line-height: 1.6;">
+                <h3>Tổng Quan Các Tiếng Vọng</h3>
+                <p><i>"Ngôi đền có thể bẻ cong thực tại bằng những luật lệ cổ xưa này. Hãy chuẩn bị cho mọi khả năng."</i></p>
+                <div id="all-decrees-list-container">
+                     <!-- JS sẽ tự động điền danh sách Tiếng Vọng vào đây -->
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
 </body>
 </html>
