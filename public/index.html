@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi">
+<<html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <!-- [CRITICAL FIX] Thêm thẻ Viewport để mobile hiển thị đúng kích thước và tỷ lệ -->
+    <!-- Thẻ Viewport để mobile hiển thị đúng kích thước -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
     <title>Thợ Săn Cổ Vật</title>
@@ -51,58 +51,37 @@
 
         <!-- MÀN HÌNH CHƠI GAME (GAME) -->
         <div id="game-screen" style="display: none;">
-            <!-- CỘT TRÁI: Thông tin cá nhân (Vai trò, Cổ vật, Chat) -->
-            <div id="left-column">
-                <div id="role-display" class="game-panel"></div>
-                <div id="artifact-display" class="game-panel" style="display: none;">
-                    <h4>Cổ Vật Của Bạn:</h4>
-                    <div id="artifact-info" style="display: none;">
-                        <strong id="artifact-name"></strong>
-                        <p id="artifact-description"></p>
-                        <button id="use-artifact-btn" style="display: none;">Kích hoạt</button>
-                    </div>
-                    <p id="no-artifact-message">Bạn chưa có cổ vật nào.</p>
-                </div>
-                <div id="chat-container" class="game-panel">
-                    <div id="chat-messages"></div>
-                    <div id="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
-                        <button id="send-chat-btn">Gửi</button>
-                    </div>
-                </div>
+            <!-- [MOBILE TABS] Bộ chuyển đổi giao diện chỉ dành cho mobile -->
+            <div id="mobile-view-switcher">
+                <button id="show-main-view-btn" class="active">Trận Đấu</button>
+                <button id="show-personal-view-btn">Cá Nhân</button>
             </div>
 
-            <!-- CỘT GIỮA: Thông tin chung (Log, Người chơi, Hành động) -->
+            <!-- [MOBILE TABS] Vùng chứa cho giao diện "Trận Đấu" -->
+            <div id="mobile-main-view">
+                <!-- Các panel của view "Trận Đấu" sẽ được JS chuyển vào đây -->
+            </div>
+
+            <!-- [MOBILE TABS] Vùng chứa cho giao diện "Cá Nhân" -->
+            <div id="mobile-personal-view">
+                <!-- Các panel của view "Cá Nhân" sẽ được JS chuyển vào đây -->
+            </div>
+
+            <!-- CÁC CỘT CHO DESKTOP (sẽ chứa các panel gốc) -->
+            <div id="left-column">
+                <div id="role-display" class="game-panel"></div>
+                <div id="artifact-display" class="game-panel"></div>
+                <div id="chat-container" class="game-panel"></div>
+            </div>
             <div id="center-column">
                 <div id="message-area" class="game-panel"></div>
                 <div id="players-container" class="players-grid game-panel"></div>
-                <div id="action-container" class="game-panel">
-                    <p id="phase-description"></p>
-                    <div id="choice-buttons-container" class="action-buttons-grid" style="display: none;">
-                        <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
-                        <button class="choice-buttons corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
-                        <button class="choice-buttons blank" data-action="Quan Sát">👁️ Quan Sát</button>
-                    </div>
-                    <button id="skip-coordination-btn" class="skip-button" style="display: none;">Hành động một mình</button>
-                    <button id="open-twilight-btn" style="display: none;">Mở Bảng Vạch Trần</button>
-                    <button id="next-day-btn" class="next-day-btn" style="display: none;">Bắt Đầu Ngày Tiếp Theo</button>
-                </div>
+                <div id="action-container" class="game-panel"></div>
             </div>
-
-            <!-- CỘT PHẢI: Thông tin phụ (BXH, Vai trò trong game, Giai đoạn) -->
             <div id="right-column">
-                <div id="leaderboard" class="game-panel">
-                    <h3>Bảng Xếp Hạng</h3>
-                    <ul id="leaderboard-list"></ul>
-                </div>
-                <div id="roles-in-game" class="game-panel scrollable-panel">
-                    <h4>Các Vai Trò Trong Ngày:</h4>
-                    <ul id="roles-in-game-list"></ul>
-                </div>
-                <div id="phase-info" class="game-panel">
-                    <h2 id="phase-title"></h2>
-                    <div id="timer-display"></div>
-                </div>
+                <div id="leaderboard" class="game-panel"></div>
+                <div id="roles-in-game" class="game-panel"></div>
+                <div id="phase-info" class="game-panel"></div>
             </div>
         </div>
     </div>

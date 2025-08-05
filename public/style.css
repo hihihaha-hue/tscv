@@ -106,7 +106,7 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 #phase-info { flex-shrink: 0; }
 
 /* Mặc định, ẩn thanh hành động mobile trên desktop */
-#mobile-action-bar {
+#mobile-action-bar, #mobile-view-switcher, #mobile-main-view, #mobile-personal-view {
     display: none;
 }
 
@@ -227,45 +227,72 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     #center-column { grid-area: center; }
     #right-column { display: none; }
 }
-/* ---- [GRID MOBILE OPTIMIZATION] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
+/* ---- [TAB MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
 @media (max-width: 768px) {
-    body { 
-        padding: 0; 
-        overflow-y: auto;
-    }
-    .container { 
-        height: auto; 
-        min-height: 100vh; 
-        padding: 5px;
-        padding-bottom: 120px;
-        border-radius: 0; 
-        border: none; 
-    }
+    body { padding: 0; overflow-y: auto; }
+    .container { height: auto; min-height: 100vh; padding: 5px; padding-bottom: 120px; border-radius: 0; border: none; }
     
-    /* [NEW] Sử dụng Grid cho layout mobile */
+    /* Chuyển sang layout một cột để chứa các view */
     #game-screen {
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* Tạo 2 cột bằng nhau */
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Ẩn hoàn toàn các cột desktop */
+    #left-column, #center-column, #right-column {
+        display: none;
+    }
+
+    /* [NEW] Hiển thị các vùng chứa và Tab của mobile */
+    #mobile-view-switcher, #mobile-main-view, #mobile-personal-view {
+        display: grid; /* Hoặc flex */
+    }
+
+    /* Style cho bộ chuyển Tab */
+    #mobile-view-switcher {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 5px;
+    }
+    #mobile-view-switcher button {
+        flex: 1;
+        padding: 10px;
+        font-size: 1em;
+        background-color: var(--bg-light);
+        color: var(--text-medium);
+        border: 1px solid var(--bg-light);
+    }
+    #mobile-view-switcher button.active {
+        background-color: var(--bg-medium);
+        color: var(--text-light);
+        border-color: var(--primary-gold);
+    }
+
+    /* Bố cục lưới cho các view */
+    #mobile-main-view, #mobile-personal-view {
+        grid-template-columns: 1fr 1fr;
         gap: 8px;
     }
 
-    /* Bỏ qua các cột trung gian */
-    #left-column, #center-column, #right-column {
-        display: contents; 
-    }
+    /* Ẩn/hiện các view dựa trên class của #game-screen */
+    #mobile-personal-view { display: none; }
+    #game-screen.view-personal #mobile-main-view { display: none; }
+    #game-screen.view-personal #mobile-personal-view { display: grid; }
+    
+    /* Sắp xếp các panel trong lưới của #mobile-main-view */
+    #mobile-main-view #phase-info { grid-column: 1 / -1; }
+    #mobile-main-view #players-container { grid-column: 1 / -1; }
+    #mobile-main-view #message-area { grid-column: 1 / -1; }
+    #mobile-main-view #leaderboard { grid-column: 1 / 2; }
+    #mobile-main-view #roles-in-game { grid-column: 2 / 3; }
 
-    /* Sắp xếp các panel vào lưới */
-    #phase-info           { grid-column: 1 / -1; } /* Chiếm toàn bộ chiều rộng (2 cột) */
-    #players-container    { grid-column: 1 / -1; }
-    #message-area         { grid-column: 1 / -1; }
-    #leaderboard          { grid-column: 1 / 2; }  /* Chiếm cột 1 */
-    #roles-in-game        { grid-column: 2 / 3; }  /* Chiếm cột 2 */
-    #role-display         { grid-column: 1 / 2; }
-    #artifact-display     { grid-column: 2 / 3; }
-    #chat-container       { grid-column: 1 / -1; }
-    #action-container     { display: none; }
-
-    /* Thanh hành động cố định cho Mobile */
+    /* Sắp xếp các panel trong lưới của #mobile-personal-view */
+    #mobile-personal-view #role-display { grid-column: 1 / -1; }
+    #mobile-personal-view #artifact-display { grid-column: 1 / -1; }
+    #mobile-personal-view #chat-container { grid-column: 1 / -1; }
+    
+    /* Thanh hành động cố định */
     #mobile-action-bar {
         display: flex;
         flex-direction: column;

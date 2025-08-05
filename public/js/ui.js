@@ -3,11 +3,12 @@
 // UI MODULE ("The Director")
 // PHIÊN BẢN HOÀN CHỈNH: Tái cấu trúc, Tối ưu hóa, và Đầy đủ chức năng.
 // ======================================================================
-const UI = {
+ const UI = {
     // ======================================================================
     // I. DOM ELEMENTS & STATE
     // ======================================================================
-    homeElements: {
+
+ homeElements: {
         screen: document.getElementById('home-screen'),
         nameInput: document.getElementById('player-name-input'),
         createRoomBtn: document.getElementById('create-room-btn'),
@@ -52,12 +53,19 @@ const UI = {
         useArtifactBtn: document.getElementById('use-artifact-btn'),
         nightTransitionOverlay: document.getElementById('night-transition-overlay'),
         nightTransitionText: document.getElementById('night-transition-text'),
+		
 		mobileActionBar: document.getElementById('mobile-action-bar'),
+        mobileViewSwitcher: document.getElementById('mobile-view-switcher'),
+        mobileMainView: document.getElementById('mobile-main-view'),
+        mobilePersonalView: document.getElementById('mobile-personal-view'),
+        showMainViewBtn: document.getElementById('show-main-view-btn'),
+        showPersonalViewBtn: document.getElementById('show-personal-view-btn'),
     },
     audioCache: {},
     isMuted: false,
     isAudioUnlocked: false,
     isMusicStarted: false,
+    isMobileLayoutSetup: false,
     gameData: { allRoles: {}, allDecrees: {}, allArtifacts: {} },
     typedInstance: null,
 
@@ -100,7 +108,7 @@ const UI = {
             });
         });
 
-        this.gameElements.openTwilightBtn.addEventListener('click', () => {
+        if(this.gameElements.openTwilightBtn) this.gameElements.openTwilightBtn.addEventListener('click', () => {
             this.playSound('click');
             this.gameElements.twilightOverlay.style.display = 'flex';
         });
@@ -120,46 +128,61 @@ const UI = {
             Network.emit('playerReady', state.currentRoomCode);
         });
         
-        this.gameElements.choiceButtonsContainer.querySelectorAll('.choice-buttons').forEach(button => {
-            button.addEventListener('click', async () => {
-                const choice = button.getAttribute('data-action');
-                if (choice === 'Phá Hoại') {
-                    const targetId = await this.promptForPlayerTarget('Chọn mục tiêu để Phá Hoại');
-                    if (targetId) {
-                        Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice, payload: { targetId } });
+        // [CRITICAL FIX] Thêm kiểm tra an toàn trước khi gán sự kiện
+        if (this.gameElements.choiceButtonsContainer) {
+            this.gameElements.choiceButtonsContainer.querySelectorAll('.choice-buttons').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const choice = button.getAttribute('data-action');
+                    if (choice === 'Phá Hoại') {
+                        const targetId = await this.promptForPlayerTarget('Chọn mục tiêu để Phá Hoại');
+                        if (targetId) {
+                            Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice, payload: { targetId } });
+                            this.setupPhaseUI('wait', { title: 'Đã Chọn Hành Động' });
+                        }
+                    } else {
+                        Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice });
                         this.setupPhaseUI('wait', { title: 'Đã Chọn Hành Động' });
                     }
-                } else {
-                    Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice });
-                    this.setupPhaseUI('wait', { title: 'Đã Chọn Hành Động' });
-                }
+                });
             });
-        });
+        }
 
-        this.gameElements.skipCoordinationBtn.addEventListener('click', () => {
+        if(this.gameElements.skipCoordinationBtn) this.gameElements.skipCoordinationBtn.addEventListener('click', () => {
             this.playSound('click');
             Network.emit('voteSkipCoordination', state.currentRoomCode);
             this.setupPhaseUI('wait', { title: 'Đang Chờ...' });
         });
         
-        this.gameElements.twilightRestBtn.addEventListener('click', () => {
+        if(this.gameElements.twilightRestBtn) this.gameElements.twilightRestBtn.addEventListener('click', () => {
             this.playSound('click');
             this.gameElements.twilightOverlay.style.display = 'none';
             Network.emit('voteSkipTwilight', state.currentRoomCode);
         });
 
-        this.gameElements.twilightCloseBtn.addEventListener('click', () => {
+        if(this.gameElements.twilightCloseBtn) this.gameElements.twilightCloseBtn.addEventListener('click', () => {
             this.gameElements.twilightOverlay.style.display = 'none';
         });
 
-        this.gameElements.nextDayBtn.addEventListener('click', () => {
+        if(this.gameElements.nextDayBtn) this.gameElements.nextDayBtn.addEventListener('click', () => {
             if (state.myId === state.currentHostId) {
                 this.playSound('click');
                 Network.emit('nextRound', state.currentRoomCode);
             }
         });
 
-        this.gameElements.playersContainer.addEventListener('click', (event) => {
+        if(this.gameElements.showMainViewBtn) this.gameElements.showMainViewBtn.addEventListener('click', () => {
+            this.gameElements.screen.classList.remove('view-personal');
+            this.gameElements.showMainViewBtn.classList.add('active');
+            this.gameElements.showPersonalViewBtn.classList.remove('active');
+        });
+
+        if(this.gameElements.showPersonalViewBtn) this.gameElements.showPersonalViewBtn.addEventListener('click', () => {
+            this.gameElements.screen.classList.add('view-personal');
+            this.gameElements.showPersonalViewBtn.classList.add('active');
+            this.gameElements.showMainViewBtn.classList.remove('active');
+        });
+
+        if(this.gameElements.playersContainer) this.gameElements.playersContainer.addEventListener('click', (event) => {
             const card = event.target.closest('.player-avatar-card');
             const isSelectingTarget = this.gameElements.playersContainer.classList.contains('selecting-target');
             if (!card || card.classList.contains('is-self') || !isSelectingTarget) return;
@@ -211,7 +234,6 @@ const UI = {
             });
         }
      },
-
     handleLobbyAction(action) {
         this.playSound('click');
         this.startMusic();
@@ -222,14 +244,16 @@ const UI = {
     attachSkillButtonListener() {
         const skillBtn = document.getElementById('skill-btn');
         if (skillBtn) {
-            skillBtn.addEventListener('click', async () => {
+            // Loại bỏ listener cũ để tránh gắn chồng chéo
+            skillBtn.replaceWith(skillBtn.cloneNode(true));
+            document.getElementById('skill-btn').addEventListener('click', async () => {
                 this.playSound('click');
                 const roleId = state.myRole.id;
                 let payload = {};
 
                 const emitSkill = (p) => {
                     Network.emit('useRoleSkill', { roomCode: state.currentRoomCode, payload: p });
-                    UI.setupPhaseUI('wait', { title: 'Đã Dùng Kỹ Năng!' });
+                    this.setupPhaseUI('wait', { title: 'Đã Dùng Kỹ Năng!' });
                 };
 
                 switch (roleId) {
@@ -262,7 +286,7 @@ const UI = {
                         break;
 					case 'MIMIC':
                         const targetIdMimic = await this.promptForPlayerTarget('Chọn mục tiêu cho kỹ năng bạn BẮT CHƯỚC (nếu cần)');
-                        payload.targetId = targetIdMimic;
+                        payload.targetId = targetIdMimic; // payload vẫn có thể chứa targetId nếu kỹ năng bắt chước cần
                         emitSkill(payload);
                         break;
                     case 'GAMBLER':
@@ -425,10 +449,51 @@ const UI = {
         Swal.fire({ title: 'Lịch Sử Ván Đấu', html: historyHTML, background: '#2d3748', color: '#e2e8f0' });
     },
    
+    // ======================================================================
+    // V. DISPLAY & UPDATE FUNCTIONS
+    // ======================================================================
+    
+    _setupMobileLayout() {
+        if (window.innerWidth > 768 || this.isMobileLayoutSetup) {
+            return;
+        }
+
+        console.log("Setting up mobile layout for the first time...");
+
+        const mainView = this.gameElements.mobileMainView;
+        const personalView = this.gameElements.mobilePersonalView;
+
+        mainView.append(
+            document.getElementById('phase-info'),
+            document.getElementById('players-container'),
+            document.getElementById('message-area'),
+            document.getElementById('leaderboard'),
+            document.getElementById('roles-in-game')
+        );
+
+        personalView.append(
+            document.getElementById('role-display'),
+            document.getElementById('artifact-display'),
+            document.getElementById('chat-container')
+        );
+        
+        this.isMobileLayoutSetup = true;
+    },
+
     showScreen(screenName) {
         ['home-screen', 'room-screen', 'game-screen'].forEach(id => document.getElementById(id).style.display = 'none');
         const targetScreen = document.getElementById(`${screenName}-screen`);
-        if (targetScreen) targetScreen.style.display = (screenName === 'game') ? 'grid' : 'block';
+        if (targetScreen) {
+            targetScreen.style.display = (screenName === 'game') ? 'grid' : 'block';
+
+            if (screenName === 'game') {
+                this._setupMobileLayout();
+
+                targetScreen.classList.remove('view-personal');
+                this.gameElements.showMainViewBtn.classList.add('active');
+                this.gameElements.showPersonalViewBtn.classList.remove('active');
+            }
+        }
     },
 
     updatePlayerList(players, hostId, myId) {
@@ -457,46 +522,45 @@ const UI = {
     },
 
     displayRole(role) {
-    const container = this.gameElements.roleDisplay;
-    if (!container) return;
-    container.classList.remove('is-flipped');
-    let skillButtonHTML = '';
+        const container = this.gameElements.roleDisplay;
+        if (!container) return;
+        container.classList.remove('is-flipped');
+        let skillButtonHTML = '';
 
-    // [UPGRADE] Thêm điều kiện kiểm tra cho Kẻ Bắt Chước
-    const canUseSkill = !(role.id === 'MIMIC' && !role.canMimicSkill);
+        const canUseSkill = !(role.id === 'MIMIC' && !role.canMimicSkill);
 
-    if (role.hasActiveSkill) {
-        const cost = role.currentSkillCost ?? 0;
-        const costText = cost > 0 ? ` (-${cost}💎)` : ' (Miễn Phí)';
-        const disabledAttr = canUseSkill ? '' : 'disabled';
-        const buttonTitle = canUseSkill ? '' : 'title="Người bạn sao chép không có kỹ năng kích hoạt."';
-        
-        skillButtonHTML = `<button class="skill-button" id="skill-btn" ${disabledAttr} ${buttonTitle}>${role.skillName}${costText}</button>`;
-    }
+        if (role.hasActiveSkill) {
+            const cost = role.currentSkillCost ?? 0;
+            const costText = cost > 0 ? ` (-${cost}💎)` : ' (Miễn Phí)';
+            const disabledAttr = canUseSkill ? '' : 'disabled';
+            const buttonTitle = canUseSkill ? '' : 'title="Người bạn sao chép không có kỹ năng kích hoạt."';
+            
+            skillButtonHTML = `<button class="skill-button" id="skill-btn" ${disabledAttr} ${buttonTitle}>${role.skillName}${costText}</button>`;
+        }
 
-    container.innerHTML = `
-        <div class="role-card-inner">
-            <div class="role-card-front">
-                <h4>VAI TRÒ CỦA BẠN</h4><p style="color: var(--text-medium);">Đang chờ...</p>
-                <img src="/assets/images/card_back.png" alt="Mặt sau lá bài" style="width: 100px; opacity: 0.5;">
-            </div>
-            <div class="role-card-back">
-                <h4>Vai Trò: <strong>${role.name}</strong></h4>
-                <div style="text-align: left; line-height: 1.5; width: 100%; overflow-y: auto;">
-                    <p><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
-                    <p><strong>Nội Tại:</strong> ${role.description.passive}</p>
-                    <p><strong>Kỹ Năng:</strong> ${role.description.skill}</p>
+        container.innerHTML = `
+            <div class="role-card-inner">
+                <div class="role-card-front">
+                    <h4>VAI TRÒ CỦA BẠN</h4><p style="color: var(--text-medium);">Đang chờ...</p>
+                    <img src="/assets/images/card_back.png" alt="Mặt sau lá bài" style="width: 100px; opacity: 0.5;">
                 </div>
-                ${skillButtonHTML}
-            </div>
-        </div>`;
-    container.style.display = 'block';
-    setTimeout(() => {
-        container.classList.add('is-flipped');
-        this.playSound('card-flip');
-    }, 500);
-    this.attachSkillButtonListener();
-},
+                <div class="role-card-back">
+                    <h4>Vai Trò: <strong>${role.name}</strong></h4>
+                    <div style="text-align: left; line-height: 1.5; width: 100%; overflow-y: auto;">
+                        <p><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
+                        <p><strong>Nội Tại:</strong> ${role.description.passive}</p>
+                        <p><strong>Kỹ Năng:</strong> ${role.description.skill}</p>
+                    </div>
+                    ${skillButtonHTML}
+                </div>
+            </div>`;
+        container.style.display = 'block';
+        setTimeout(() => {
+            container.classList.add('is-flipped');
+            this.playSound('card-flip');
+        }, 500);
+        this.attachSkillButtonListener();
+    },
 
     updatePlayerCards(players, myId) {
         const container = this.gameElements.playersContainer;
@@ -549,8 +613,7 @@ const UI = {
         }
     },
    
-    // [FIX] Thêm openTwilightBtn vào destructuring
- setupPhaseUI(phaseName, options = {}) {
+    setupPhaseUI(phaseName, options = {}) {
         const isMobile = window.innerWidth <= 768;
         const currentActionContainer = isMobile ? this.gameElements.mobileActionBar : this.gameElements.actionContainer;
         
@@ -575,7 +638,10 @@ const UI = {
             btn.id = `mobile-${id}`;
             btn.textContent = text;
             if(className) btn.className = className;
-            btn.onclick = () => this.gameElements[id]?.click();
+            btn.onclick = () => {
+                const originalButton = this.gameElements[id] || document.getElementById(id);
+                if (originalButton) originalButton.click();
+            };
             return btn;
         };
         
@@ -652,6 +718,7 @@ const UI = {
                 break;
         }
     },
+
     showTwilightUI(players, myId) {
         const { twilightOverlay, twilightPlayerList } = this.gameElements;
         if (!twilightOverlay || !twilightPlayerList) return;
