@@ -236,46 +236,83 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 
 
 /* --- XI. Thiết Kế Đáp Ứng (Responsive) (Giữ nguyên) --- */
+/* ---- Dành cho Máy tính bảng (chiều rộng dưới 1200px) ---- */
+/* Layout này vẫn giữ nguyên vì nó hoạt động tốt trên tablet */
 @media (max-width: 1200px) {
     #game-screen {
-        grid-template-columns: minmax(280px, 1.5fr) 4fr;
-        grid-template-rows: 1fr auto;
-        grid-template-areas: "left main" "right main";
+        grid-template-columns: 300px 1fr;
+        grid-template-rows: auto 1fr;
+        grid-template-areas: 
+            "left center"
+            "right center";
+        overflow-y: auto;
     }
     #left-column { grid-area: left; }
-    #center-column { grid-area: main; }
+    #center-column { grid-area: center; }
     #right-column { grid-area: right; }
 }
 
-@media (max-width: 1024px) {
-    body { padding: 0; overflow-y: auto; }
-    .container { height: auto; min-height: 100vh; padding: 10px; border-radius: 0; border: none; }
+
+/* ---- [MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
+@media (max-width: 768px) {
+    body { 
+        padding: 0; 
+        overflow-y: auto; /* Cho phép cuộn toàn bộ trang */
+    }
+    .container { 
+        height: auto; 
+        min-height: 100vh; 
+        padding: 5px; /* Giảm padding */
+        border-radius: 0; 
+        border: none; 
+    }
     
     #game-screen {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
+        display: flex; /* Chuyển hoàn toàn sang flexbox */
+        flex-direction: column; /* Tất cả xếp chồng lên nhau */
+        gap: 10px;
     }
 
-    #left-column { order: 3; }
-    #center-column { order: 1; }
-    #right-column { order: 2; }
-
-    #right-column {
-        display: flex;
-        flex-direction: column;
+    /* Reset lại các cột để chúng không chiếm không gian riêng */
+    #left-column, #center-column, #right-column {
+        display: contents; /* Rất quan trọng: làm cho các panel con trở thành con trực tiếp của #game-screen */
     }
-    
-    #players-container { order: 1; min-height: 200px; }
-    #action-container { order: 2; }
-    #leaderboard { order: 3; }
-    #roles-in-game { order: 4; }
-    #phase-info { order: 5; } /* Đẩy phase-info xuống cuối cột phải trên mobile */
 
-    .game-panel { min-height: auto; }
-    #players-container { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+    /* [MOBILE ORDER] Sắp xếp lại thứ tự các panel để tối ưu cho mobile */
+    #phase-info           { order: 1; text-align: center; }
+    #action-container     { order: 2; }
+    #players-container    { order: 3; max-height: 250px; } /* Giới hạn chiều cao và cho phép cuộn */
+    #message-area         { order: 4; min-height: 120px; }
+    #leaderboard          { order: 5; }
+    #roles-in-game        { order: 6; }
+    #role-display         { order: 7; }
+    #artifact-display     { order: 8; }
+    #chat-container       { order: 9; }
+
+    /* Tinh chỉnh kích thước cho mobile */
+    .game-panel { 
+        min-height: auto;
+        padding: 10px;
+    }
+
+    #players-container { 
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+        gap: 10px;
+    }
     .player-avatar-card .avatar { width: 60px; height: 60px; font-size: 2em; }
-    .player-avatar-card .player-name { font-size: 0.9em; }
+    .player-avatar-card .player-name { font-size: 0.85em; }
+    
     h1 { font-size: 2em; }
     h2 { font-size: 1.4em; }
+    h3 { font-size: 1.1em; }
+
+    /* Tinh chỉnh lại các nút nổi */
+    #rulebook-btn, #history-log-btn, #music-toggle-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1.3em;
+    }
+    #rulebook-btn { top: 10px; right: 10px; }
+    #history-log-btn { top: 65px; right: 10px; }
+    #music-toggle-btn { top: 10px; left: 10px; }
 }
