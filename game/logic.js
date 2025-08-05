@@ -7,6 +7,161 @@
 
 const config = require('./config.js');
 const { ROLES, DECREES, SKILL_COSTS, GAME_CONSTANTS, ARTIFACTS } = config;
+const BotAI = {
+    // Hàm quyết định chính, được gọi ở mỗi giai đoạn
+    makeDecision(bot, gs, phase, rooms, io) {
+        // AI sẽ không hành động nếu đã bị đánh bại hoặc đã hành động rồi
+        if (bot.isDefeated || (phase === 'twilight' && gs.roundData.actedInTwilight.has(bot.id))) {
+            return;
+        }
+
+        // Phân tích tình hình
+        const activePlayers = gs.players.filter(p => !p.isDefeated && !p.disconnected);
+        const nonBotPlayers = activePlayers.filter(p => !p.isBot);
+        const leaders = getPlayersByScore(nonBotPlayers, 'highest');
+        const laggards = getPlayersByScore(nonBotPlayers, 'lowest');
+        const myRole = ROLES[bot.roleId];
+
+        // 1. QUYẾT ĐỊNH DÙNG KỸ NĂNG (chỉ một lần mỗi vòng)
+        // Bot sẽ cân nhắc dùng kỹ năng trước khi chọn hành động chính
+        if (!bot.skillUsedThisRound && myRole.hasActiveSkill) {
+            let cost = SKILL_COSTS[bot.skillUses] ?? SKILL_COSTS[SKILL_COSTS.length - 1];
+            if (bot.score >= cost) {
+                // Logic quyết định dùng skill dựa trên vai trò
+                let useSkillChance = 0.3; // 30% cơ hội dùng skill mặc định
+                let payload = {};
+                let target = null;
+
+                switch (bot.roleId) {
+                    case 'CULTIST': // Kẻ Hiến Tế muốn mất điểm, nên sẽ dùng skill liên tục
+                        useSkillChance = 0.9;
+                        break;
+                    case 'INQUISITOR': // Kẻ Phán Xử sẽ dùng skill nếu có nhiều kẻ tình nghi
+                        if (activePlayers.length > 4) useSkillChance = 0.6;
+                        break;
+                    case 'MAGNATE': // Nhà Tài Phiệt sẽ đầu tư vào người mạnh nhất
+                        target = leaders[0];
+                        if (target) {
+                            payload.targetId = target.id;
+                            useSkillChance = 0.7;
+                        }
+                        break;
+                    case 'PRIEST': // Thầy Tế sẽ bảo vệ người yếu thế nhất
+                        target = laggards[0];
+                        if (target) {
+                            payload.targetId = target.id;
+                            useSkillChance = 0.5;
+                        }
+                        break;
+                }
+
+                if (Math.random() < useSkillChance) {
+                    // Tạo một socket giả để truyền vào hàm handleUseSkill
+                    const fakeSocket = { id: bot.id };
+                    handleUseSkill(fakeSocket, gs.roomCode, payload, rooms, io);
+                    // Dừng lại sau khi dùng skill để tránh hành động 2 lần
+                    return;
+                }
+            }
+        }
+        
+        // 2. QUYẾT ĐỊNH HÀNH ĐỘNG THEO TỪNG GIAI ĐOẠN
+        switch (phase) {
+            case 'exploration':
+                this.decideExplorationAction(bot, gs, nonBotPlayers, leaders, laggards, rooms, io);
+                break;
+            case 'coordination':
+            case 'twilight':
+                this.decideTwilightOrCoordinationAction(bot, gs, phase, nonBotPlayers, leaders, laggards, rooms, io);
+                break;
+        }
+    },
+
+    // Quyết định hành động trong Giai Đoạn Thám Hiểm
+    decideExplorationAction(bot, gs, nonBotPlayers, leaders, laggards, rooms, io) {
+        let choice = 'Quan Sát';
+        let payload = {};
+        let target = null;
+        
+        switch (bot.roleId) {
+            case 'INQUISITOR': // Muốn tìm kẻ Phá Hoại, nên sẽ Giải Mã để tăng cơ hội thắng
+            case 'PEACEMAKER': // Muốn hòa, thường chọn Giải Mã hoặc Quan Sát
+            case 'MAGNATE': // Muốn theo phe thắng, thường là phe đông người hơn
+                choice = 'Giải Mã';
+                break;
+            case 'CULTIST': // Muốn thua, sẽ Phá Hoại người mạnh nhất
+            case 'REBEL': // Gây hỗn loạn, sẽ Phá Hoại người mạnh nhất
+                choice = 'Phá Hoại';
+                target = leaders[0] || nonBotPlayers[0];
+                if (target) payload.targetId = target.id;
+                break;
+            default: // Các vai trò khác sẽ cố gắng thắng
+                // Nếu điểm đang thấp, sẽ chơi an toàn (Giải Mã)
+                // Nếu điểm đang cao, có thể mạo hiểm (Phá Hoại)
+                if (bot.score < 5) {
+                    choice = 'Giải Mã';
+                } else {
+                    choice = (Math.random() < 0.6) ? 'Giải Mã' : 'Phá Hoại';
+                    if (choice === 'Phá Hoại') {
+                        target = leaders[0] || nonBotPlayers[0];
+                        if (target) payload.targetId = target.id;
+                    }
+                }
+                break;
+        }
+        
+        // Nếu không có mục tiêu cho Phá Hoại, chuyển sang Quan Sát
+        if (choice === 'Phá Hoại' && !payload.targetId) {
+            choice = 'Quan Sát';
+        }
+
+        handlePlayerChoice(gs.roomCode, bot.id, choice, rooms, io, payload);
+    },
+
+    // Quyết định hành động trong Hoàng Hôn hoặc Phối Hợp
+    decideTwilightOrCoordinationAction(bot, gs, phase, nonBotPlayers, leaders, laggards, rooms, io) {
+        // Bot sẽ có 80% cơ hội hành động thay vì bỏ qua
+        if (Math.random() > 0.8 || nonBotPlayers.length === 0) {
+            handleVoteToSkip(gs.roomCode, bot.id, phase, rooms, io);
+            return;
+        }
+
+        let target = laggards[0] || nonBotPlayers[Math.floor(Math.random() * nonBotPlayers.length)];
+        if (!target) { // Nếu không còn người chơi nào khác
+             handleVoteToSkip(gs.roomCode, bot.id, phase, rooms, io);
+             return;
+        }
+
+        if (phase === 'coordination') {
+            // Sẽ phối hợp với người có điểm thấp (an toàn hơn)
+            handleCoordination(gs.roomCode, bot.id, target.id, rooms, io);
+        } else if (phase === 'twilight') {
+            let guess = 'Giải Mã';
+            // Logic đoán hành động
+            switch (bot.roleId) {
+                case 'INQUISITOR': // Luôn đoán là Phá Hoại để nhận bonus
+                    guess = 'Phá Hoại';
+                    break;
+                case 'CULTIST': // Cố tình đoán sai để mất điểm
+                    // Đoán hành động ngược lại với những gì người yếu thế hay làm
+                    guess = 'Phá Hoại'; 
+                    break;
+                default:
+                    // Người yếu thế thường Giải Mã, người mạnh thường Phá Hoại
+                    if (target.score < 0) {
+                        guess = 'Giải Mã';
+                    } else {
+                        guess = (Math.random() < 0.5) ? 'Giải Mã' : 'Phá Hoại';
+                    }
+                    break;
+            }
+            // Tạo một chút độ trễ cho hành động của bot
+            io.to(gs.roomCode).emit('playerAccused', { initiatorId: bot.id, targetId: target.id });
+            io.to(gs.roomCode).emit('logMessage', { type: 'info', message: `🤖 **${bot.name}** (Bot) đã Vạch Trần **${target.name}**!` });
+            handleTwilightAction(gs.roomCode, bot.id, target.id, 'Vạch Trần', guess, rooms, io);
+        }
+    }
+};
 
 // --- HÀM CHO CHỨC NĂNG CHƠI LẠI ---
 function resetRoomForRematch(room) {
@@ -715,74 +870,32 @@ function triggerBotPhaseAction(roomCode, rooms, io, phase) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs) return;
 
-    const bots = gs.players.filter(p => p.isBot && !p.isDefeated && !gs.roundData.actedInTwilight.has(p.id));
-    const potentialTargets = gs.players.filter(p => !p.isBot && !p.isDefeated);
-
-    bots.forEach(bot => {
+    const bots = gs.players.filter(p => p.isBot && !p.isDefeated);
+    
+    bots.forEach((bot, index) => {
+        // Tạo độ trễ khác nhau cho mỗi bot để chúng không hành động cùng lúc
         setTimeout(() => {
-            if (gs.phase !== phase || gs.roundData.actedInTwilight.has(bot.id)) return;
-
-            let decisionToAction = false;
-            switch(bot.personality) {
-                case 'aggressive': decisionToAction = Math.random() < 0.6; break;
-                case 'cautious': decisionToAction = Math.random() < 0.2; break;
-                default: decisionToAction = Math.random() < 0.4; break;
-            }
-
-            if (decisionToAction && potentialTargets.length > 0) {
-                const target = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
-
-                if (phase === 'coordination') {
-                    io.to(roomCode).emit('logMessage', { type: 'info', message: `🤖 **${bot.name}** (Bot) đã đề nghị Phối Hợp với **${target.name}**.` });
-                    handleCoordination(roomCode, bot.id, target.id, rooms, io);
-                } else if (phase === 'twilight') {
-                    gs.roundData.actedInTwilight.add(bot.id);
-                    const guessOptions = ['Giải Mã', 'Phá Hoại', 'Quan Sát'];
-                    const guess = guessOptions[Math.floor(Math.random() * guessOptions.length)];
-                    
-                    io.to(roomCode).emit('playerAccused', { initiatorId: bot.id, targetId: target.id });
-                    io.to(roomCode).emit('logMessage', { type: 'info', message: `🤖 **${bot.name}** (Bot) đã Vạch Trần **${target.name}**!` });
-                    handleTwilightAction(roomCode, bot.id, target.id, 'Vạch Trần', guess, rooms, io);
-                }
-
-            } else {
-                const skipPhase = phase === 'coordination' ? 'coordination' : 'twilight';
-                const skipMessage = phase === 'coordination' ? 'hành động một mình' : 'nghỉ ngơi';
-                
-                io.to(roomCode).emit('logMessage', { type: 'info', message: `🤖 **${bot.name}** (Bot) đã chọn ${skipMessage}.` });
-                handleVoteToSkip(roomCode, bot.id, skipPhase, rooms, io);
-            }
-        }, Math.random() * 8000 + 3000);
+             // Thêm roomCode vào gameState để AI có thể truy cập
+            if(gs) gs.roomCode = roomCode;
+            BotAI.makeDecision(bot, gs, phase, rooms, io);
+        }, 2000 + (index * 1500) + (Math.random() * 1000));
     });
 }
 function triggerBotChoices(roomCode, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs) return;
+    
+    // [SỬA ĐỔI]
     const bots = gs.players.filter(p => p.isBot && !p.isDefeated && !p.chosenAction);
-    const potentialTargets = gs.players.filter(p => !p.isBot && !p.isDefeated);
 
-    bots.forEach(bot => {
+    bots.forEach((bot, index) => {
         setTimeout(() => {
             if (gs.phase === 'exploration' && !bot.chosenAction) {
-                let choice;
-                switch (bot.personality) {
-                    case 'aggressive': choice = Math.random() < 0.7 ? 'Phá Hoại' : 'Giải Mã'; break;
-                    case 'cautious': choice = Math.random() < 0.75 ? 'Giải Mã' : 'Quan Sát'; break;
-                    default: choice = ['Giải Mã', 'Phá Hoại', 'Quan Sát'][Math.floor(Math.random() * 3)];
-                }
-                
-                let payload = {};
-                if (choice === 'Phá Hoại') {
-                    if (potentialTargets.length > 0) {
-                        const target = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
-                        payload.targetId = target.id;
-                    } else {
-                        choice = 'Quan Sát';
-                    }
-                }
-                handlePlayerChoice(roomCode, bot.id, choice, rooms, io, payload);
+                // Thêm roomCode vào gameState để AI có thể truy cập
+                if(gs) gs.roomCode = roomCode;
+                BotAI.makeDecision(bot, gs, 'exploration', rooms, io);
             }
-        }, Math.random() * 5000 + 2000);
+        }, 2000 + (index * 1000) + (Math.random() * 500));
     });
 }
 

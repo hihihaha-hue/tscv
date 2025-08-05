@@ -228,6 +228,52 @@ input[type="text"]:focus {
 .log-message { margin: 2px 0; }
 
 /* --- VII. Pop-up & Overlays --- */
+#night-transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(10, 10, 15, 0.95);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Trạng thái mặc định: Ẩn đi */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none; /* Không cho phép click xuyên qua */
+    
+    /* Hiệu ứng chuyển động */
+    transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out;
+}
+
+#night-transition-overlay.active {
+    /* Trạng thái kích hoạt: Hiện ra */
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#night-transition-overlay h2 {
+    color: var(--primary-gold);
+    font-size: 4em;
+    font-weight: bold;
+    text-shadow: 0 0 15px rgba(246, 224, 94, 0.5);
+    
+    /* Hiệu ứng cho chữ */
+    transform: scale(0.9);
+    opacity: 0;
+    transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition-delay: 0.2s; /* Chờ background hiện ra rồi mới hiện chữ */
+}
+
+#night-transition-overlay.active h2 {
+    transform: scale(1);
+    opacity: 1;
+}
+
 #twilight-overlay { background-color: rgba(0, 0, 0, 0.88); backdrop-filter: blur(5px); }
 #twilight-meeting-ui {
     background: var(--bg-parchment) url('/assets/images/parchment-texture.png');

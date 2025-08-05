@@ -81,6 +81,13 @@ Network.on('gameData', (data) => {
     UI.gameData.allRoles = data.allRoles;
     UI.gameData.allDecrees = data.allDecrees;
     UI.gameData.allArtifacts = data.allArtifacts;
+
+    // [THÊM MỚI] Kích hoạt lại nút sách luật sau khi dữ liệu đã sẵn sàng
+    const rulebookBtn = document.getElementById('rulebook-btn');
+    if (rulebookBtn) {
+        rulebookBtn.disabled = false;
+        rulebookBtn.title = "Mở sách luật"; // Cập nhật lại tooltip
+    }
 });
 
 Network.on('roomError', (msg) => {
