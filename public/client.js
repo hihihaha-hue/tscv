@@ -132,7 +132,11 @@ const App = {
 });
 
         Network.on('newRound', (data) => {
-            Object.assign(state, { gamePhase: 'exploration', players: data.players });
+    Object.assign(state, { 
+        gamePhase: 'exploration', 
+        players: data.players,
+        hasActedInTwilight: false 
+    });
             const startChoicePhase = () => {
                 UI.updatePlayerCards(state.players, state.myId);
                 UI.updateLeaderboard(state.players);

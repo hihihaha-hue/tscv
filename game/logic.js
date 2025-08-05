@@ -396,6 +396,12 @@ function handleVoteToSkip(roomCode, playerId, phase, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs || (gs.phase !== 'coordination' && gs.phase !== 'twilight')) return;
 
+    // === BẮT ĐẦU DÒNG KIỂM TRA MỚI ===
+    // Áp dụng kiểm tra tương tự cho hành động skip/rest
+    if (gs.roundData.actedInTwilight.has(playerId)) {
+        return;
+    }
+
     gs.roundData.actedInTwilight.add(playerId);
 
     if (phase === 'coordination') {
@@ -672,6 +678,14 @@ function handleTwilightAction(roomCode, initiatorId, targetId, actionType, guess
     const target = gs.players.find(p => p.id === targetId);
     if (!initiator || !target || initiator.id === target.id) return;
     
+    // === BẮT ĐẦU DÒNG KIỂM TRA MỚI ===
+    // Nếu người chơi này đã có trong danh sách hành động, bỏ qua yêu cầu này
+    if (gs.roundData.actedInTwilight.has(initiatorId)) {
+        console.log(`[Logic Warning] Player ${initiator.name} (${initiatorId}) tried to act more than once in Twilight.`);
+        return; 
+    }
+    // === KẾT THÚC DÒNG KIỂM TRA MỚI ===
+
     gs.roundData.actedInTwilight.add(initiator.id);
 
     const amuletIndex = initiator.artifacts.findIndex(a => a.id === 'AMULET_OF_CLARITY');
