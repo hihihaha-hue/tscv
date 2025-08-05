@@ -310,12 +310,3 @@ module.exports = {
 };
 
 
-// --- V. CÁC HÀM TIỆN ÍCH NỘI BỘ (Không được export, chỉ dùng trong file này) ---
-// Đặt hàm này ở đây để DECREES có thể sử dụng nó, giữ cho logic.js sạch sẽ hơn.
-function getPlayersByScore(players, type) {
-    const activePlayers = players.filter(p => !p.isDefeated && !p.disconnected);
-    if (activePlayers.length === 0) return [];
-    const scores = activePlayers.map(p => p.score);
-    const criticalScore = type === 'highest' ? Math.max(...scores) : Math.min(...scores);
-    return activePlayers.filter(p => p.score === criticalScore);
-}

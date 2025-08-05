@@ -133,7 +133,20 @@ const UI = {
 
                 switch (artifactId) {
                     case 'CHAIN_OF_MISTRUST':
-                        alert("Tính năng chọn 2 mục tiêu sẽ được phát triển sau.");
+                        // Quy trình chọn 2 người
+                        this.promptForPlayerTarget('Chọn người chơi ĐẦU TIÊN để liên kết', (targetId1) => {
+                            if (targetId1) {
+                                // Lọc người đã chọn ra khỏi danh sách
+                                const remainingPlayers = state.players.filter(p => p.id !== state.myId && p.id !== targetId1 && !p.disconnected);
+                                this.promptForPlayerTarget('Chọn người chơi THỨ HAI để liên kết', (targetId2) => {
+                                    if (targetId2) {
+                                        payload.targetId1 = targetId1;
+                                        payload.targetId2 = targetId2;
+                                        emitArtifactUse(payload);
+                                    }
+                                }, remainingPlayers); // Truyền danh sách đã lọc
+                            }
+                        });
                         break;
                     case 'ARROW_OF_AMNESIA':
                     case 'MARK_OF_BETRAYAL':
@@ -479,6 +492,17 @@ const UI = {
                             });
                         });
                         break;
+						case 'MIMIC':
+                        const targetRole = state.rolesInGame.find(r => r.name === "Kẻ Bắt Chước") // Cần tìm ra vai trò của mục tiêu
+                        // Logic này khá phức tạp để biết kỹ năng của mục tiêu có cần target hay không
+                        // Giải pháp đơn giản nhất là luôn hỏi, nếu kỹ năng không cần target thì server sẽ bỏ qua
+                        UI.promptForPlayerTarget('Chọn mục tiêu cho kỹ năng bạn BẮT CHƯỚC (nếu cần)', (targetId) => {
+                            payload.targetId = targetId;
+                            // Người dùng có thể không chọn nếu kỹ năng không cần mục tiêu
+                            // Nhưng để đơn giản, ta cứ gửi targetId
+                            emitSkill(payload);
+                        });
+                        break;
                     case 'GAMBLER':
                         UI.promptForFactionChoice('Đặt cược vào phe thắng', (chosenFaction) => {
                             payload.chosenFaction = chosenFaction;
@@ -621,12 +645,13 @@ const UI = {
         twilightOverlay.style.display = 'flex';
     },
 
-    promptForPlayerTarget(title, onSelected) {
+    promptForPlayerTarget(title, onSelected, customPlayerList = null) {
         const inputOptions = {};
-        state.players.filter(p => p.id !== state.myId && !p.disconnected).forEach(p => {
+        const playersToShow = customPlayerList || state.players;
+
+        playersToShow.filter(p => p.id !== state.myId && !p.disconnected).forEach(p => {
             inputOptions[p.id] = p.name;
         });
-
         Swal.fire({
             title: title, input: 'select', inputOptions: inputOptions,
             inputPlaceholder: 'Chọn một người chơi', showCancelButton: true,

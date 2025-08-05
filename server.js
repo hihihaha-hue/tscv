@@ -1,3 +1,4 @@
+// game/server.js
 
 const express = require('express');
 const http = require('http');
@@ -10,27 +11,16 @@ const app = express();
 const server = http.createServer(app);
 
 // --- 2. Cấu hình Socket.IO cho Render ---
-// [SỬA LỖI] Cho phép nhiều nguồn gốc, bao gồm cả localhost để phát triển
-const allowedOrigins = [
-    "https://tscv-6lrm.onrender.com", 
-    "http://localhost:3000",
-    "http://127.0.0.1:3000"
-];
-
+// [SỬA LỖI] Cấu hình CORS và transports để tương thích với Render
 const io = new Server(server, {
     cors: {
-        origin: function (origin, callback) {
-            // Cho phép các yêu cầu không có origin (ví dụ: ứng dụng di động, curl)
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.indexOf(origin) === -1) {
-                const msg = 'Chính sách CORS không cho phép truy cập từ Origin này.';
-                return callback(new Error(msg), false);
-            }
-            return callback(null, true);
-        },
+        origin: "*", // Cho phép tất cả các nguồn gốc, Render sẽ xử lý bảo mật ở lớp ngoài
         methods: ["GET", "POST"]
-    }
+    },
+    // [THÊM MỚI] Đảm bảo polling và websocket đều được cho phép
+    transports: ['polling', 'websocket'] 
 });
+
 
 // --- 3. Cấu hình Express ---
 app.use(express.static(path.join(__dirname, 'public')));
@@ -52,8 +42,7 @@ socketHandler.initialize(io, rooms);
 
 // --- 6. Lắng nghe trên Port ---
 const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0'; // QUAN TRỌNG: Thêm dòng này
-
-server.listen(PORT, HOST, () => {
-    console.log(`[SERVER] Máy chủ đang lắng nghe trên ${HOST}:${PORT}`);
+// [SỬA LỖI] Xóa HOST = '0.0.0.0'. Express và Render sẽ tự xử lý điều này.
+server.listen(PORT, () => {
+    console.log(`[SERVER] Máy chủ đang lắng nghe trên port ${PORT}`);
 });

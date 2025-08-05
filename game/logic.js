@@ -185,8 +185,7 @@ function startNewRound(roomCode, rooms, io) {
 
     gs.currentRound++;
     gs.phase = 'exploration';
-    gs.roundData = { decrees: [], coordinationVotes: [], actedInTwilight: new Set(), failedAccusationsThisRound: 0 };
-    
+      gs.roundData = { decrees: [], coordinationVotes: [], actedInTwilight: new Set(), failedAccusationsThisRound: 0, linkedPlayers: [] };
     gs.players.forEach(p => {
         if (!p.isDefeated) {
             p.chosenAction = null;
@@ -851,14 +850,45 @@ let messageForRoom;
             }
             break;
 		case 'MIMIC':
-             // [NOTE] Logic kỹ năng của Kẻ Bắt Chước rất phức tạp.
-             // Nó cần "dùng ké" kỹ năng của người bị sao chép.
-             // Hiện tại, logic này chưa được cài đặt.
-             io.to(player.id).emit('privateInfo', { title: 'Chưa Cài Đặt', text: 'Kỹ năng này sẽ được phát triển trong tương lai!' });
-             // Hoàn lại chi phí vì kỹ năng chưa có tác dụng
-             player.score += cost;
-             if (player.skillUses > 0) player.skillUses--;
-             io.to(roomCode).emit('updatePlayerCards', [{ id: player.id, score: player.score }]);
+            // [SỬA ĐỔI TOÀN BỘ CASE NÀY]
+            const mimicTarget = gs.players.find(p => p.id === player.mimicTargetId);
+            if (!mimicTarget) {
+                io.to(player.id).emit('privateInfo', { title: 'Thất Bại', text: 'Không tìm thấy mục tiêu để bắt chước!' });
+                // Hoàn lại chi phí vì không thể thực hiện
+                player.score += cost;
+                if (player.skillUses > 0) player.skillUses--;
+                io.to(roomCode).emit('updatePlayerCards', [{ id: player.id, score: player.score }]);
+                return; // Dừng thực thi
+            }
+
+            const targetRole = ROLES[mimicTarget.roleId];
+            if (!targetRole.hasActiveSkill) {
+                io.to(player.id).emit('privateInfo', { title: 'Thất Bại', text: `${mimicTarget.name} (${targetRole.name}) không có kỹ năng kích hoạt để bạn bắt chước.` });
+                // Hoàn lại chi phí
+                player.score += cost;
+                if (player.skillUses > 0) player.skillUses--;
+                io.to(roomCode).emit('updatePlayerCards', [{ id: player.id, score: player.score }]);
+                return;
+            }
+
+            // Ghi đè tạm thời payload để dùng ké
+            // Người chơi Mimic sẽ chọn mục tiêu cho kỹ năng mà họ mượn
+            const borrowedPayload = payload; 
+            
+            io.to(roomCode).emit('logMessage', { type: 'info', message: `🎭 **${player.name}** đang bắt chước kỹ năng của **${targetRole.name}**!` });
+            
+            // "Mượn" logic của vai trò mục tiêu
+            // Lưu ý: Biến 'player' ở đây vẫn là người chơi Mimic
+            const originalRoleId = player.roleId;
+            player.roleId = mimicTarget.roleId; // Tạm thời đổi vai trò để vào đúng case
+            
+            // Gọi lại chính hàm này với payload đã có
+            // Điều này tránh việc phải viết lại logic của tất cả các kỹ năng khác
+            handleUseSkill(socket, roomCode, borrowedPayload, rooms, io);
+
+            // Khôi phục lại vai trò gốc sau khi thực hiện xong
+            player.roleId = originalRoleId; 
+            return;
             break;
 			// CÁC CASE KÍCH HOẠT ĐỂ XỬ LÝ CUỐI VÒNG
         case 'MAGNATE':
