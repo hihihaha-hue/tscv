@@ -1,8 +1,12 @@
 /*======================================================================
-// THỢ SĂN CỔ VẬT - STYLESHEET (PHIÊN BẢN THẨM MỸ - DI CẢO NGÔI ĐỀN)
+// THỢ SĂN CỔ VẬT - STYLESHEET TOÀN DIỆN (PHIÊN BẢN 2.6)
+// 
+// Mô tả: Tái cấu trúc layout theo ý tưởng mới.
+// - Giữa: Log sự kiện, Người chơi, Nút hành động.
+// - Phải: BXH, Vai trò, Thông tin Giai đoạn.
 //======================================================================*/
 
-/* --- I. Cài Đặt Chung & Biến Màu --- */
+/* --- I. Cài Đặt Chung & Biến Màu (Giữ nguyên) --- */
 :root {
     --bg-dark: #1a202c;
     --bg-medium: #2d3748;
@@ -14,309 +18,228 @@
     --accent-red: #e53e3e;
     --success-green: #48bb78;
     --neutral-gray: #718096;
-    --font-main: "Playfair Display", serif;
+    --font-main: 'Lora', serif;
+    --font-alt: 'Roboto', sans-serif;
+    --bg-parchment: #fdf6e3; 
+    --text-dark-ink: #3a2d24; 
+    --border-dark-wood: #5a3d2b; 
+    --border-soft: #d1c7b3;
+    --shadow-soft: 0 4px 8px rgba(0,0,0,0.2);
+    --shadow-deep: 0 8px 24px rgba(0,0,0,0.4);
 }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
+/* --- II. Typography & Các Thành Phần Chung (Giữ nguyên) --- */
 body {
+    font-family: var(--font-alt);
+    color: var(--text-light);
     background-color: var(--bg-dark);
     background-image: url('/assets/images/background.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    color: var(--text-light);
-    font-family: var(--font-main);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    padding: 20px;
-    overflow: hidden;
+    background-size: cover; background-position: center; background-attachment: fixed;
+    display: flex; justify-content: center; align-items: center;
+    height: 100vh; margin: 0; padding: 20px; overflow: hidden;
 }
-.container {
-    background-color: rgba(26, 32, 44, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-    width: 100%;
-    max-width: 1600px;
-    text-align: center;
-    border: 1px solid var(--bg-light);
-    height: 100%;
-    max-height: calc(100vh - 40px);
-    display: flex;
-    flex-direction: column;
-}
-
-/* --- II. Typography & Các Thành Phần Chung --- */
+button, input { font-family: var(--font-alt); }
+h1, h2, h3, h4 { font-family: var(--font-main); }
+p, li, span, div, a { font-family: var(--font-alt); line-height: 1.6; }
+.container { background-color: rgba(26, 32, 44, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 20px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); width: 100%; max-width: 1600px; text-align: center; border: 1px solid var(--bg-light); height: 100%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; }
 h1 { color: var(--primary-gold); font-size: 2.8em; margin: 0 0 20px 0; }
 h2 { color: var(--text-light); border-bottom: 1px solid var(--bg-light); padding-bottom: 8px; margin: 0 0 10px 0; font-size: 1.6em; }
 h3 { color: var(--text-light); margin-top: 0; margin-bottom: 10px; font-size: 1.2em; }
 hr { border: none; border-top: 1px solid var(--bg-light); margin: 20px 0; }
-
-button {
-    cursor: pointer; transition: all 0.2s ease-out; border: 1px solid var(--text-medium);
-    border-radius: 6px; font-size: 1em; padding: 10px 18px; font-weight: bold;
-    font-family: inherit; background-color: var(--bg-light); color: var(--text-light);
-}
-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-color: var(--primary-gold); }
+button { cursor: pointer; transition: all 0.2s ease-out; border: 1px solid var(--text-medium); border-radius: 6px; font-size: 1em; padding: 10px 18px; font-weight: bold; background-color: var(--bg-light); }
+button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.3), 0 0 15px var(--primary-gold); border-color: var(--primary-gold); }
 button:disabled { background-color: #2d3748 !important; color: #718096 !important; cursor: not-allowed; }
-input[type="text"] {
-    width: 100%; margin: 10px 0; padding: 12px; font-size: 1.1em;
-    background-color: rgba(0,0,0,0.05); color: var(--text-dark-ink);
-    border: 2px solid var(--border-soft); border-radius: 5px; text-align: center;
-    font-family: inherit; transition: all 0.3s ease;
-}
-input[type="text"]:focus {
-    outline: none; border-color: var(--primary-gold);
-    box-shadow: 0 0 8px rgba(199, 156, 63, 0.5); background-color: rgba(199, 156, 63, 0.1);
-}
+input[type="text"] { width: 100%; margin: 10px 0; padding: 12px; font-size: 1.1em; background-color: rgba(45, 55, 72, 0.7); color: var(--text-light); border: 1px solid var(--bg-light); border-radius: 5px; text-align: center; transition: all 0.3s ease; }
+input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box-shadow: 0 0 8px rgba(246, 224, 94, 0.5); }
 
-/* --- III. Bố Cục Màn Hình Chính & Phòng Chờ --- */
+/* --- III. Bố Cục Màn Hình Chính & Phòng Chờ (Giữ nguyên) --- */
 #home-screen, #room-screen { animation: contentFadeIn 0.6s ease-out; }
 @keyframes contentFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-
-#player-list {
-    list-style-type: none; padding: 10px; margin: 20px auto; max-width: 600px;
-    max-height: 50vh; overflow-y: auto; border: 1px solid var(--border-soft); border-radius: 8px;
-}
-#player-list li {
-    background-color: rgba(0, 0, 0, 0.04); margin-bottom: 8px; padding: 12px 15px; border-radius: 6px;
-    border-left: 5px solid var(--primary-gold); display: flex; justify-content: space-between; align-items: center;
-    font-size: 1.1em;
-}
+#player-list { list-style-type: none; padding: 10px; margin: 20px auto; max-width: 600px; max-height: 50vh; overflow-y: auto; background-color: rgba(0,0,0,0.2); border-radius: 8px; }
+#player-list li { background-color: var(--bg-medium); margin-bottom: 8px; padding: 12px 15px; border-radius: 6px; border-left: 5px solid var(--primary-gold); display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; }
 .kick-btn { background-color: var(--accent-red-blood); color: white; padding: 5px 10px; font-size: 0.8em; margin-left: 15px; border: none; }
 
-/* --- IV. Bố Cục Màn Hình Game & Panels --- */
+/*======================================================================*/
+/* IV. BỐ CỤC MÀN HÌNH GAME - DESKTOP (Layout Mới)                      */
+/*======================================================================*/
 #game-screen {
     display: grid;
-    grid-template-columns: 320px 1fr 350px;
+    grid-template-columns: 320px 1fr 350px; /* Vẫn giữ cấu trúc 3 cột */
+    grid-template-rows: minmax(0, 1fr); 
     gap: 15px;
     width: 100%;
     flex-grow: 1;
-    overflow: hidden;
+    overflow: hidden; 
 }
 
+.game-panel { background-color: rgba(45, 55, 72, 0.85); border: 1px solid var(--bg-light); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; }
+
+/* Cấu trúc chung cho các cột */
 #left-column, #center-column, #right-column {
-    display: flex;
-    flex-direction: column;
+    display: flex; 
+    flex-direction: column; 
     gap: 15px;
-    min-height: 0;
-    overflow: hidden;
+    min-height: 0; 
 }
 
-.game-panel {
-    background-color: rgba(45, 55, 72, 0.85);
-    border: 1px solid var(--bg-light);
-    border-radius: 8px;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-}
-
-@keyframes fadeInPanel { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-/* --- V. Cấu Trúc Co Giãn Của Các Cột --- */
-#role-display, #artifact-display {
-    flex-shrink: 0;
-}
-#chat-container {
-    flex-grow: 1;
-    min-height: 0;
-}
-#chat-messages {
-    flex-grow: 1;
-    overflow-y: auto;
-    background: rgba(0,0,0,0.2);
-    border-radius: 4px;
-    padding: 8px;
-    display: flex;
-    flex-direction: column-reverse;
-}
-#chat-input-area {
-    margin-top: 10px;
-    flex-shrink: 0;
-    display: flex;
-    gap: 5px;
-}
+/* Cột Trái: Không thay đổi */
+#role-display { flex: 4 1 0; min-height: 0; overflow-y: auto; }
+#artifact-display { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+#chat-container { flex: 2 1 0; min-height: 0; display: flex; flex-direction: column; }
+#chat-messages { flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 8px; display: flex; flex-direction: column; }
+.chat-message { margin-top: auto; }
+#chat-input-area { flex-shrink: 0; margin-top: 10px; display: flex; gap: 5px; }
 #chat-input { width: 100%; margin: 0; }
 #send-chat-btn { width: auto; }
-/* --- VI. Các Thành Phần Giao Diện Chi Tiết --- */
-#phase-info { flex-shrink: 0; }
-#phase-info #timer-display { font-size: 3em; color: var(--primary-gold); font-weight: bold; }
 
-#players-container {
-    flex-grow: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    grid-auto-rows: min-content;
-    gap: 15px;
-    padding: 10px;
+/* [NEW LAYOUT] Cột Giữa: Log sự kiện, Người chơi, Hành động */
+#message-area {
+    flex: 2 1 0; /* Cho phép co giãn, chiếm 2 phần không gian */
+    min-height: 150px;
     overflow-y: auto;
 }
-.player-avatar-card {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; gap: 8px; position: relative; transition: transform 0.2s ease;
+.log-message { margin-top: auto; }
+#players-container {
+    flex: 3 1 0; /* Là khu vực chính, chiếm 3 phần không gian */
+    min-height: 0;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 15px;
+    padding: 15px;
 }
-.player-avatar-card:hover { transform: scale(1.05); }
-
-.player-avatar-card .avatar {
-    width: 80px; height: 80px; border-radius: 50%; background-color: #d1c7b3;
-    border: 3px solid #8a7a5f; box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
-    display: flex; align-items: center; justify-content: center; font-size: 2.5em; font-weight: bold;
-    transition: all 0.3s ease; color: var(--text-dark-ink);
+#action-container {
+    flex-shrink: 0; /* Kích thước cố định ở dưới cùng */
+    min-height: 140px;
+    justify-content: center;
 }
-.player-avatar-card .avatar.is-self {
-    border-color: var(--primary-gold); box-shadow: 0 0 15px var(--primary-gold), inset 0 0 10px rgba(0,0,0,0.3);
+
+/* [NEW LAYOUT] Cột Phải: BXH, Vai trò, Giai đoạn */
+#leaderboard {
+    flex-shrink: 0;
 }
-.player-avatar-card.is-defeated .avatar { filter: grayscale(100%) opacity(0.6); }
-.player-avatar-card.has-chosen .avatar::after {
-    content: '✔'; position: absolute; bottom: 0; right: 0; background-color: var(--success-green-moss);
-    color: white; border-radius: 50%; width: 25px; height: 25px; display: flex;
-    justify-content: center; align-items: center; font-size: 16px; border: 2px solid var(--bg-parchment);
-    animation: popIn 0.3s ease-out;
+#roles-in-game {
+    flex-grow: 1; /* Chiếm hết không gian còn lại ở giữa */
+    min-height: 0;
+    overflow-y: auto;
 }
-@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-
-#action-container { background-color: rgba(0,0,0,0.07); justify-content: center; align-items: center; }
-#phase-description { font-size: 1.1em; margin-bottom: 15px; }
-.action-buttons-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
-.action-buttons-grid button { border-width: 3px; padding: 15px 10px; font-size: 1.1em; }
-.choice-buttons.loyal { border-color: var(--success-green-moss); }
-.choice-buttons.loyal:hover { background-color: var(--success-green-moss); color: white; }
-.choice-buttons.corrupt { border-color: var(--accent-red-blood); }
-.choice-buttons.corrupt:hover { background-color: var(--accent-red-blood); color: white; }
-.choice-buttons.blank { border-color: var(--accent-blue-royal); }
-.choice-buttons.blank:hover { background-color: var(--accent-blue-royal); color: white; }
-
-
-#leaderboard, #roles-in-game, #action-container {
+#phase-info {
     flex-shrink: 0;
 }
 
-#leaderboard-list, #roles-in-game-list {
-    max-height: 150px;
-    overflow-y: auto;
-    padding-right: 5px;
-    list-style: none;
-    padding-left: 5px;
-    margin: 0;
-}
+/* --- VI. Các Thành Phần Giao Diện Chi Tiết (Giữ nguyên) --- */
+#phase-info #timer-display { font-size: 3em; color: var(--primary-gold); font-weight: bold; }
+.player-avatar-card { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; position: relative; transition: transform 0.2s ease; }
+.player-avatar-card:hover { transform: scale(1.05); }
+.player-avatar-card .avatar { width: 80px; height: 80px; border-radius: 50%; background-color: var(--bg-light); border: 3px solid var(--text-medium); box-shadow: inset 0 0 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 2.5em; font-weight: bold; transition: all 0.3s ease; color: var(--text-light); }
+.player-avatar-card .avatar.is-self { border-color: var(--primary-gold); box-shadow: 0 0 15px var(--primary-gold), inset 0 0 10px rgba(0,0,0,0.3); }
+.player-avatar-card.is-defeated .avatar { filter: grayscale(100%) opacity(0.6); }
+.player-avatar-card.has-chosen .avatar::after { content: '✔'; position: absolute; bottom: 0; right: 0; background-color: var(--success-green); color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; justify-content: center; align-items: center; font-size: 16px; border: 2px solid var(--bg-dark); animation: popIn 0.3s ease-out; }
+@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+#action-container { background-color: rgba(0,0,0,0.1); align-items: center; }
+#phase-description { font-size: 1.1em; margin-bottom: 15px; min-height: 3.5em; display: flex; align-items: center; justify-content: center; text-align: center; }
+.action-buttons-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.action-buttons-grid button { border-width: 2px; padding: 15px 10px; font-size: 1.1em; }
+.choice-buttons.loyal { border-color: var(--success-green); }
+.choice-buttons.loyal:hover { background-color: var(--success-green); color: white; }
+.choice-buttons.corrupt { border-color: var(--accent-red); }
+.choice-buttons.corrupt:hover { background-color: var(--accent-red); color: white; }
+.choice-buttons.blank { border-color: var(--accent-blue); }
+.choice-buttons.blank:hover { background-color: var(--accent-blue); color: white; }
+#leaderboard-list { list-style: none; padding-left: 0; margin: 0; max-height: 150px; overflow-y: auto; }
+#leaderboard-list li { display: flex; justify-content: space-between; align-items: center; padding: 4px 2px; }
+#roles-in-game-list { max-height: 150px; overflow-y: auto; padding-right: 5px; list-style: none; padding-left: 0; margin: 0; }
+.log-message { padding: 2px 0; font-size: 0.9em; }
 
-.action-buttons-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    width: 100%;
-}
-
-#message-area {
-    flex-grow: 1;
-    min-height: 50px;
-    overflow-y: auto;
-    background: rgba(0,0,0,0.2);
-    padding: 10px;
-    display: flex;
-    flex-direction: column-reverse;
-}
-.log-message { margin: 2px 0; }
 
 /* --- VII. Pop-up & Overlays --- */
-#night-transition-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(10, 10, 15, 0.95);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    
-    /* Trạng thái mặc định: Ẩn đi */
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none; /* Không cho phép click xuyên qua */
-    
-    /* Hiệu ứng chuyển động */
-    transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out;
-}
-
-#night-transition-overlay.active {
-    /* Trạng thái kích hoạt: Hiện ra */
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-}
-
-#night-transition-overlay h2 {
-    color: var(--primary-gold);
-    font-size: 4em;
-    font-weight: bold;
-    text-shadow: 0 0 15px rgba(246, 224, 94, 0.5);
-    
-    /* Hiệu ứng cho chữ */
-    transform: scale(0.9);
-    opacity: 0;
-    transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transition-delay: 0.2s; /* Chờ background hiện ra rồi mới hiện chữ */
-}
-
-#night-transition-overlay.active h2 {
-    transform: scale(1);
-    opacity: 1;
-}
-
-#twilight-overlay { background-color: rgba(0, 0, 0, 0.88); backdrop-filter: blur(5px); }
+#twilight-overlay { background-color: rgba(0, 0, 0, 0.88); backdrop-filter: blur(5px); display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; justify-content: center; align-items: center;}
 #twilight-meeting-ui {
-    background: var(--bg-parchment) url('/assets/images/parchment-texture.png');
-    color: var(--text-dark-ink); border: 4px solid var(--border-dark-wood); box-shadow: var(--shadow-deep);
+    background-color: var(--bg-medium); color: var(--text-light); border: 2px solid var(--primary-gold); box-shadow: var(--shadow-deep);
+    width: 90%; max-width: 500px; border-radius: 8px; display: flex; flex-direction: column;
 }
-.twilight-header { border-bottom-color: var(--border-soft); }
-.twilight-header h2 { color: var(--text-dark-ink); border: none; }
-.close-btn { color: var(--text-dark-ink); }
-.twilight-player-item:hover { background-color: rgba(0,0,0,0.08); }
-.twilight-footer { border-top-color: var(--border-soft); }
+.twilight-header { padding: 15px; border-bottom: 1px solid var(--bg-light); display: flex; justify-content: space-between; align-items: center;}
+.twilight-header h2 { color: var(--text-light); border: none; margin: 0; }
+.close-btn { background: none; border: none; font-size: 2em; color: var(--text-light); cursor: pointer; }
+#twilight-player-list { list-style: none; padding: 10px; margin: 0; max-height: 50vh; overflow-y: auto; }
+.twilight-player-item { display: flex; align-items: center; padding: 10px; border-radius: 4px; transition: background-color 0.2s; }
+.twilight-player-item:hover { background-color: var(--bg-light); }
+.twilight-player-item .player-name { flex-grow: 1; margin: 0 15px; }
+.twilight-player-item .accuse-btn { background-color: var(--accent-red-blood); }
+.twilight-footer { padding: 15px; border-top: 1px solid var(--bg-light); text-align: center; }
 
 #rulebook-btn, #history-log-btn, #music-toggle-btn {
-    background-color: var(--text-dark-ink); color: var(--bg-parchment);
-    border: 2px solid var(--bg-parchment); width: 50px; height: 50px;
-    border-radius: 50%; box-shadow: var(--shadow-soft);
-    position: fixed; z-index: 1001;
+    position: fixed; z-index: 1001; width: 50px; height: 50px; border-radius: 50%;
+    background-color: rgba(45, 55, 72, 0.8); border: 1px solid var(--bg-light);
+    box-shadow: var(--shadow-soft); font-size: 1.5em; display: flex; justify-content: center; align-items: center;
 }
 #rulebook-btn { top: 20px; right: 20px; }
 #history-log-btn { top: 80px; right: 20px; }
 #music-toggle-btn { top: 20px; left: 20px; }
 
-/* Sách Luật */
+
+/* --- VIII. Sách Luật (Rulebook) & Tab --- */
 .swal2-popup.rulebook-popup {
-    background: var(--bg-parchment) url('/assets/images/parchment-texture.png') !important;
-    color: var(--text-dark-ink) !important; border: 4px solid var(--border-dark-wood);
+    background: transparent !important;
+    padding: 0 !important;
 }
-.rulebook-title { color: var(--text-dark-ink) !important; border-bottom-color: var(--border-soft); }
-.rulebook-tab { color: rgba(0,0,0,0.5); border: none; }
+.swal2-html-container { margin: 0 !important; }
+.rulebook-popup .rulebook-container {
+    background: var(--bg-parchment) url('/assets/images/parchment-texture.png');
+    color: var(--text-dark-ink);
+    font-family: var(--font-main);
+    border-radius: 8px;
+    padding: 20px;
+    border: 4px solid var(--border-dark-wood);
+}
+.rulebook-popup h2, .rulebook-popup h3, .rulebook-popup h4,
+.rulebook-popup p, .rulebook-popup li, .rulebook-popup strong {
+    font-family: inherit !important;
+    color: var(--text-dark-ink) !important;
+}
+.rulebook-popup .rulebook-title { border-bottom-color: var(--border-soft); }
+.rulebook-page { display: none; }
+.rulebook-page.active { display: block; animation: contentFadeIn 0.5s ease-in-out; }
+.rulebook-tab { color: rgba(0,0,0,0.6); border: none; border-bottom: 3px solid transparent; background: none; padding: 10px 15px; font-family: var(--font-alt); font-weight: bold;}
 .rulebook-tab:hover { color: var(--text-dark-ink); }
 .rulebook-tab.active { color: var(--primary-gold); border-bottom: 3px solid var(--primary-gold); }
-.rulebook-page.active { color: var(--text-dark-ink); }
+
 
 /* --- IX. Thanh Cuộn Tùy Chỉnh --- */
 * { scrollbar-width: thin; scrollbar-color: var(--border-dark-wood) transparent; }
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-::-webkit-scrollbar-thumb { background: #8a7a5f; border-radius: 5px; border: 2px solid var(--bg-parchment); }
-::-webkit-scrollbar-thumb:hover { background: var(--border-dark-wood); }
+::-webkit-scrollbar-thumb { background: var(--border-dark-wood); border-radius: 5px; border: 2px solid transparent; }
+::-webkit-scrollbar-thumb:hover { background: #8a7a5f; }
 
-/* --- X. Thiết Kế Đáp Ứng (Responsive) --- */
+
+/* --- X. Các Hiệu Ứng Và Animation Nâng Cao --- */
+#role-display { perspective: 1000px; }
+.role-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
+#role-display.is-flipped .role-card-inner { transform: rotateY(180deg); }
+.role-card-front, .role-card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; border-radius: 8px; padding: 15px; background-color: rgba(45, 55, 72, 0.95); border: 1px solid var(--bg-light); display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.role-card-back { transform: rotateY(180deg); align-items: flex-start; }
+
+@keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(246, 224, 94, 0.7); } 70% { box-shadow: 0 0 10px 20px rgba(246, 224, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(246, 224, 94, 0); } }
+.player-avatar-card.skill-activated .avatar { animation: pulse-gold 1.5s ease-out; }
+
+.score-change-popup { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); font-size: 2em; font-weight: bold; text-shadow: 0 0 5px #000; animation: float-up 2s ease-out forwards; pointer-events: none; }
+@keyframes float-up { 0% { transform: translate(-50%, 0); opacity: 1; } 100% { transform: translate(-50%, -80px); opacity: 0; } }
+
+#night-transition-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(10, 10, 15, 0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out; }
+#night-transition-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+#night-transition-overlay h2 { font-family: var(--font-main); color: var(--primary-gold); font-size: 4em; font-weight: bold; text-shadow: 0 0 15px rgba(246, 224, 94, 0.5); transform: scale(0.9); opacity: 0; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transition-delay: 0.2s; }
+#night-transition-overlay.active h2 { transform: scale(1); opacity: 1; }
+
+
+/* --- XI. Thiết Kế Đáp Ứng (Responsive) (Giữ nguyên) --- */
 @media (max-width: 1200px) {
     #game-screen {
         grid-template-columns: minmax(280px, 1.5fr) 4fr;
+        grid-template-rows: 1fr auto;
         grid-template-areas: "left main" "right main";
     }
     #left-column { grid-area: left; }
@@ -327,8 +250,32 @@ input[type="text"]:focus {
 @media (max-width: 1024px) {
     body { padding: 0; overflow-y: auto; }
     .container { height: auto; min-height: 100vh; padding: 10px; border-radius: 0; border: none; }
-    #game-screen { display: flex; flex-direction: column; gap: 15px; }
-    .game-panel { min-height: 150px; }
-    #players-container.players-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); max-height: 30vh; }
-    .player-avatar-card .avatar { width: 60px; height: 60px; }
+    
+    #game-screen {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    #left-column { order: 3; }
+    #center-column { order: 1; }
+    #right-column { order: 2; }
+
+    #right-column {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    #players-container { order: 1; min-height: 200px; }
+    #action-container { order: 2; }
+    #leaderboard { order: 3; }
+    #roles-in-game { order: 4; }
+    #phase-info { order: 5; } /* Đẩy phase-info xuống cuối cột phải trên mobile */
+
+    .game-panel { min-height: auto; }
+    #players-container { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+    .player-avatar-card .avatar { width: 60px; height: 60px; font-size: 2em; }
+    .player-avatar-card .player-name { font-size: 0.9em; }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.4em; }
 }

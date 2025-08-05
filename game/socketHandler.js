@@ -208,6 +208,7 @@ function initialize(io, rooms) {
                             room.hostId = newHost.id;
                             console.log(`[Host Change] Host mới là ${newHost.name}`);
                             io.to(roomCode).emit('logMessage', { type: 'info', message: `Do Trưởng Đoàn đã rời đi, ${newHost.name} giờ là Trưởng Đoàn mới.` });
+							io.to(roomCode).emit('playerUsedSkill', { playerId: player.id });
                             io.to(roomCode).emit('hostChanged', newHost.id);
                         } else {
                             const humanPlayersLeft = room.players.filter(p => !p.isBot && !p.disconnected);

@@ -7,10 +7,14 @@
     
     <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png">
     
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <!-- [FIX] Thay thế phông chữ để hỗ trợ đầy đủ tiếng Việt -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="/style.css">
 </head>
+<script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
 <body>
     <button id="music-toggle-btn">🎵</button>
     
@@ -40,70 +44,76 @@
 
         <!-- MÀN HÌNH CHƠI GAME -->
        <div id="game-screen" style="display: none;">
-            <!-- CỘT TRÁI: Dành cho chat hoặc thông tin phụ -->
-            <div id="left-column">
-                <div id="role-display" class="game-panel">
-                    <!-- Nội dung vai trò sẽ được JS chèn vào đây -->
-                </div>
-                <div id="artifact-display" class="game-panel" style="display: none;">
-                    <h4>Cổ Vật Của Bạn:</h4>
-                    <div id="artifact-info" style="display: none;">
-                        <strong id="artifact-name"></strong>
-                        <p id="artifact-description"></p>
-                        <button id="use-artifact-btn" style="display: none;">Kích hoạt</button>
-                    </div>
-                    <p id="no-artifact-message">Bạn chưa có cổ vật nào.</p>
-                </div>
-                <div id="chat-container" class="game-panel">
-                    <div id="chat-messages"></div>
-                    <div id="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
-                        <button id="send-chat-btn">Gửi</button>
-                    </div>
-                </div>
+    <!-- CỘT TRÁI: Giữ nguyên không đổi -->
+    <div id="left-column">
+        <div id="role-display" class="game-panel">
+            <!-- Nội dung vai trò sẽ được JS chèn vào đây -->
+        </div>
+        <div id="artifact-display" class="game-panel" style="display: none;">
+            <h4>Cổ Vật Của Bạn:</h4>
+            <div id="artifact-info" style="display: none;">
+                <strong id="artifact-name"></strong>
+                <p id="artifact-description"></p>
+                <button id="use-artifact-btn" style="display: none;">Kích hoạt</button>
             </div>
-
-            <!-- CỘT GIỮA: Khu vực chính hiển thị người chơi và giai đoạn -->
-            <div id="center-column">
-                <div id="phase-info" class="game-panel">
-                    <h2 id="phase-title"></h2>
-                    <div id="timer-display"></div>
-                </div>
-                <div id="players-container" class="players-grid">
-                    <!-- Các avatar người chơi sẽ được JS chèn vào đây -->
-                </div>
-            </div>
-
-            <!-- CỘT PHẢI: Bảng xếp hạng, Nút hành động, và Log game -->
-           <div id="right-column">
-            <div id="leaderboard" class="game-panel">
-                <h3>Bảng Xếp Hạng</h3>
-                <ul id="leaderboard-list"></ul>
-            </div>
-            
-            <div id="roles-in-game" class="game-panel scrollable-panel">
-                <h4>Các Vai Trò Trong Ngày:</h4>
-                <ul id="roles-in-game-list">
-                    <!-- JS sẽ điền các vai trò của ván đấu vào đây -->
-                </ul>
-            </div>
-            
-            <div id="action-container" class="game-panel">
-                    <p id="phase-description"></p>
-                    <div id="choice-buttons-container" class="action-buttons-grid" style="display: none;">
-                        <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
-                        <button class="choice-buttons corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
-                        <button class="choice-buttons blank" data-action="Quan Sát">👁️ Quan Sát</button>
-                    </div>
-                    <button id="skip-coordination-btn" class="skip-button" style="display: none;">Hành động một mình</button>
-                    <button id="next-day-btn" class="next-day-btn" style="display: none;">Bắt Đầu Ngày Tiếp Theo</button>
-                </div>
-                <div id="message-area" class="game-panel">
-                     <!-- Log game sẽ được JS chèn vào đây -->
-                </div>
+            <p id="no-artifact-message">Bạn chưa có cổ vật nào.</p>
+        </div>
+        <div id="chat-container" class="game-panel">
+            <div id="chat-messages"></div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." maxlength="200">
+                <button id="send-chat-btn">Gửi</button>
             </div>
         </div>
     </div>
+
+    <!-- [LAYOUT RESTRUCTURE] CỘT GIỮA: Bảng thông báo, Người chơi, và Hành động -->
+    <div id="center-column">
+        <!-- Bảng thông báo sự kiện (log game) được chuyển lên đây -->
+        <div id="message-area" class="game-panel">
+             <!-- Log game sẽ được JS chèn vào đây -->
+        </div>
+        
+        <!-- Khu vực hiển thị người chơi -->
+        <div id="players-container" class="players-grid game-panel">
+            <!-- Các avatar người chơi sẽ được JS chèn vào đây -->
+        </div>
+        
+        <!-- Khu vực hành động được chuyển xuống dưới cùng -->
+        <div id="action-container" class="game-panel">
+            <p id="phase-description"></p>
+            <div id="choice-buttons-container" class="action-buttons-grid" style="display: none;">
+                <button class="choice-buttons loyal" data-action="Giải Mã">📜 Giải Mã</button>
+                <button class="choice-buttons corrupt" data-action="Phá Hoại">💣 Phá Hoại</button>
+                <button class="choice-buttons blank" data-action="Quan Sát">👁️ Quan Sát</button>
+            </div>
+            <button id="skip-coordination-btn" class="skip-button" style="display: none;">Hành động một mình</button>
+            <button id="open-twilight-btn" style="display: none;">Mở Bảng Vạch Trần</button>
+            <button id="next-day-btn" class="next-day-btn" style="display: none;">Bắt Đầu Ngày Tiếp Theo</button>
+        </div>
+    </div>
+
+    <!-- [LAYOUT RESTRUCTURE] CỘT PHẢI: Bảng xếp hạng, Vai trò, và Thông tin Giai đoạn -->
+    <div id="right-column">
+        <div id="leaderboard" class="game-panel">
+            <h3>Bảng Xếp Hạng</h3>
+            <ul id="leaderboard-list"></ul>
+        </div>
+        
+        <div id="roles-in-game" class="game-panel scrollable-panel">
+            <h4>Các Vai Trò Trong Ngày:</h4>
+            <ul id="roles-in-game-list">
+                <!-- JS sẽ điền các vai trò của ván đấu vào đây -->
+            </ul>
+        </div>
+        
+        <!-- Thông tin giai đoạn được chuyển xuống đây -->
+        <div id="phase-info" class="game-panel">
+            <h2 id="phase-title"></h2>
+            <div id="timer-display"></div>
+        </div>
+    </div>
+</div>
 
     <!-- OVERLAY HOÀNG HÔN -->
     <div id="twilight-overlay" style="display: none;">
@@ -119,7 +129,7 @@
         </div>
     </div>
 
-    <!-- OVERLAY CHUYỂN CẢNH -->
+    <!-- [BUG FIX] OVERLAY CHUYỂN CẢNH -->
     <div id="night-transition-overlay"><h2 id="night-transition-text"></h2></div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -128,25 +138,23 @@
     <script src="/js/network.js"></script>
     <script src="/client.js"></script>
 
+  <!-- [UPGRADE] Sử dụng template để tách HTML ra khỏi JS, giúp mã dễ bảo trì hơn -->
   <template id="rulebook-template">
     <div class="rulebook-container">
         <h2 class="rulebook-title">Di Cảo Của Ngôi Đền</h2>
-        
         <div class="rulebook-tabs">
             <button class="rulebook-tab active" data-target="page-foundation">Nền Tảng</button>
             <button class="rulebook-tab" data-target="page-mechanics">Cơ Chế</button>
             <button class="rulebook-tab" data-target="page-scoring">Phán Quyết</button>
-            <button class="rulebook-tab" data-target="page-artifacts">Cổ Vật</button> 
-            <button class="rulebook-tab" data-target="page-roles-overview">Tổng Quan Vai Trò</button>
-            <button class="rulebook-tab" data-target="page-decrees-overview">Tổng Quan Tiếng Vọng</button>
+            <button class="rulebook-tab" data-target="page-artifacts">Cổ Vật</button>
+            <button class="rulebook-tab" data-target="page-roles-overview">Vai Trò</button>
+            <button class="rulebook-tab" data-target="page-decrees-overview">Tiếng Vọng</button>
         </div>
-
         <div class="rulebook-pages">
-            <!-- Trang 1: Nền Tảng -->
+            <!-- Page 1: Foundation -->
             <div id="page-foundation" class="rulebook-page active" style="text-align: left; line-height: 1.7;">
                 <h3>Mục Đích & Nền Tảng</h3>
                 <p><i>"Nơi đây không tồn tại thiện ác, chỉ có tham vọng. Ngươi không thuộc về một phe phái nào; ngươi là một cá nhân theo đuổi mục đích của riêng mình."</i></p>
-                
                 <h4>Hai Con Đường Dẫn Đến Vinh Quang:</h4>
                 <ul>
                     <li><strong>Thắng Bằng Tiến Độ:</strong> Tích lũy đủ số điểm Tiến Độ mà ngôi đền yêu cầu (15, 20, hoặc 25).</li>
@@ -154,87 +162,51 @@
                 </ul>
                 <p><strong>Thất Bại:</strong> Nếu Tiến Độ của ngươi rơi xuống mốc âm đối nghịch (-15, -20, hoặc -25), linh hồn ngươi sẽ bị ngôi đền nuốt chửng.</p>
             </div>
-
-            <!-- Trang 2: Cơ Chế Mấu Chốt -->
+            <!-- Page 2: Mechanics -->
             <div id="page-mechanics" class="rulebook-page" style="text-align: left; line-height: 1.7;">
                 <h3>Hành Động & Tương Tác</h3>
                 <h4>Hành Động Bí Mật (Giai Đoạn Thám Hiểm):</h4>
                 <p>Mỗi buổi sáng, ngươi phải chọn 1 trong 3 hành động. Mỗi hành động đều có rủi ro và phần thưởng riêng:</p>
                 <ul>
-                    <li><strong>📜 Giải Mã:</strong> Hành động này đóng góp phiếu vào phe "Ánh Sáng".
-                        <ul>
-                            <li><em>Phần thưởng:</em> 30% cơ hội +1 Tiến Độ, 10% cơ hội tìm thấy một <strong>Cổ Vật Thám Hiểm</strong>.</li>
-                        </ul>
-                    </li>
-                    <li><strong>💣 Phá Hoại:</strong> Hành động này đóng góp phiếu vào phe "Hỗn Loạn".
-                         <ul>
-                            <li><em>Phần thưởng:</em> 10% cơ hội tìm thấy một <strong>Cổ Vật Hỗn Loạn</strong>.</li>
-                        </ul>
-                    </li>
-                    <li><strong>👁️ Quan Sát:</strong> Đứng ngoài cuộc, chờ đợi thời cơ và đóng góp 1 phiếu "Quan Sát".</li>
+                    <li><strong>📜 Giải Mã:</strong> Đóng góp phiếu vào phe "Ánh Sáng". 30% cơ hội +1 Tiến Độ, 10% cơ hội tìm thấy <strong>Cổ Vật Thám Hiểm</strong>.</li>
+                    <li><strong>💣 Phá Hoại:</strong> Đóng góp phiếu vào phe "Hỗn Loạn". 10% cơ hội tìm thấy <strong>Cổ Vật Hỗn Loạn</strong>.</li>
+                    <li><strong>👁️ Quan Sát:</strong> Đứng ngoài cuộc, chờ đợi thời cơ.</li>
                 </ul>
-
                 <h4>🤝 Phối Hợp:</h4>
-                <p>Trong Giai Đoạn Thám Hiểm, ngươi có thể đề nghị Phối Hợp với người khác. Nếu thành công (cùng hành động), phiếu của cả nhóm sẽ được gộp lại thành một.</p>
-
+                <p>Đề nghị hợp tác với người khác. Nếu thành công (cùng hành động), phiếu của cả nhóm sẽ được gộp lại thành một.</p>
                 <h4>🔥 Vạch Trần:</h4>
-                <p>Vào Hoàng Hôn, ngươi có thể Vạch Trần hành động của mục tiêu: Đúng (Ngươi +2, Mục tiêu -2), Sai (Ngươi -2, Mục tiêu +2).</p>
+                <p>Vào Hoàng Hôn, đoán hành động của mục tiêu: Đúng (Ngươi +2, Mục tiêu -2), Sai (Ngươi -2, Mục tiêu +2).</p>
             </div>
-
-            <!-- Trang 3: Phán Quyết Điểm -->
+            <!-- Page 3: Scoring -->
             <div id="page-scoring" class="rulebook-page" style="text-align: left; line-height: 1.7;">
                 <h3>Phán Quyết Điểm Chi Tiết</h3>
                 <p><i>"Ngôi đền chỉ công nhận nỗ lực của phe có ít người hơn. Số đông thường dẫn đến sự tự mãn và thất bại."</i></p>
-                
                 <h4>Khi Có Phe Thắng/Thua:</h4>
                 <ul>
                     <li><strong>Điều kiện:</strong> Phe có <strong>ít phiếu hơn</strong> sẽ thắng (Giải Mã vs Phá Hoại).</li>
                     <li>Người thuộc phe thắng: <strong>+2 điểm</strong>.</li>
                     <li>Người thuộc phe thua: <strong>-1 điểm</strong>.</li>
                 </ul>
-
-                <h4>Khi Kết Quả Là HÒA:</h4>
-                <p>Cách tính điểm sẽ phụ thuộc vào số lượng người 👁️ Quan Sát (xem chi tiết trong game).</p>
-
                 <h4>Số phận Kẻ Quan Sát (👁️):</h4>
                 <p>Số phận của họ phụ thuộc vào việc số lượng phiếu 👁️ có đạt "Ngưỡng" hay không (Ngưỡng = Số người chơi / 2).</p>
                 <ul>
-                    <li><strong>Nếu có ít Quan Sát (< Ngưỡng):</strong> Họ theo phe thắng và nhận <strong>+3 điểm</strong>.</li>
-                    <li><strong>Nếu có nhiều Quan Sát (>= Ngưỡng):</strong> Họ bị <strong>-1 điểm</strong>, và <strong>chỉ phe thắng</strong> được thưởng thêm <strong>+1 điểm</strong>.</li>
+                    <li><strong>Nếu có ít Quan Sát (&lt; Ngưỡng):</strong> Họ theo phe thắng và nhận <strong>+3 điểm</strong>.</li>
+                    <li><strong>Nếu có nhiều Quan Sát (&gt;= Ngưỡng):</strong> Họ bị <strong>-1 điểm</strong>, và phe thắng được thưởng thêm <strong>+1 điểm</strong>.</li>
                 </ul>
             </div>
-
-            <!-- Trang 4: Cổ Vật -->
+            <!-- Page 4: Artifacts (Dynamically filled) -->
             <div id="page-artifacts" class="rulebook-page scrollable-page" style="text-align: left; line-height: 1.7;">
                 <h3>Cổ Vật Bị Lãng Quên</h3>
-                <p><i>"Ẩn sâu trong các hành lang của ngôi đền là những Cổ vật mang quyền năng cổ xưa. Ngươi có thể tình cờ tìm thấy chúng khi thực hiện hành động Giải Mã hoặc Phá Hoại."</i></p>
-                <p>Cổ vật được chia làm hai loại, mỗi loại có những hiệu ứng riêng biệt:</p>
-                
-                <h4>Cổ Vật Thám Hiểm (Từ 📜 Giải Mã):</h4>
-                <p>Những vật phẩm này cung cấp thông tin, sự bảo vệ và lợi thế chiến thuật.</p>
-                <div id="artifact-list-thám-hiểm">
-                    <!-- JS sẽ điền danh sách Cổ Vật Thám Hiểm vào đây -->
-                </div>
-
-                <h4>Cổ Vật Hỗn Loạn (Từ 💣 Phá Hoại):</h4>
-                <p>Những vật phẩm này gieo rắc sự hỗn loạn, phá vỡ kế hoạch và thao túng quy tắc trò chơi.</p>
-                <div id="artifact-list-hỗn-loạn">
-                     <!-- JS sẽ điền danh sách Cổ Vật Hỗn Loạn vào đây -->
-                </div>
+                <h4>Cổ Vật Thám Hiểm (Từ 📜 Giải Mã):</h4><div data-content-id="artifacts-tham-hiem"></div>
+                <h4>Cổ Vật Hỗn Loạn (Từ 💣 Phá Hoại):</h4><div data-content-id="artifacts-hon-loan"></div>
             </div>
-
-            <!-- Trang 5: Tổng Quan Vai Trò -->
+            <!-- Page 5: Roles (Dynamically filled) -->
             <div id="page-roles-overview" class="rulebook-page scrollable-page">
-                 <h3>Tổng Quan Các Linh Hồn</h3>
-                <p><i>"Đây là danh sách tất cả những linh hồn cổ xưa có thể vang vọng trong ngôi đền."</i></p>
-                <div id="all-roles-list-container"></div>
+                <h3>Tổng Quan Vai Trò</h3><div data-content-id="roles"></div>
             </div>
-            
-            <!-- Trang 6: Tổng Quan Tiếng Vọng -->
+            <!-- Page 6: Decrees (Dynamically filled) -->
             <div id="page-decrees-overview" class="rulebook-page scrollable-page">
-                <h3>Tổng Quan Các Tiếng Vọng</h3>
-                <p><i>"Ngôi đền có thể bẻ cong thực tại bằng những luật lệ cổ xưa này."</i></p>
-                <div id="all-decrees-list-container"></div>
+                <h3>Tổng Quan Tiếng Vọng</h3><div data-content-id="decrees"></div>
             </div>
         </div>
     </div>
