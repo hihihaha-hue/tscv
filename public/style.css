@@ -227,8 +227,7 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     #center-column { grid-area: center; }
     #right-column { display: none; }
 }
-
-/* ---- [FINAL MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
+/* ---- [GRID MOBILE OPTIMIZATION] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
 @media (max-width: 768px) {
     body { 
         padding: 0; 
@@ -238,33 +237,33 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         height: auto; 
         min-height: 100vh; 
         padding: 5px;
-        /* Quan trọng: Thêm padding-bottom để nội dung cuối không bị che bởi thanh hành động */
         padding-bottom: 120px;
         border-radius: 0; 
         border: none; 
     }
     
+    /* [NEW] Sử dụng Grid cho layout mobile */
     #game-screen {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Tạo 2 cột bằng nhau */
+        gap: 8px;
     }
 
-    /* Bỏ qua các cột và làm việc trực tiếp với các panel */
+    /* Bỏ qua các cột trung gian */
     #left-column, #center-column, #right-column {
         display: contents; 
     }
 
-    /* Sắp xếp lại thứ tự ưu tiên của các panel */
-    #phase-info           { order: 1; }
-    #players-container    { order: 2; max-height: 250px; } /* Giới hạn chiều cao và cho phép cuộn */
-    #message-area         { order: 3; min-height: 120px; }
-    #leaderboard          { order: 4; }
-    #roles-in-game        { order: 5; }
-    #role-display         { order: 6; }
-    #artifact-display     { order: 7; }
-    #chat-container       { order: 8; }
-    #action-container     { display: none; } /* Ẩn khu vực hành động cũ của desktop */
+    /* Sắp xếp các panel vào lưới */
+    #phase-info           { grid-column: 1 / -1; } /* Chiếm toàn bộ chiều rộng (2 cột) */
+    #players-container    { grid-column: 1 / -1; }
+    #message-area         { grid-column: 1 / -1; }
+    #leaderboard          { grid-column: 1 / 2; }  /* Chiếm cột 1 */
+    #roles-in-game        { grid-column: 2 / 3; }  /* Chiếm cột 2 */
+    #role-display         { grid-column: 1 / 2; }
+    #artifact-display     { grid-column: 2 / 3; }
+    #chat-container       { grid-column: 1 / -1; }
+    #action-container     { display: none; }
 
     /* Thanh hành động cố định cho Mobile */
     #mobile-action-bar {
@@ -280,8 +279,6 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         border-top: 1px solid var(--bg-light);
         box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
         z-index: 100;
-        
-        /* Khoảng trống an toàn cho các điện thoại có tai thỏ/thanh home */
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
     }
     
@@ -304,31 +301,20 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         padding: 10px;
     }
 
-    #phase-info {
-        text-align: center;
-    }
-    #timer-display {
-        font-size: 2.5em;
-    }
+    #phase-info { text-align: center; }
+    #timer-display { font-size: 2.5em; }
 
-    /* Quan trọng: Sửa lại các nút hành động để chúng xếp chồng lên nhau */
-    .action-buttons-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .action-buttons-grid button {
-        width: 100%;
-        font-size: 1.1em;
-        padding: 12px;
-    }
+    .action-buttons-grid { display: flex; flex-direction: column; gap: 8px; }
+    .action-buttons-grid button { width: 100%; font-size: 1.1em; padding: 12px; }
 
     #players-container { 
-        grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); 
-        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); 
+        gap: 8px;
+        padding: 8px;
+        max-height: none; /* Bỏ giới hạn chiều cao để nó tự co giãn */
     }
-    .player-avatar-card .avatar { width: 55px; height: 55px; font-size: 1.8em; }
-    .player-avatar-card .player-name { font-size: 0.8em; }
+    .player-avatar-card .avatar { width: 50px; height: 50px; font-size: 1.6em; }
+    .player-avatar-card .player-name { font-size: 0.75em; }
     
     h1 { font-size: 2em; }
     h2 { font-size: 1.4em; }
