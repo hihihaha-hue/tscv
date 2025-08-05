@@ -238,18 +238,18 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 /* --- XI. Thiết Kế Đáp Ứng (Responsive) (Giữ nguyên) --- */
 /* ---- Dành cho Máy tính bảng (chiều rộng dưới 1200px) ---- */
 /* Layout này vẫn giữ nguyên vì nó hoạt động tốt trên tablet */
+/* ---- Dành cho Máy tính bảng (chiều rộng dưới 1200px) ---- */
 @media (max-width: 1200px) {
     #game-screen {
         grid-template-columns: 300px 1fr;
-        grid-template-rows: auto 1fr;
-        grid-template-areas: 
-            "left center"
-            "right center";
+        grid-template-rows: 1fr; /* Chỉ 1 hàng để tránh grid-area phức tạp */
+        grid-template-areas: "left center"; /* Đơn giản hóa layout */
         overflow-y: auto;
     }
     #left-column { grid-area: left; }
     #center-column { grid-area: center; }
-    #right-column { grid-area: right; }
+    /* Cột phải sẽ bị ẩn hoặc bạn có thể xếp nó khác đi, nhưng đơn giản là ưu tiên 2 cột chính */
+    #right-column { display: none; } /* Tạm thời ẩn cột phải trên tablet để không gian thoáng hơn */
 }
 
 
@@ -257,31 +257,31 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 @media (max-width: 768px) {
     body { 
         padding: 0; 
-        overflow-y: auto; /* Cho phép cuộn toàn bộ trang */
+        overflow-y: auto;
     }
     .container { 
         height: auto; 
         min-height: 100vh; 
-        padding: 5px; /* Giảm padding */
+        padding: 5px;
         border-radius: 0; 
         border: none; 
     }
     
     #game-screen {
-        display: flex; /* Chuyển hoàn toàn sang flexbox */
-        flex-direction: column; /* Tất cả xếp chồng lên nhau */
+        display: flex;
+        flex-direction: column; /* BẮT BUỘC layout một cột */
         gap: 10px;
     }
 
-    /* Reset lại các cột để chúng không chiếm không gian riêng */
+    /* Quan trọng: Bỏ qua các cột và làm việc trực tiếp với các panel */
     #left-column, #center-column, #right-column {
-        display: contents; /* Rất quan trọng: làm cho các panel con trở thành con trực tiếp của #game-screen */
+        display: contents; 
     }
 
-    /* [MOBILE ORDER] Sắp xếp lại thứ tự các panel để tối ưu cho mobile */
-    #phase-info           { order: 1; text-align: center; }
+    /* Sắp xếp lại thứ tự ưu tiên của các panel */
+    #phase-info           { order: 1; }
     #action-container     { order: 2; }
-    #players-container    { order: 3; max-height: 250px; } /* Giới hạn chiều cao và cho phép cuộn */
+    #players-container    { order: 3; max-height: 250px; }
     #message-area         { order: 4; min-height: 120px; }
     #leaderboard          { order: 5; }
     #roles-in-game        { order: 6; }
@@ -289,18 +289,37 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     #artifact-display     { order: 8; }
     #chat-container       { order: 9; }
 
-    /* Tinh chỉnh kích thước cho mobile */
+    /* Tinh chỉnh kích thước & bố cục cho từng panel trên mobile */
     .game-panel { 
         min-height: auto;
         padding: 10px;
     }
 
+    #phase-info {
+        text-align: center;
+    }
+    #timer-display {
+        font-size: 2.5em; /* Giảm kích thước timer */
+    }
+
+    /* Quan trọng: Sửa lại các nút hành động để chúng xếp chồng lên nhau */
+    .action-buttons-grid {
+        display: flex;
+        flex-direction: column; /* Xếp các nút dọc */
+        gap: 8px;
+    }
+    .action-buttons-grid button {
+        width: 100%; /* Chiếm toàn bộ chiều rộng */
+        font-size: 1.1em;
+        padding: 12px;
+    }
+
     #players-container { 
-        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+        grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); 
         gap: 10px;
     }
-    .player-avatar-card .avatar { width: 60px; height: 60px; font-size: 2em; }
-    .player-avatar-card .player-name { font-size: 0.85em; }
+    .player-avatar-card .avatar { width: 55px; height: 55px; font-size: 1.8em; }
+    .player-avatar-card .player-name { font-size: 0.8em; }
     
     h1 { font-size: 2em; }
     h2 { font-size: 1.4em; }
