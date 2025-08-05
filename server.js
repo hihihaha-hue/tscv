@@ -52,6 +52,8 @@ socketHandler.initialize(io, rooms);
 
 // --- 6. Lắng nghe trên Port ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`[SERVER] Máy chủ đang lắng nghe trên cổng ${PORT}`);
+const HOST = '0.0.0.0'; // QUAN TRỌNG: Thêm dòng này
+
+server.listen(PORT, HOST, () => {
+    console.log(`[SERVER] Máy chủ đang lắng nghe trên ${HOST}:${PORT}`);
 });
