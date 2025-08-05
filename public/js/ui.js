@@ -1,8 +1,3 @@
-// public/js/ui.js
-// ======================================================================
-// UI MODULE ("The Interior Decorator")
-// PHIÊN BẢN ĐÃ SỬA LỖI CÚ PHÁP
-// ======================================================================
 const UI = {
     // --- I. BỘ NHỚ CACHE CÁC THÀNH PHẦN (ELEMENTS) ---
     homeElements: {
@@ -50,17 +45,28 @@ const UI = {
     },
     audioCache: {},
     isMuted: false,
+    isAudioUnlocked: false, // [SỬA LỖI] Biến trạng thái để mở khóa âm thanh
     gameData: { allRoles: {}, allDecrees: {}, allArtifacts: {} },
+	  
+    // [SỬA LỖI] Cập nhật hàm startMusic để xử lý việc mở khóa
+    startMusic() {
+        if (!this.isAudioUnlocked) {
+            console.log('Audio is not unlocked yet. Music will start after first user interaction.');
+            return;
+        }
+        const music = document.getElementById('background-music');
+        if (music && music.paused) {
+            music.play().catch(error => console.log("Lỗi tự động phát nhạc:", error));
+        }
+    },
 
     // --- II. HÀM KHỞI TẠO ---
         initEventListeners() {
-        // --- CÁC NÚT HÀNH ĐỘNG CHÍNH ---
         this.gameElements.choiceButtonsContainer.querySelectorAll('.choice-buttons').forEach(button => {
             button.addEventListener('click', () => {
                 const choice = button.getAttribute('data-action');
                 
                 if (choice === 'Phá Hoại') {
-                    // Nếu là Phá Hoại, yêu cầu chọn mục tiêu trước
                     this.promptForPlayerTarget('Chọn mục tiêu để Phá Hoại', (targetId) => {
                         if (targetId) {
                             Network.emit('playerChoice', {
@@ -72,7 +78,6 @@ const UI = {
                         }
                     });
                 } else {
-                    // Các hành động khác gửi đi như bình thường
                     Network.emit('playerChoice', { roomCode: state.currentRoomCode, choice: choice });
                     this.setupPhaseUI('wait', { title: 'Đã Chọn Hành Động' });
                 }
@@ -112,14 +117,6 @@ const UI = {
                  this.setupPhaseUI('wait', { title: 'Đã Phối Hợp!'});
             }
         });
-
-        const rulebookBtn = document.getElementById('rulebook-btn');
-        if (rulebookBtn) {
-            rulebookBtn.addEventListener('click', () => {
-                this.playSound('click');
-                this.showRulebook();
-            });
-        }
         
         if (this.gameElements.useArtifactBtn) {
             this.gameElements.useArtifactBtn.addEventListener('click', () => {
@@ -162,7 +159,19 @@ const UI = {
             this.audioCache[sound].muted = this.isMuted;
         }
     },
- playSound(soundName) {
+
+    // [SỬA LỖI] Cập nhật hàm playSound để xử lý việc mở khóa
+    playSound(soundName) {
+        // Mở khóa âm thanh nếu chưa làm
+        if (!this.isAudioUnlocked) {
+            console.log('Unlocking audio context...');
+            const music = document.getElementById('background-music');
+            if (music) {
+                music.play().then(() => music.pause()).catch(() => {});
+            }
+            this.isAudioUnlocked = true;
+        }
+        
         try {
             const audio = this.audioCache[soundName] || new Audio(`/assets/sounds/${soundName}.mp3`);
             this.audioCache[soundName] = audio;
@@ -223,7 +232,10 @@ const UI = {
     
    showRulebook() {
     const rulebookTemplate = document.getElementById('rulebook-template');
-    if (!rulebookTemplate) return;
+    if (!rulebookTemplate) {
+        console.error("Không tìm thấy #rulebook-template trong index.html!");
+        return;
+    }
 
     const rulebookContent = rulebookTemplate.content.cloneNode(true);
 
@@ -232,34 +244,29 @@ const UI = {
     const artifactsThContainer = rulebookContent.querySelector('#artifact-list-thám-hiểm');
     const artifactsHlContainer = rulebookContent.querySelector('#artifact-list-hỗn-loạn');
 
-    // Điền danh sách vai trò
     if (rolesContainer && this.gameData.allRoles) {
         let rolesHTML = '';
         for (const roleId in this.gameData.allRoles) {
             const role = this.gameData.allRoles[roleId];
-            rolesHTML += `<div class="role-item"><h4>${role.name}</h4><p><strong>Thiên Mệnh:</strong> ${role.description.win}</p><p><strong>Nội Tại:</strong> ${role.description.passive}</p><p><strong>Kỹ Năng:</strong> ${role.description.skill}</p></div>`;
+            rolesHTML += `<div class="role-item"><h4>${role.name}</h4><p><strong>Thiên Mệnh:</strong> ${role.description.win}</p><p><strong>Nội Tại:</strong> ${role.description.passive}</p><p><strong>Kỹ Năng:</strong> ${role.description.skill}</p></div><hr>`;
         }
         rolesContainer.innerHTML = rolesHTML;
     }
 
-    // Điền danh sách Tiếng Vọng
     if (decreesContainer && this.gameData.allDecrees) {
         let decreesHTML = '';
         for (const decreeId in this.gameData.allDecrees) {
             const decree = this.gameData.allDecrees[decreeId];
-            decreesHTML += `<div class="decree-item"><h4>${decree.name}</h4><p>${decree.description}</p></div>`;
+            decreesHTML += `<div class="decree-item"><h4>${decree.name}</h4><p>${decree.description}</p></div><hr>`;
         }
         decreesContainer.innerHTML = decreesHTML;
     }
 
-    // [NÂNG CẤP] Điền danh sách Cổ Vật chi tiết
     if (this.gameData.allArtifacts && artifactsThContainer && artifactsHlContainer) {
         let artifactsThHTML = '';
         let artifactsHlHTML = '';
-        
-        // Hàm trợ giúp để tạo HTML chi tiết cho một cổ vật
         const createArtifactHTML = (artifact) => {
-            if (!artifact.details) return ''; // Bỏ qua nếu không có mô tả chi tiết
+            if (!artifact.details) return '';
             return `
                 <div class="artifact-detail-item">
                     <h4>${artifact.name}</h4>
@@ -268,38 +275,32 @@ const UI = {
                         <li><strong>Loại:</strong> ${artifact.details.category}</li>
                         <li><strong>Kích hoạt:</strong> ${artifact.details.activation_type}</li>
                         <li><strong>Hiệu ứng:</strong> ${artifact.details.effect}</li>
-                        <li><strong>Tác động chiến thuật:</strong> ${artifact.details.impact}</li>
                     </ul>
-                </div>
-            `;
+                </div><hr>`;
         };
-        
         for (const artifactId in this.gameData.allArtifacts) {
             const artifact = this.gameData.allArtifacts[artifactId];
             const artifactHTML = createArtifactHTML(artifact);
-            
-            if (artifact.type === 'Thám Hiểm') {
-                artifactsThHTML += artifactHTML;
-            } else if (artifact.type === 'Hỗn Loạn') {
-                artifactsHlHTML += artifactHTML;
-            }
+            if (artifact.type === 'Thám Hiểm') artifactsThHTML += artifactHTML;
+            else if (artifact.type === 'Hỗn Loạn') artifactsHlHTML += artifactHTML;
         }
         artifactsThContainer.innerHTML = artifactsThHTML;
         artifactsHlContainer.innerHTML = artifactsHlHTML;
     }
     
-    const tempDiv = document.createElement('div');
-    tempDiv.appendChild(rulebookContent);
+    const container = document.createElement('div');
+    container.appendChild(rulebookContent);
 
     Swal.fire({
-        html: tempDiv.innerHTML,
+        html: container,
         width: '90%',
         maxWidth: '800px',
-        background: 'var(--bg-medium)',
-        color: 'var(--text-light)',
         showCloseButton: true,
         showConfirmButton: false,
-        customClass: { popup: 'rulebook-popup' },
+        customClass: { 
+            popup: 'rulebook-popup', 
+            htmlContainer: 'rulebook-swal-container' 
+        },
         didOpen: () => {
             const popup = Swal.getPopup();
             if (!popup) return;
@@ -308,10 +309,12 @@ const UI = {
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    const targetId = tab.getAttribute('data-target');
+                    const targetId = tab.dataset.target; 
                     const targetPage = popup.querySelector(`#${targetId}`);
+                    
                     tabs.forEach(t => t.classList.remove('active'));
                     pages.forEach(p => p.classList.remove('active'));
+                    
                     tab.classList.add('active');
                     if (targetPage) {
                         targetPage.classList.add('active');
@@ -321,9 +324,6 @@ const UI = {
         }
     });
 },
-
-    // --- [FIXED] ĐOẠN MÃ THỪA ĐÃ BỊ XÓA ---
-    // Khối `if (decreesContainer && allDecrees)` và hàm `updateArtifactDisplay` thứ hai đã bị xóa khỏi đây.
 
     savePlayerName() {
         const name = this.homeElements.nameInput.value;
@@ -485,7 +485,7 @@ const UI = {
                             emitSkill(payload);
                         });
                         break;
-                    default: // Các vai trò không cần mục tiêu
+                    default: 
                         emitSkill(payload);
                         break;
                 }
@@ -495,16 +495,28 @@ const UI = {
     updatePlayerCards(players, myId) {
         const container = this.gameElements.playersContainer;
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = ''; 
+
         players.forEach(player => {
             const card = document.createElement('div');
             card.className = 'player-avatar-card';
             card.setAttribute('data-player-id', player.id);
+
+            if (player.chosenAction) {
+                card.classList.add('has-chosen');
+            }
+            
+            if (player.id === myId) {
+                card.classList.add('is-self');
+            }
+
             const displayName = player.name.length > 10 ? player.name.substring(0, 9) + '…' : player.name;
+            
             card.innerHTML = `
-                <div class="avatar ${player.id === myId ? 'is-self' : ''}">${player.name[0].toUpperCase()}</div>
+                <div class="avatar">${player.name[0].toUpperCase()}</div>
                 <div class="player-name" title="${player.name}">${displayName}</div>
             `;
+            
             container.appendChild(card);
         });
     },
@@ -520,42 +532,6 @@ const UI = {
             item.innerHTML = `<span class="leaderboard-name">${player.name}</span> <span class="leaderboard-score">${player.score}</span>`;
             list.appendChild(item);
         });
-    },
-
-    populateRulebook(popupElement) {
-        const rolesContainer = popupElement.querySelector('#all-roles-list-container');
-        const decreesContainer = popupElement.querySelector('#all-decrees-list-container');
-        const { allRoles, allDecrees } = this.gameData;
-
-        if (rolesContainer && allRoles) {
-            let rolesHTML = '';
-            for (const roleId in allRoles) {
-                const role = allRoles[roleId];
-                rolesHTML += `
-                    <div class="role-item">
-                        <h4>${role.name}</h4>
-                        <p><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
-                        <p><strong>Nội Tại:</strong> ${role.description.passive}</p>
-                        <p><strong>Kỹ Năng:</strong> ${role.description.skill}</p>
-                    </div>
-                `;
-            }
-            rolesContainer.innerHTML = rolesHTML;
-        }
-
-        if (decreesContainer && allDecrees) {
-            let decreesHTML = '';
-            for (const decreeId in allDecrees) {
-                const decree = allDecrees[decreeId];
-                decreesHTML += `
-                    <div class="decree-item">
-                        <h4>${decree.name}</h4>
-                        <p>${decree.description}</p>
-                    </div>
-                `;
-            }
-            decreesContainer.innerHTML = decreesHTML;
-        }
     },
 
     displayRolesInGame(rolesInThisGame) {
@@ -590,7 +566,7 @@ const UI = {
 
         switch (phaseName) {
             case 'choice':
-            case 'exploration': // exploration là tên phase trên server
+            case 'exploration': 
                 phaseTitle.textContent = 'Giai Đoạn Thám Hiểm';
                 phaseDescription.innerHTML = 'Bí mật chọn hành động của bạn.';
                 choiceButtonsContainer.style.display = 'grid';
@@ -687,7 +663,7 @@ const UI = {
             cancelButtonText: `Giữ ${currentArtifact.name}`,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#aaa',
-            allowOutsideClick: false, // Ngăn người chơi bỏ qua
+            allowOutsideClick: false, 
             allowEscapeKey: false,
         }).then((result) => {
             if (result.isConfirmed) {
@@ -855,12 +831,11 @@ const UI = {
             background: '#2d3748',
             color: '#e2e8f0',
             confirmButtonText: 'Xem kết quả',
-            showCancelButton: isHost, // Chỉ hiển thị nút "Chơi lại" cho host
+            showCancelButton: isHost, 
             cancelButtonText: 'Tạo Ván Mới',
             cancelButtonColor: '#48bb78',
         }).then((result) => {
             if (result.dismiss === Swal.DismissReason.cancel && isHost) {
-                // Nếu host bấm nút "Tạo Ván Mới"
                 Network.emit('requestRematch', state.currentRoomCode);
             }
         });
@@ -871,7 +846,7 @@ const UI = {
         const container = this.gameElements.messageArea;
         if (!container) return;
         const p = document.createElement('p');
-        p.className = `log-message log-${log.type}`; // type: 'info', 'success', 'error', 'warning'
+        p.className = `log-message log-${log.type}`; 
         p.innerHTML = log.message;
         
         const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 1;

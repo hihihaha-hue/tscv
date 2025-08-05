@@ -1,9 +1,3 @@
-// public/client.js
-// ======================================================================
-// MODULE ĐIỀU KHIỂN CHÍNH CỦA CLIENT ("The Conductor")
-// PHIÊN BẢN ĐÃ SỬA LỖI CÚ PHÁP
-// ======================================================================
-
 // --- I. TRẠNG THÁI TOÀN CỤC (GLOBAL STATE) ---
 const state = {
     myId: null,
@@ -17,7 +11,7 @@ const state = {
 	myArtifacts: [],
 	allGameRoles: {},
     allGameDecrees: {},
-    allGameArtifacts: {}, // Thêm thuộc tính mới để lưu tất cả Cổ vật
+    allGameArtifacts: {},
 };
 
 // --- II. KHỞI TẠO ---
@@ -27,12 +21,15 @@ UI.initEventListeners();
 
 // --- III. SỰ KIỆN UI ---
 UI.homeElements.createRoomBtn.addEventListener('click', () => {
-    UI.playSound('click');
+    UI.playSound('click'); // Phát âm thanh sau cú nhấp chuột đầu tiên
+    UI.startMusic();      // Bật nhạc nền sau cú nhấp chuột đầu tiên
     UI.savePlayerName();
     Network.emit('createRoom', { name: UI.homeElements.nameInput.value });
 });
+
 UI.homeElements.joinRoomBtn.addEventListener('click', () => {
-    UI.playSound('click');
+    UI.playSound('click'); // Phát âm thanh sau cú nhấp chuột đầu tiên
+    UI.startMusic();      // Bật nhạc nền sau cú nhấp chuột đầu tiên
     UI.savePlayerName();
     const code = UI.homeElements.roomCodeInput.value.trim().toUpperCase();
     if (code) {
@@ -50,6 +47,11 @@ UI.roomElements.readyBtn.addEventListener('click', () => {
 });
 document.getElementById('music-toggle-btn').addEventListener('click', () => UI.toggleMasterMute());
 document.getElementById('history-log-btn').addEventListener('click', () => UI.showGameHistory(state.gameHistory));
+
+document.getElementById('rulebook-btn').addEventListener('click', () => {
+    UI.playSound('click');
+    UI.showRulebook();
+});
 
 // KHỐI XỬ LÝ CHAT DUY NHẤT
 const chatInput = document.getElementById('chat-input');
@@ -74,15 +76,17 @@ Network.on('connect', () => {
 Network.on('gameData', (data) => {
     state.allGameRoles = data.allRoles;
     state.allGameDecrees = data.allDecrees;
-    state.allGameArtifacts = data.allArtifacts; // Lưu dữ liệu Cổ vật
+    state.allGameArtifacts = data.allArtifacts; 
     
-    // Cung cấp dữ liệu cho module UI
     UI.gameData.allRoles = data.allRoles;
     UI.gameData.allDecrees = data.allDecrees;
     UI.gameData.allArtifacts = data.allArtifacts;
 });
 
-Network.on('roomError', (msg) => { Swal.fire({ icon: 'error', title: 'Lỗi', text: msg }); });
+Network.on('roomError', (msg) => {
+    UI.playSound('error'); 
+    Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+});
 Network.on('kicked', () => { Swal.fire('Bạn đã bị đuổi khỏi đoàn!').then(() => window.location.reload()); });
 
 Network.on('joinedRoom', (data) => {
@@ -91,7 +95,7 @@ Network.on('joinedRoom', (data) => {
     state.currentHostId = data.hostId;
     state.myId = data.myId;
     state.players = data.players;
-    state.gamePhase = 'lobby'; // Đảm bảo trạng thái là lobby
+    state.gamePhase = 'lobby'; 
     UI.showScreen('room');
     if (UI.roomElements.roomCodeDisplay) {
         UI.roomElements.roomCodeDisplay.textContent = state.currentRoomCode;
@@ -101,7 +105,6 @@ Network.on('joinedRoom', (data) => {
 });
 Network.on('promptArtifactChoice', (data) => {
     UI.promptForArtifactChoice(data, (decision) => {
-        // Gửi quyết định của người chơi về server
         Network.emit('submitArtifactChoice', {
             roomCode: state.currentRoomCode,
             decision: decision
@@ -111,7 +114,6 @@ Network.on('promptArtifactChoice', (data) => {
 
 Network.on('updatePlayerList', (players, hostId) => {
     Object.assign(state, { players, currentHostId: hostId });
-    // Chỉ cập nhật nếu đang ở trong phòng chờ hoặc trong game
     if (state.gamePhase === 'lobby') {
         UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     } else {
@@ -122,7 +124,6 @@ Network.on('updatePlayerList', (players, hostId) => {
 
 Network.on('hostChanged', (newHostId) => {
     state.currentHostId = newHostId;
-    // Cập nhật lại UI để hiển thị đúng quyền host
     if(state.gamePhase === 'lobby') {
         UI.updatePlayerList(state.players, newHostId, state.myId);
     } else {
@@ -175,7 +176,6 @@ Network.on('roundResult', (data) => {
 Network.on('yourRoleIs', (roleData) => {
     state.myRole = roleData;
     UI.displayRole(roleData);
-    // Gắn listener cho nút kỹ năng sau khi nó được tạo ra
     UI.attachSkillButtonListener();
 });
 
@@ -240,11 +240,9 @@ Network.on('gameOver', (data) => {
     UI.showGameOver(data, state.myId === state.currentHostId);
 });
 
-// [MỚI] Lắng nghe sự kiện chơi lại
 Network.on('returnToLobby', (data) => {
     UI.playSound('success');
     
-    // Reset trạng thái client về phòng chờ
     Object.assign(state, {
         gamePhase: 'lobby',
         myRole: null,
@@ -255,11 +253,9 @@ Network.on('returnToLobby', (data) => {
         currentHostId: data.hostId
     });
 
-    // Chuyển màn hình và cập nhật UI
     UI.showScreen('room');
     UI.updatePlayerList(state.players, state.currentHostId, state.myId);
     
-    // Xóa các UI của game cũ
     UI.gameElements.roleDisplay.innerHTML = '';
     UI.gameElements.leaderboardList.innerHTML = '';
     UI.gameElements.messageArea.innerHTML = '';

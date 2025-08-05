@@ -1,70 +1,48 @@
 // game/logic.js
 // ======================================================================
 // CORE GAME LOGIC ("The Brain")
-// Chứa bộ não của game: tạo trạng thái, xử lý luồng vòng chơi, tính toán, và kiểm tra chiến thắng.
-// PHIÊN BẢN ĐÃ SỬA LỖI TÍNH ĐIỂM VÀ NÂNG CẤP AI
+// PHIÊN BẢN SỬA LỖI KẺ BẮT CHƯỚC VÀ TÍNH NĂNG
 // ======================================================================
+
 
 const config = require('./config.js');
 const { ROLES, DECREES, SKILL_COSTS, GAME_CONSTANTS, ARTIFACTS } = config;
 
-// --- [MỚI] HÀM CHO CHỨC NĂNG CHƠI LẠI ---
+// --- HÀM CHO CHỨC NĂNG CHƠI LẠI ---
 function resetRoomForRematch(room) {
     if (!room) return;
-    
-    // 1. Xóa trạng thái game cũ
     room.gameState = null;
-
-    // 2. Reset trạng thái của từng người chơi về trạng thái phòng chờ
     room.players.forEach(player => {
-        // Giữ lại thông tin cơ bản: id, name, isBot, disconnected, personality
-        // Xóa hoặc reset các thuộc tính trong game
         if (!player.isBot) {
-            player.isReady = false; // Yêu cầu sẵn sàng lại
+            player.isReady = false;
         }
-        // Xóa các thuộc tính không cần thiết cho phòng chờ
         delete player.score;
         delete player.chosenAction;
         delete player.roleId;
-        // ... xóa các thuộc tính khác nếu có ...
+        delete player.artifacts;
+        delete player.sabotageTargetId;
     });
-
-    console.log(`[Rematch] Đã reset phòng ${room.hostId}.`);
+    console.log(`[Rematch] Đã reset phòng.`);
 }
-// --- HÀM MỚI CHO LOGIC CỔ VẬT ---
 
-/**
- * Xử lý khi người chơi tìm thấy một Cổ vật.
- * @param {object} player - Người chơi tìm thấy Cổ vật.
- * @param {string} type - Loại Cổ vật ('Thám Hiểm' hoặc 'Hỗn Loạn').
- * @param {object} gs - GameState.
- * @param {object} io - Socket.IO instance.
- */
+// --- HÀM LOGIC CỔ VẬT ---
 function handleFindArtifact(player, type, gs, io) {
     const availableArtifacts = Object.values(ARTIFACTS).filter(a =>
         a.type === type && gs.artifactPool.includes(a.id)
     );
-
-    if (availableArtifacts.length === 0) {
-        // Không còn cổ vật nào trong bể để tìm
-        return;
-    }
+    if (availableArtifacts.length === 0) return;
 
     const foundArtifact = availableArtifacts[Math.floor(Math.random() * availableArtifacts.length)];
+    gs.artifactPool = gs.artifactPool.filter(id => id !== foundArtifact.id); 
 
     if (player.artifacts.length === 0) {
-        // Nếu người chơi chưa có Cổ vật -> nhận luôn
         player.artifacts.push(foundArtifact);
-        gs.artifactPool = gs.artifactPool.filter(id => id !== foundArtifact.id); // Xóa khỏi bể
-        
         io.to(player.id).emit('artifactUpdate', {
             artifacts: player.artifacts,
             message: `Bạn đã tìm thấy: ${foundArtifact.name}!`
         });
         io.to(player.id).emit('logMessage', {type: 'success', message: `Bạn đã tìm thấy: <b>${foundArtifact.name}</b>!`});
-
     } else {
-        // Nếu đã có Cổ vật -> Bắt buộc lựa chọn
         const currentArtifact = player.artifacts[0];
         io.to(player.id).emit('promptArtifactChoice', {
             currentArtifact: currentArtifact,
@@ -72,47 +50,27 @@ function handleFindArtifact(player, type, gs, io) {
         });
     }
 }
-/**
- * Xử lý quyết định của người chơi khi phải chọn giữa 2 Cổ vật.
- * @param {string} roomCode
- * @param {string} playerId
- * @param {object} decision - { choice: 'keep_current' | 'take_new', newArtifactId: '...' }
- * @param {object} rooms
- * @param {object} io
- */
+
 function handleArtifactDecision(roomCode, playerId, decision, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs) return;
     const player = gs.players.find(p => p.id === playerId);
     if (!player) return;
 
-    if (decision.choice === 'take_new') {
-        const newArtifact = ARTIFACTS[decision.newArtifactId];
-        if (!newArtifact || !gs.artifactPool.includes(newArtifact.id)) {
-            // Ai đó đã nhặt mất hoặc có lỗi xảy ra
-            io.to(player.id).emit('logMessage', {type: 'error', message: 'Cổ vật mới không còn khả dụng.'});
-            return;
-        }
+    const newArtifact = ARTIFACTS[decision.newArtifactId];
 
-        // 1. Trả Cổ vật cũ về bể
+    if (decision.choice === 'take_new') {
         const oldArtifactId = player.artifacts[0].id;
         gs.artifactPool.push(oldArtifactId);
-
-        // 2. Xóa Cổ vật mới khỏi bể
-        gs.artifactPool = gs.artifactPool.filter(id => id !== newArtifact.id);
-
-        // 3. Cập nhật Cổ vật mới cho người chơi
         player.artifacts = [newArtifact];
-
         io.to(player.id).emit('logMessage', {type: 'success', message: `Bạn đã nhận <b>${newArtifact.name}</b> và trả lại <b>${ARTIFACTS[oldArtifactId].name}</b>.`});
     } else {
-        // Giữ cái cũ, không làm gì cả
+        gs.artifactPool.push(newArtifact.id);
         io.to(player.id).emit('logMessage', {type: 'info', message: `Bạn đã quyết định giữ lại <b>${player.artifacts[0].name}</b>.`});
     }
-
-    // Cập nhật lại giao diện Cổ vật cho người chơi
     io.to(player.id).emit('artifactUpdate', { artifacts: player.artifacts });
 }
+
 
 // --- CÁC HÀM TIỆN ÍCH & KHỞI TẠO ---
 function getPlayersByScore(players, type) {
@@ -131,19 +89,22 @@ function initializeAssassin(assassin, allPlayers) {
     }
 }
 
+// [SỬA LỖI & NÂNG CẤP] Kẻ Bắt Chước giờ sẽ biết vai trò của mục tiêu
 function initializeMimic(mimic, allPlayers, io) {
-   const potentialTargets = allPlayers.filter(p => p.id !== mimic.id && !p.isDefeated && !p.disconnected);
+    const potentialTargets = allPlayers.filter(p => p.id !== mimic.id && !p.isDefeated && !p.disconnected);
     if (potentialTargets.length > 0) {
         const targetPlayer = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
         mimic.mimicTargetId = targetPlayer.id;
-        io.to(mimic.id).emit('privateInfo', {title: "Sao Chép", text: `Đêm nay bạn sẽ sao chép hành động của **${targetPlayer.name}**.`});
+        const targetRoleName = ROLES[targetPlayer.roleId]?.name || 'Không rõ';
+        
+        io.to(mimic.id).emit('privateInfo', {
+            title: "Sao Chép", 
+            text: `Đêm nay bạn sẽ sao chép hành động của **${targetPlayer.name}**. Dường như họ là một **${targetRoleName}**.`
+        });
     }
 }
 
-const roleInitializers = {
-    'ASSASSIN': initializeAssassin,
-    'MIMIC': initializeMimic, 
-};
+const roleInitializers = { 'ASSASSIN': initializeAssassin }; // [SỬA LỖI] Xóa Mimic khỏi đây
 
 function initializeSpecialRoles(gs, io) {
     gs.players.forEach(player => {
@@ -171,9 +132,9 @@ function createGameState(players, io) {
             ...p,
             score: 0,
             chosenAction: null,
-			sabotageTargetId: null, // [MỚI] Lưu mục tiêu Phá Hoại
+			sabotageTargetId: null,
             roleId: rolesInThisGame[index % rolesInThisGame.length],
-            skillUses: 0,
+            skillUses: 0, 
             artifacts: [],
             consecutiveSuccessAccusations: 0,
             hauntSuccessCount: 0,
@@ -199,14 +160,14 @@ function createGameState(players, io) {
         rolesInGame: rolesInThisGame,
         nextDecreeChooser: null,
         failedAccusationsThisRound: 0,
-        artifactPool: [...config.ALL_ARTIFACT_IDS], // [MỚI] Bể Cổ vật ban đầu
+        artifactPool: [...config.ALL_ARTIFACT_IDS],
     };
 
-
-    initializeSpecialRoles(gameState, io);
+    initializeSpecialRoles(gameState, io); // Chỉ khởi tạo các vai trò cần thiết lúc đầu (Sát Thủ)
     shuffleDecreeDeck(gameState);
     return gameState;
 }
+
 
 
 function shuffleDecreeDeck(gs) {
@@ -224,58 +185,67 @@ function startNewRound(roomCode, rooms, io) {
 
     gs.currentRound++;
     gs.phase = 'exploration';
-    gs.roundData = {
-        decrees: [], coordinationVotes: [], actedInTwilight: new Set(), failedAccusationsThisRound: 0,
-    };
+    gs.roundData = { decrees: [], coordinationVotes: [], actedInTwilight: new Set(), failedAccusationsThisRound: 0 };
+    
     gs.players.forEach(p => {
         if (!p.isDefeated) {
-            p.chosenAction = null; p.isBlessed = false; p.blessedById = null;
-            p.skillUsedThisRound = false; p.skillActive = false; p.skillTargetId = null;
-            p.isSkillDisabled = false; p.hasTripleVote = false;
+            p.chosenAction = null;
+            p.sabotageTargetId = null;
+            p.isBlessed = false;
+            p.blessedById = null;
+            p.skillUsedThisRound = false;
+            p.skillActive = false;
+            p.skillTargetId = null;
+            p.isSkillDisabled = false;
+            p.hasTripleVote = false;
+            p.skillUses = 0; 
         }
     });
 
+    // [SỬA LỖI] Kẻ Bắt Chước chỉ được khởi tạo MỘT LẦN ở đầu mỗi vòng mới
     const mimic = gs.players.find(p => p.roleId === 'MIMIC' && !p.isDefeated);
-    if (mimic) {
-        initializeMimic(mimic, gs.players, io);
-    }
+    if (mimic) { initializeMimic(mimic, gs.players, io); }
 
- io.to(roomCode).emit('newRound', {
-        roundNumber: gs.currentRound,
-        players: gs.players,
-        duration: GAME_CONSTANTS.CHOICE_DURATION
+    io.to(roomCode).emit('newRound', {
+        roundNumber: gs.currentRound, players: gs.players, duration: GAME_CONSTANTS.CHOICE_DURATION
     });
-    console.log(`[LOGIC] Bắt đầu vòng ${gs.currentRound} cho phòng ${roomCode}.`);
-
     gs.roundData.choiceTimer = setTimeout(() => {
         const currentRoom = rooms[roomCode];
-        if (!currentRoom || !currentRoom.gameState) return;
+        if (!currentRoom || !currentRoom.gameState || currentRoom.gameState.phase !== 'exploration') return;
+        const activePlayers = currentRoom.gameState.players.filter(p => !p.isDefeated && !p.disconnected);
         
-        currentRoom.gameState.players.forEach(p => {
-            if (!p.chosenAction && !p.isDefeated) {
-                p.chosenAction = ['Giải Mã', 'Phá Hoại', 'Quan Sát'][Math.floor(Math.random() * 3)];
-                io.to(roomCode).emit('playerChose', p.id);
+        activePlayers.forEach(p => {
+            if (!p.chosenAction) {
+                const choice = ['Giải Mã', 'Phá Hoại', 'Quan Sát'][Math.floor(Math.random() * 3)];
+                let payload = {};
+                if (choice === 'Phá Hoại') {
+                    const potentialTargets = activePlayers.filter(t => t.id !== p.id);
+                    if (potentialTargets.length > 0) {
+                        payload.targetId = potentialTargets[Math.floor(Math.random() * potentialTargets.length)].id;
+                    }
+                }
+                handlePlayerChoice(roomCode, p.id, choice, rooms, io, payload);
             }
         });
-         revealDecreeAndContinue(roomCode, rooms, io);
     }, GAME_CONSTANTS.CHOICE_DURATION * 1000);
 
     triggerBotChoices(roomCode, rooms, io);
-
 }
-function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
+// ... (các hàm còn lại giữ nguyên)
+
+// (Phần còn lại của file logic.js giữ nguyên, chỉ cần thay thế phần đầu như trên)
+// ...
+// ...
+// ... (Phần còn lại của file logic.js giữ nguyên, chỉ cần thay thế phần đầu như trên)
+// ...
+function handlePlayerChoice(roomCode, playerId, choice, rooms, io, payload = {}) {
     const gs = rooms[roomCode]?.gameState;
     if (!gs || gs.phase !== 'exploration') return;
     const player = gs.players.find(p => p.id === playerId);
 
-     if (player && !player.chosenAction && !player.isDefeated) {
-        if (player.roleId === 'REBEL' && player.skillActive) {
-            io.to(player.id).emit('privateInfo', { type: 'error', message: 'Hành động của bạn đã bị khóa bởi kỹ năng Khiêu Khích!' });
-            return;
-        }
-        
+    if (player && !player.chosenAction && !player.isDefeated) {
         player.chosenAction = choice;
-		if (choice === 'Phá Hoại' && payload.targetId) {
+        if (choice === 'Phá Hoại' && payload.targetId) {
             player.sabotageTargetId = payload.targetId;
         }
         io.to(roomCode).emit('playerChose', playerId);
@@ -283,7 +253,7 @@ function handlePlayerChoice(roomCode, playerId, choice, rooms, io) {
         const activePlayers = gs.players.filter(p => !p.isDefeated && !p.disconnected);
         if (activePlayers.every(p => p.chosenAction)) {
             clearTimeout(gs.roundData.choiceTimer);
-             startCoordinationPhase(roomCode, rooms, io);
+            startCoordinationPhase(roomCode, rooms, io);
         }
     }
 }
@@ -343,23 +313,20 @@ function handleUseArtifact(socket, roomCode, artifactId, payload, rooms, io) {
     const player = gs.players.find(p => p.id === socket.id);
     const artifactIndex = player.artifacts.findIndex(a => a.id === artifactId);
 
-    if (!player || artifactIndex === -1) {
-        return socket.emit('privateInfo', { type: 'error', text: 'Bạn không sở hữu cổ vật này.' });
-    }
-    const artifact = player.artifacts[artifactIndex];
-
+    if (!player || artifactIndex === -1) return;
+    
     io.to(roomCode).emit('logMessage', { type: 'warning', message: `📜 **${player.name}** đã kích hoạt một Cổ vật bí ẩn!` });
     
+    const artifact = player.artifacts[artifactIndex];
     artifact.usedThisRound = true;
 
-    if (artifact.id !== 'AMULET_OF_CLARITY') { 
+    // [CẬP NHẬT LOGIC] Chỉ xóa và trả về bể những Cổ vật dùng 1 lần ngay lập tức
+    // Những Cổ vật bị động sẽ được xử lý ở nơi khác
+    if (artifact.is_activatable) {
         player.artifacts.splice(artifactIndex, 1);
+        gs.artifactPool.push(artifactId);
     }
     
-  player.artifacts.splice(artifactIndex, 1);
-    gs.artifactPool.push(artifactId);
-    
-    // Gửi lại thông tin cổ vật cho client
     io.to(player.id).emit('artifactUpdate', { artifacts: player.artifacts });
 }
 
@@ -572,7 +539,6 @@ function endTwilightPhase(message, roomCode, rooms, io) {
     setTimeout(() => calculateScoresAndEndRound(roomCode, rooms, io), 3000);
 }
 function handleTwilightAction(roomCode, initiatorId, targetId, actionType, guess, rooms, io) {
-    // [SỬA LỖI CÚ PHÁP] VIẾT LẠI HOÀN TOÀN
     const gs = rooms[roomCode]?.gameState;
     if (!gs || gs.phase !== 'twilight') return;
 
@@ -581,6 +547,9 @@ function handleTwilightAction(roomCode, initiatorId, targetId, actionType, guess
     if (!initiator || !target || initiator.id === target.id) return;
     
     gs.roundData.actedInTwilight.add(initiator.id);
+
+    const amuletIndex = initiator.artifacts.findIndex(a => a.id === 'AMULET_OF_CLARITY');
+    const hasAmulet = amuletIndex !== -1;
 
     if (target.roleId === 'ASSASSIN') {
         io.to(target.id).emit('privateInfo', { title: 'Bị Nhắm Đến', text: `**${initiator.name}** đã Vạch Trần bạn. Hành động bí mật của họ là: **${initiator.chosenAction || 'Chưa chọn'}**` });
@@ -591,30 +560,29 @@ function handleTwilightAction(roomCode, initiatorId, targetId, actionType, guess
         let message = `🔥 **${initiator.name}** đã Vạch Trần **${target.name}** và phán đoán **${success ? "ĐÚNG" : "SAI"}**!`;
         
         if (success) {
-            // Xử lý Tiếng Vọng "Thách Thức Kẻ Dẫn Đầu" trước
             const isChallengeDecreeActive = gs.roundData.decrees.some(d => d.id === 'THACH_THUC_KE_DAN_DAU');
             const leaders = getPlayersByScore(gs.players, 'highest');
+
             if (isChallengeDecreeActive && leaders.some(leader => leader.id === target.id)) {
                 [initiator.score, target.score] = [target.score, initiator.score];
                 message = `⚔️ **${initiator.name}** đã thách thức thành công Kẻ Dẫn Đầu! Điểm số của họ đã bị hoán đổi!`;
             } else {
-                // Xử lý điểm Vạch Trần thông thường
-                initiator.score += 2;
+                // [SỬA LỖI] Áp dụng hiệu ứng Bùa khi thành công
+                const pointGain = hasAmulet ? 4 : 2;
+                initiator.score += pointGain;
                 target.score -= 2;
 
-                // Xử lý nội tại Kẻ Phán Xử
                 if (initiator.roleId === 'INQUISITOR' && target.chosenAction === 'Phá Hoại') {
                     initiator.score += 1;
                 }
                 
-                // Xử lý kỹ năng Sát Thủ
                 const assassin = gs.players.find(p => p.roleId === 'ASSASSIN' && !p.isDefeated);
                 if (assassin && assassin.bountyTargetId === target.id) {
                     if (initiator.id === assassin.id) {
                         target.score = Math.floor(target.score / 2);
                         io.to(roomCode).emit('logMessage', { type: 'warning', message: `💥 **${assassin.name}** đã hoàn thành hợp đồng, điểm của **${target.name}** bị chia đôi!` });
                     } else {
-                        target.score -= 2; // Mất gấp đôi
+                        target.score -= 2;
                         io.to(roomCode).emit('logMessage', { type: 'error', message: `🎯 **${target.name}** là mục tiêu bị săn đuổi và phải chịu hình phạt nặng hơn!` });
                     }
                 }
@@ -623,15 +591,32 @@ function handleTwilightAction(roomCode, initiatorId, targetId, actionType, guess
                 initiator.consecutiveSuccessAccusations = (initiator.consecutiveSuccessAccusations || 0) + 1;
             }
         } else { // Vạch Trần thất bại
-            initiator.score -= (initiator.roleId === 'PROPHET') ? 1 : 2;
+            // [SỬA LỖI] Áp dụng hiệu ứng Bùa khi thất bại, ưu tiên Bùa hơn vai trò
+            let pointLoss;
+            if (hasAmulet) {
+                pointLoss = 1; // Bùa luôn chỉ trừ 1
+            } else if (initiator.roleId === 'PROPHET') {
+                pointLoss = 1; // Nếu không có bùa, Tiên Tri trừ 1
+            } else {
+                pointLoss = 2; // Mặc định trừ 2
+            }
+            
+            initiator.score -= pointLoss;
             target.score += 2;
             gs.roundData.failedAccusationsThisRound++;
-			 if (initiator.roleId === 'PROPHET') {
+            
+			if (initiator.roleId === 'PROPHET') {
                 initiator.consecutiveSuccessAccusations = 0;
             }
+        } 
         
+        // [GIỮ NGUYÊN] Logic xóa bùa sau khi dùng là chính xác
+		if (hasAmulet) {
+            initiator.artifacts.splice(amuletIndex, 1);
+            gs.artifactPool.push('AMULET_OF_CLARITY');
+            io.to(initiator.id).emit('artifactUpdate', { artifacts: initiator.artifacts });
+            io.to(roomCode).emit('logMessage', {type: 'info', message: `Bùa Chú Minh Mẫn của ${initiator.name} đã được sử dụng!`});
         }
-		
         
         io.to(roomCode).emit('logMessage', { type: success ? 'success' : 'error', message });
         io.to(roomCode).emit('updatePlayerCards', gs.players.map(p => ({ id: p.id, score: p.score })));
@@ -725,40 +710,7 @@ function getPlayersByScore(players, type) {
     return activePlayers.filter(p => p.score === criticalScore);
 }
 
-function triggerBotChoices(roomCode, rooms, io) {
-    const gs = rooms[roomCode]?.gameState;
-    if (!gs) return;
-    gs.players.forEach(p => {
-        if (p.isBot && !p.isDefeated && !p.chosenAction) {
-            setTimeout(() => {
-                if (gs.phase === 'exploration' && !p.chosenAction) {
-                    let choice;
-                    const scores = gs.players.filter(x => !x.isBot).map(x => x.score);
-                    const botScore = p.score;
-                    const voteCounts = { 'Giải Mã': 0, 'Phá Hoại': 0, 'Quan Sát': 0 };
-                    gs.players.forEach(pl => { if (pl.chosenAction) voteCounts[pl.chosenAction]++; });
 
-                    if (botScore >= gs.winScore - 3) {
-                        let least = Object.entries(voteCounts).filter(([k]) => k !== 'Quan Sát').sort((a, b) => a[1] - b[1]);
-                        choice = least.length > 0 ? least[0][0] : 'Giải Mã';
-                    } else if (botScore <= gs.loseScore + 3) {
-                        choice = voteCounts['Quan Sát'] < Math.floor(gs.players.length / 2) ? 'Quan Sát' : 'Giải Mã';
-                    } else {
-                        switch (p.personality) {
-                            case 'aggressive': choice = Math.random() < 0.7 ? 'Phá Hoại' : 'Giải Mã'; break;
-                            case 'cautious': choice = Math.random() < 0.75 ? 'Giải Mã' : 'Quan Sát'; break;
-                            default:
-                                let most = Object.entries(voteCounts).sort((a,b) => b[1]-a[1]);
-                                choice = Math.random() < 0.5 ? most[0][0] : most[most.length-1][0];
-                        }
-                    }
-
-                    handlePlayerChoice(roomCode, p.id, choice, rooms, io);
-                }
-            }, Math.random() * 5000 + 2000);
-        }
-    });
-}
 
 function triggerBotPhaseAction(roomCode, rooms, io, phase) {
     const gs = rooms[roomCode]?.gameState;
@@ -804,7 +756,36 @@ function triggerBotPhaseAction(roomCode, rooms, io, phase) {
         }, Math.random() * 8000 + 3000);
     });
 }
+function triggerBotChoices(roomCode, rooms, io) {
+    const gs = rooms[roomCode]?.gameState;
+    if (!gs) return;
+    const bots = gs.players.filter(p => p.isBot && !p.isDefeated && !p.chosenAction);
+    const potentialTargets = gs.players.filter(p => !p.isBot && !p.isDefeated);
 
+    bots.forEach(bot => {
+        setTimeout(() => {
+            if (gs.phase === 'exploration' && !bot.chosenAction) {
+                let choice;
+                switch (bot.personality) {
+                    case 'aggressive': choice = Math.random() < 0.7 ? 'Phá Hoại' : 'Giải Mã'; break;
+                    case 'cautious': choice = Math.random() < 0.75 ? 'Giải Mã' : 'Quan Sát'; break;
+                    default: choice = ['Giải Mã', 'Phá Hoại', 'Quan Sát'][Math.floor(Math.random() * 3)];
+                }
+                
+                let payload = {};
+                if (choice === 'Phá Hoại') {
+                    if (potentialTargets.length > 0) {
+                        const target = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
+                        payload.targetId = target.id;
+                    } else {
+                        choice = 'Quan Sát';
+                    }
+                }
+                handlePlayerChoice(roomCode, bot.id, choice, rooms, io, payload);
+            }
+        }, Math.random() * 5000 + 2000);
+    });
+}
 
 function handleUseSkill(socket, roomCode, payload, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
@@ -813,34 +794,41 @@ function handleUseSkill(socket, roomCode, payload, rooms, io) {
     if (!player || player.isDefeated || player.isSkillDisabled || player.skillUsedThisRound) {
         return io.to(player.id).emit('privateInfo', { title: 'Lỗi', text: 'Không thể dùng kỹ năng!' });
     }
+let messageForRoom;
+   let cost = SKILL_COSTS[player.skillUses] ?? SKILL_COSTS[SKILL_COSTS.length - 1];
 
-    let cost = SKILL_COSTS[player.skillUses] || SKILL_COSTS[SKILL_COSTS.length - 1];
-    if (player.roleId === 'MIMIC' || player.roleId === 'CULTIST') cost = 2;
-    if (player.roleId === 'PHANTOM' && player.freeHaunt) { cost = 0; player.freeHaunt = false; }
+    if (player.roleId === 'MIMIC' || player.roleId === 'CULTIST') {
+        cost = 2; // Chi phí cố định
+    }
+    if (player.roleId === 'PHANTOM' && player.freeHaunt) {
+        cost = 0; // Ám miễn phí
+    }
 
-    if (cost > 0 && player.score < cost) {
+    if (player.score < cost) {
         return io.to(player.id).emit('privateInfo', { title: 'Lỗi', text: `Không đủ Tiến Độ để dùng kỹ năng (cần ${cost})!` });
     }
 
+    // Trừ điểm và cập nhật trạng thái
     player.score -= cost;
     player.skillUsedThisRound = true;
-    player.skillUses++; // <-- Số lần dùng đã tăng lên
 
-    io.to(player.id).emit('privateInfo', { title: 'Kỹ Năng Đã Dùng', text: `Bạn đã trả ${cost} Tiến Độ.` });
+    // Tăng số lần sử dụng SAU KHI đã dùng xong
+    player.skillUses++;
+    if (player.roleId === 'PHANTOM' && cost === 0) {
+        player.freeHaunt = false; // Tắt trạng thái ám miễn phí
+    }
+
+    io.to(roomCode).emit('logMessage', { type: 'info', message: `✨ ${player.name} đã sử dụng một kỹ năng bí ẩn...` });
     io.to(roomCode).emit('updatePlayerCards', [{ id: player.id, score: player.score }]);
-	 const roleData = { ...ROLES[player.roleId], id: player.roleId };
 
-    // 2. Tính toán chi phí MỚI cho lần dùng tiếp theo
-    let nextCost = SKILL_COSTS[player.skillUses] || SKILL_COSTS[SKILL_COSTS.length - 1];
+    // Gửi lại thông tin vai trò với chi phí MỚI cho lần dùng tiếp theo
+    const roleData = { ...ROLES[player.roleId], id: player.roleId };
+    let nextCost = SKILL_COSTS[player.skillUses] ?? SKILL_COSTS[SKILL_COSTS.length - 1];
     if (player.roleId === 'MIMIC' || player.roleId === 'CULTIST') nextCost = 2;
-
-    // 3. Gán chi phí mới vào dữ liệu và gửi lại
     roleData.currentSkillCost = nextCost;
-    io.to(player.id).emit('yourRoleIs', roleData); // Dùng lại sự kiện 'yourRoleIs' để client cập nhật
+    io.to(player.id).emit('yourRoleIs', roleData);
 
-   
-    let messageForRoom = `✨ ${player.name} đã sử dụng một kỹ năng bí ẩn...`;
-    
+    // Xử lý logic cụ thể của từng kỹ năng
     switch (player.roleId) {
         // CÁC CASE CẦN CHỌN MỤC TIÊU
         case 'PROPHET':
@@ -855,12 +843,22 @@ function handleUseSkill(socket, roomCode, payload, rooms, io) {
             break;
            
         case 'MIND_BREAKER':
-            targetPlayer = gs.players.find(p => p.id === payload.targetId);
+            const targetPlayer = gs.players.find(p => p.id === payload.targetId);
             if (targetPlayer && payload.chosenAction) {
                 targetPlayer.chosenAction = payload.chosenAction;
                 messageForRoom = `🧠 Một thế lực vô hình đã điều khiển hành động của **${targetPlayer.name}**.`;
                 io.to(roomCode).emit('playerChose', targetPlayer.id);
             }
+            break;
+		case 'MIMIC':
+             // [NOTE] Logic kỹ năng của Kẻ Bắt Chước rất phức tạp.
+             // Nó cần "dùng ké" kỹ năng của người bị sao chép.
+             // Hiện tại, logic này chưa được cài đặt.
+             io.to(player.id).emit('privateInfo', { title: 'Chưa Cài Đặt', text: 'Kỹ năng này sẽ được phát triển trong tương lai!' });
+             // Hoàn lại chi phí vì kỹ năng chưa có tác dụng
+             player.score += cost;
+             if (player.skillUses > 0) player.skillUses--;
+             io.to(roomCode).emit('updatePlayerCards', [{ id: player.id, score: player.score }]);
             break;
 			// CÁC CASE KÍCH HOẠT ĐỂ XỬ LÝ CUỐI VÒNG
         case 'MAGNATE':
@@ -916,17 +914,19 @@ function handleUseSkill(socket, roomCode, payload, rooms, io) {
                 });
 
                 // Tạo thông báo và gửi cập nhật cho tất cả client
-                const affectedPlayerNames = [...highestPlayers, ...lowestPlayers].map(p => p.name);
+                 const affectedPlayerNames = [...highestPlayers, ...lowestPlayers].map(p => p.name);
                 messageForRoom = `📈📉 ${player.name} đã tái phân bố lại điểm số! Điểm của ${affectedPlayerNames.join(', ')} đã được cân bằng.`;
                 io.to(roomCode).emit('updatePlayerCards', gs.players.map(p => ({id: p.id, score: p.score})));
             } else {
                 // Gửi phản hồi nếu không thể dùng kỹ năng
                 io.to(player.id).emit('privateInfo', { title: 'Thất Bại', text: 'Không thể tái phân bố điểm số lúc này.' });
                 // Hoàn lại chi phí kỹ năng cho người chơi vì kỹ năng không có tác dụng
-                player.score += cost; // 'cost' là biến đã được tính ở đầu hàm handleUseSkill
-                player.skillUses--; // Giảm số lần dùng lại
-                io.to(roomCode).emit('updatePlayerCards', [{ id: player.id, score: player.score }]);
-            }
+               player.score += cost; 
+if (player.skillUses > 0) { // Chỉ giảm nếu đã từng dùng
+    player.skillUses--; 
+}
+io.to(roomCode).emit('updatePlayerCards', [{ id: player.id, score: player.score }]);
+			}
             
             break;
         case 'CULTIST':
@@ -954,17 +954,29 @@ function handleUseSkill(socket, roomCode, payload, rooms, io) {
 
 function calculateScoresAndEndRound(roomCode, rooms, io) {
     const gs = rooms[roomCode]?.gameState;
-    if (!gs) {
-        console.warn(`[LOGIC-WARN] Cố gắng tính điểm cho phòng không tồn tại: ${roomCode}`);
-        return;
-    }
+    if (!gs) return;
     gs.phase = 'reveal';
+
+    // [SỬA LỖI - MIMIC] Bổ sung logic sao chép hành động của Kẻ Bắt Chước
+    // Phải thực hiện trước khi tính toán bất cứ thứ gì.
+    const mimics = gs.players.filter(p => p.roleId === 'MIMIC' && !p.isDefeated && p.mimicTargetId);
+    mimics.forEach(mimic => {
+        const target = gs.players.find(p => p.id === mimic.mimicTargetId);
+        if (target) {
+            mimic.chosenAction = target.chosenAction;
+            // Thông báo cho Kẻ Bắt Chước về hành động đã sao chép (tùy chọn)
+            io.to(mimic.id).emit('privateInfo', {
+                title: 'Sao Chép Thành Công',
+                text: `Bạn đã sao chép hành động **${mimic.chosenAction || 'Không làm gì'}** của ${target.name}.`
+            });
+        }
+    });
+    // Kết thúc sửa lỗi Mimic
 
     const results = { messages: [], roundSummary: [], isDraw: false, winner: null, roundWinners: [] };
     const activePlayers = gs.players.filter(p => !p.isDefeated && !p.disconnected);
-    if (activePlayers.length === 0) {
-        return handlePostRoundEvents(roomCode, rooms, io);
-    }
+    if (activePlayers.length === 0) return handlePostRoundEvents(roomCode, rooms, io);
+
 
     activePlayers.forEach(p => {
         results.roundSummary.push({
@@ -976,29 +988,32 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
 
     const applyPointChange = (playerId, amount, reason) => {
         const summary = results.roundSummary.find(s => s.id === playerId);
-        if (summary && amount !== 0) {
-            summary.changes.push({ reason, amount });
+        if (!summary || amount === 0) return;
+
+        // [CẬP NHẬT] Xử lý Bùa Hộ Thân (Golden Ward)
+        const player = gs.players.find(p => p.id === playerId);
+        const wardIndex = player.artifacts.findIndex(a => a.id === 'GOLDEN_WARD');
+        if (wardIndex !== -1 && amount < 0) {
+            player.artifacts.splice(wardIndex, 1);
+            gs.artifactPool.push('GOLDEN_WARD');
+            io.to(player.id).emit('artifactUpdate', { artifacts: player.artifacts });
+            io.to(roomCode).emit('logMessage', { type: 'info', message: `Bùa Hộ Thân đã bảo vệ ${player.name} khỏi bị mất điểm!` });
+            return; // Vô hiệu hóa việc mất điểm
         }
+        summary.changes.push({ reason, amount });
     };
-	// =================================================================================
-    // BƯỚC 0: [MỚI] XỬ LÝ HIỆU ỨNG HÀNH ĐỘNG (GIẢI MÃ, PHÁ HOẠI)
-    // =================================================================================
+	// BƯỚC 0: XỬ LÝ HIỆU ỨNG HÀNH ĐỘNG
     activePlayers.forEach(p => {
-        const rand = Math.random();
         if (p.chosenAction === 'Giải Mã') {
-            if (rand < 0.10) { // 10% tìm Cổ Vật
-                handleFindArtifact(p, 'Thám Hiểm', gs, io);
-            } else if (rand < 0.40) { // 30% tiếp theo (tổng 40%) nhận 1 điểm
-                applyPointChange(p.id, 1, 'May mắn khi Giải Mã');
-            }
+            const rand = Math.random();
+            if (rand < 0.10) handleFindArtifact(p, 'Thám Hiểm', gs, io);
+            else if (rand < 0.40) applyPointChange(p.id, 1, 'May mắn khi Giải Mã');
         } else if (p.chosenAction === 'Phá Hoại') {
-            if (rand < 0.10) { // 10% tìm Cổ Vật
-                handleFindArtifact(p, 'Hỗn Loạn', gs, io);
-            } else if (rand < 0.40) { // 30% tiếp theo
+            const rand = Math.random();
+            if (rand < 0.10) handleFindArtifact(p, 'Hỗn Loạn', gs, io);
+            else if (rand < 0.40) {
                 const target = gs.players.find(t => t.id === p.sabotageTargetId);
-                if (target) {
-                    applyPointChange(target.id, -1, `Bị ${p.name} Phá Hoại`);
-                }
+                if (target) applyPointChange(target.id, -1, `Bị ${p.name} Phá Hoại`);
             }
         }
     });
@@ -1331,7 +1346,7 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
     }
 
     // --- 6.3: Cập nhật điểm số cuối cùng vào state ---
-    activePlayers.forEach(p => {
+   activePlayers.forEach(p => {
         const summary = results.roundSummary.find(s => s.id === p.id);
         const finalTotalChange = summary.changes.reduce((sum, change) => sum + change.amount, 0);
         p.score += finalTotalChange;
@@ -1345,13 +1360,13 @@ function calculateScoresAndEndRound(roomCode, rooms, io) {
         finalVoteCounts: finalVotes
     });
 
-    // Kiểm tra kết thúc game
     handlePostRoundEvents(roomCode, rooms, io);
 }
+
 module.exports = {
     createGameState, startNewRound, handlePlayerChoice, handleCoordination, revealDecreeAndContinue,
     handleTwilightAction, handleUseSkill, handleAmnesiaAction, handleArenaPick, handleArenaBet,
     handleVoteToSkip, triggerBotPhaseAction, calculateScoresAndEndRound, handlePostRoundEvents, checkRoleVictory,
     resetRoomForRematch,
-    handleArtifactDecision, // <-- Export hàm mới
+    handleArtifactDecision,
 };

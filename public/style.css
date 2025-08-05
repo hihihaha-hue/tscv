@@ -1,5 +1,5 @@
 /*======================================================================
-// THỢ SĂN CỔ VẬT - STYLESHEET (PHIÊN BẢN HOÀN CHỈNH)
+// THỢ SĂN CỔ VẬT - STYLESHEET (PHIÊN BẢN THẨM MỸ - DI CẢO NGÔI ĐỀN)
 //======================================================================*/
 
 /* --- I. Cài Đặt Chung & Biến Màu --- */
@@ -32,12 +32,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    height: 100vh;
     margin: 0;
-    padding: 20px 0;
-    /* [THAY ĐỔI QUAN TRỌNG] Xóa bỏ overflow: hidden để tránh mất nội dung */
+    padding: 20px;
+    overflow: hidden;
 }
-
 .container {
     background-color: rgba(26, 32, 44, 0.92);
     backdrop-filter: blur(12px);
@@ -45,18 +44,18 @@ body {
     padding: 20px;
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-    width: 95%;
+    width: 100%;
     max-width: 1600px;
     text-align: center;
     border: 1px solid var(--bg-light);
-    /* [GIẢI THÍCH] Thiết lập chiều cao và flexbox để quản lý layout bên trong */
-    height: calc(100vh - 40px);
+    height: 100%;
+    max-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
 }
 
 /* --- II. Typography & Các Thành Phần Chung --- */
-h1 { color: var(--primary-gold); font-size: 2.8em; text-shadow: 0 0 15px rgba(246, 224, 94, 0.6); margin: 0 0 20px 0; }
+h1 { color: var(--primary-gold); font-size: 2.8em; margin: 0 0 20px 0; }
 h2 { color: var(--text-light); border-bottom: 1px solid var(--bg-light); padding-bottom: 8px; margin: 0 0 10px 0; font-size: 1.6em; }
 h3 { color: var(--text-light); margin-top: 0; margin-bottom: 10px; font-size: 1.2em; }
 hr { border: none; border-top: 1px solid var(--bg-light); margin: 20px 0; }
@@ -68,142 +67,148 @@ button {
 }
 button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-color: var(--primary-gold); }
 button:disabled { background-color: #2d3748 !important; color: #718096 !important; cursor: not-allowed; }
-
 input[type="text"] {
-    width: 100%; margin: 10px 0; padding: 10px; font-size: 1.1em; font-weight: bold;
-    background-color: var(--bg-dark); color: var(--text-light); border: 1px solid var(--bg-light);
-    border-radius: 6px; text-align: center; font-family: inherit;
+    width: 100%; margin: 10px 0; padding: 12px; font-size: 1.1em;
+    background-color: rgba(0,0,0,0.05); color: var(--text-dark-ink);
+    border: 2px solid var(--border-soft); border-radius: 5px; text-align: center;
+    font-family: inherit; transition: all 0.3s ease;
 }
-input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box-shadow: 0 0 8px rgba(246, 224, 94, 0.3); }
+input[type="text"]:focus {
+    outline: none; border-color: var(--primary-gold);
+    box-shadow: 0 0 8px rgba(199, 156, 63, 0.5); background-color: rgba(199, 156, 63, 0.1);
+}
 
-/* --- III. GIAO DIỆN PHÒNG CHỜ & CÁC NÚT CHUNG --- */
+/* --- III. Bố Cục Màn Hình Chính & Phòng Chờ --- */
+#home-screen, #room-screen { animation: contentFadeIn 0.6s ease-out; }
+@keyframes contentFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
 #player-list {
-    list-style-type: none; padding: 10px; margin: 20px auto;
-    max-width: 600px; max-height: 50vh;
-    overflow-y: auto; border: 1px solid var(--bg-light); border-radius: 8px;
+    list-style-type: none; padding: 10px; margin: 20px auto; max-width: 600px;
+    max-height: 50vh; overflow-y: auto; border: 1px solid var(--border-soft); border-radius: 8px;
 }
-#player-list li { background-color: rgba(74, 85, 104, 0.6); margin-bottom: 8px; padding: 12px 15px; border-radius: 6px; border-left: 5px solid var(--primary-gold); display: flex; justify-content: space-between; align-items: center; }
-.kick-btn { background-color: var(--accent-red); color: white; padding: 5px 10px; font-size: 0.8em; margin-left: 15px; }
-.controls-wrapper { margin-top: 20px; }
-
-#rulebook-btn, #history-log-btn, #music-toggle-btn {
-    position: fixed; width: 45px; height: 45px; border-radius: 50%;
-    font-size: 1.6em; z-index: 1000; padding: 0;
-    background-color: var(--primary-gold); color: var(--bg-dark); border: 2px solid var(--bg-dark);
+#player-list li {
+    background-color: rgba(0, 0, 0, 0.04); margin-bottom: 8px; padding: 12px 15px; border-radius: 6px;
+    border-left: 5px solid var(--primary-gold); display: flex; justify-content: space-between; align-items: center;
+    font-size: 1.1em;
 }
-#rulebook-btn { top: 20px; right: 20px; }
-#history-log-btn { top: 75px; right: 20px; }
-#music-toggle-btn { top: 20px; left: 20px; }
+.kick-btn { background-color: var(--accent-red-blood); color: white; padding: 5px 10px; font-size: 0.8em; margin-left: 15px; border: none; }
 
-/* --- IV. BỐ CỤC MÀN HÌNH GAME - TỐI ƯU HÓA KHÔNG GIAN --- */
+/* --- IV. Bố Cục Màn Hình Game & Panels --- */
 #game-screen {
-    display: grid; /* Sử dụng Grid Layout cho sức mạnh tối đa */
-    grid-template-columns: 2fr 5fr 2.5fr; /* Tỷ lệ các cột: Trái (nhỏ) - Giữa (lớn) - Phải (trung bình) */
+    display: grid;
+    grid-template-columns: 320px 1fr 350px;
     gap: 15px;
-    padding: 10px;
     width: 100%;
-    height: 100%;
     flex-grow: 1;
+    overflow: hidden;
 }
 
-/* --- CẤU TRÚC CÁC CỘT --- */
 #left-column, #center-column, #right-column {
     display: flex;
-    flex-direction: column; /* Các thành phần trong cột xếp dọc */
+    flex-direction: column;
     gap: 15px;
-    min-height: 0; /* Mẹo để flexbox hoạt động đúng trong grid */
+    min-height: 0;
+    overflow: hidden;
 }
 
-/* --- ĐỊNH DẠNG CHUNG CHO CÁC KHUNG GIAO DIỆN --- */
 .game-panel {
-    background-color: rgba(26, 32, 44, 0.85);
+    background-color: rgba(45, 55, 72, 0.85);
     border: 1px solid var(--bg-light);
     border-radius: 8px;
     padding: 15px;
     display: flex;
-    flex-direction: column; /* Mặc định các panel cũng là flex column */
+    flex-direction: column;
 }
 
-/* --- CỘT TRÁI: VAI TRÒ VÀ CHAT --- */
-#role-display {
-    flex-shrink: 0; /* Không cho panel vai trò bị co lại */
+@keyframes fadeInPanel { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- V. Cấu Trúc Co Giãn Của Các Cột --- */
+#role-display, #artifact-display {
+    flex-shrink: 0;
 }
 #chat-container {
-    flex-grow: 1; /* Cho phép panel chat chiếm hết không gian còn lại */
+    flex-grow: 1;
+    min-height: 0;
 }
-
-/* --- CỘT GIỮA: GIAI ĐOẠN VÀ NGƯỜI CHƠI --- */
-#phase-info {
+#chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column-reverse;
+}
+#chat-input-area {
+    margin-top: 10px;
     flex-shrink: 0;
-    text-align: center;
+    display: flex;
+    gap: 5px;
 }
-#phase-info #timer-display {
-    font-size: 3em;
-    color: var(--primary-gold);
-    font-weight: bold;
-}
+#chat-input { width: 100%; margin: 0; }
+#send-chat-btn { width: auto; }
+/* --- VI. Các Thành Phần Giao Diện Chi Tiết --- */
+#phase-info { flex-shrink: 0; }
+#phase-info #timer-display { font-size: 3em; color: var(--primary-gold); font-weight: bold; }
 
-
-
-
-/* --- V. CÁC THÀNH PHẦN CHI TIẾT TRONG GAME --- */
-.players-grid {
-    flex-grow: 1; /* Lưới người chơi chiếm hết không gian giữa */
+#players-container {
+    flex-grow: 1;
     display: grid;
-    /* 6 cột đều nhau */
-    grid-template-columns: repeat(6, 1fr);
-    /* 2 hàng có chiều cao tự động */
-    grid-auto-rows: min-content; 
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-auto-rows: min-content;
     gap: 15px;
     padding: 10px;
-    overflow-y: auto; /* Thêm cuộn nếu cần, nhưng 2x6 thường sẽ vừa */
+    overflow-y: auto;
 }
-
 .player-avatar-card {
-    display: flex;
-    flex-direction: column; /* Tên nằm dưới avatar */
-    align-items: center;    /* Căn giữa theo chiều ngang */
-    justify-content: center; /* Căn giữa theo chiều dọc */
-    text-align: center;
-    gap: 8px; /* Khoảng cách giữa avatar và tên */
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 8px; position: relative; transition: transform 0.2s ease;
 }
+.player-avatar-card:hover { transform: scale(1.05); }
+
 .player-avatar-card .avatar {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background-color: var(--bg-light);
-    border: 3px solid var(--neutral-gray);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.2em;
-    font-weight: bold;
-    transition: all 0.2s ease;
+    width: 80px; height: 80px; border-radius: 50%; background-color: #d1c7b3;
+    border: 3px solid #8a7a5f; box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+    display: flex; align-items: center; justify-content: center; font-size: 2.5em; font-weight: bold;
+    transition: all 0.3s ease; color: var(--text-dark-ink);
 }
 .player-avatar-card .avatar.is-self {
-    border-color: var(--primary-gold);
-    box-shadow: 0 0 15px var(--primary-gold);
+    border-color: var(--primary-gold); box-shadow: 0 0 15px var(--primary-gold), inset 0 0 10px rgba(0,0,0,0.3);
 }
-.player-avatar-card .player-name {
-    font-size: 0.9em;
-    font-weight: bold;
-    color: var(--text-light);
-}#leaderboard {
-    flex-basis: 35%; /* Chiếm khoảng 35% chiều cao cột phải */
-    flex-grow: 1;
+.player-avatar-card.is-defeated .avatar { filter: grayscale(100%) opacity(0.6); }
+.player-avatar-card.has-chosen .avatar::after {
+    content: '✔'; position: absolute; bottom: 0; right: 0; background-color: var(--success-green-moss);
+    color: white; border-radius: 50%; width: 25px; height: 25px; display: flex;
+    justify-content: center; align-items: center; font-size: 16px; border: 2px solid var(--bg-parchment);
+    animation: popIn 0.3s ease-out;
 }
-#leaderboard-list {
-    overflow-y: auto; /* Cho phép cuộn bảng xếp hạng */
-    flex-grow: 1;
-    padding-left: 10px;
+@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+#action-container { background-color: rgba(0,0,0,0.07); justify-content: center; align-items: center; }
+#phase-description { font-size: 1.1em; margin-bottom: 15px; }
+.action-buttons-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.action-buttons-grid button { border-width: 3px; padding: 15px 10px; font-size: 1.1em; }
+.choice-buttons.loyal { border-color: var(--success-green-moss); }
+.choice-buttons.loyal:hover { background-color: var(--success-green-moss); color: white; }
+.choice-buttons.corrupt { border-color: var(--accent-red-blood); }
+.choice-buttons.corrupt:hover { background-color: var(--accent-red-blood); color: white; }
+.choice-buttons.blank { border-color: var(--accent-blue-royal); }
+.choice-buttons.blank:hover { background-color: var(--accent-blue-royal); color: white; }
+
+
+#leaderboard, #roles-in-game, #action-container {
+    flex-shrink: 0;
 }
 
-#action-container {
-    flex-shrink: 0; /* Kích thước cố định */
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
+#leaderboard-list, #roles-in-game-list {
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 5px;
+    list-style: none;
+    padding-left: 5px;
+    margin: 0;
 }
+
 .action-buttons-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -212,380 +217,72 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 }
 
 #message-area {
-    flex-basis: 40%; /* Chiếm khoảng 40% chiều cao */
-    flex-grow: 2; /* Ưu tiên không gian cho log game */
-}
-
-
-/* Sửa lại log và chat để nhất quán */
-#chat-messages, #message-area {
     flex-grow: 1;
+    min-height: 50px;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column-reverse; /* Tin nhắn mới ở dưới */
-    padding: 5px;
     background: rgba(0,0,0,0.2);
-    border-radius: 4px;
-}
-#chat-input-area {
-    margin-top: 10px;
-    flex-shrink: 0;
-}
-
-#action-container {
-    flex-grow: 1;
+    padding: 10px;
     display: flex;
-    flex-direction: column;
-    justify-content: center; /* Căn giữa các nút và mô tả */
-    align-items: center;
+    flex-direction: column-reverse;
 }
+.log-message { margin: 2px 0; }
 
-/* --- VI. GIAO DIỆN HOÀNG HÔN (AMONG US STYLE) --- */
-#twilight-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.85); display: none;
-    justify-content: center; align-items: center; z-index: 2000;
-    backdrop-filter: blur(5px);
-}
+/* --- VII. Pop-up & Overlays --- */
+#twilight-overlay { background-color: rgba(0, 0, 0, 0.88); backdrop-filter: blur(5px); }
 #twilight-meeting-ui {
-    width: 90%; max-width: 600px;
-    background: linear-gradient(145deg, var(--bg-medium), var(--bg-dark));
-    border: 1px solid var(--bg-light); border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    display: flex; flex-direction: column; max-height: 80vh;
+    background: var(--bg-parchment) url('/assets/images/parchment-texture.png');
+    color: var(--text-dark-ink); border: 4px solid var(--border-dark-wood); box-shadow: var(--shadow-deep);
 }
-.twilight-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--bg-light); }
-.twilight-header h2 { margin: 0; font-size: 1.8em; color: var(--primary-gold); border-bottom: none; }
-.close-btn { background: none; border: none; color: var(--text-medium); font-size: 2em; cursor: pointer; padding: 0 10px; }
-.close-btn:hover { color: var(--text-light); }
-#twilight-player-list { list-style: none; padding: 10px; margin: 0; overflow-y: auto; flex-grow: 1; }
-.twilight-player-item { display: flex; align-items: center; padding: 12px; background-color: rgba(0, 0, 0, 0.2); border-radius: 8px; margin-bottom: 8px; transition: background-color 0.2s; }
-.twilight-player-item:hover { background-color: rgba(255, 255, 255, 0.1); }
-.twilight-player-item .player-avatar-small { width: 40px; height: 40px; border-radius: 50%; background-color: var(--neutral-gray); display: flex; justify-content: center; align-items: center; font-size: 1.2em; font-weight: bold; margin-right: 15px; }
-.twilight-player-item .player-name { flex-grow: 1; font-size: 1.2em; }
-.twilight-player-item .action-buttons .accuse-btn { background-color: var(--accent-red); color: white; padding: 8px 15px; font-size: 0.9em; }
-.twilight-footer { padding: 15px 20px; border-top: 1px solid var(--bg-light); text-align: center; }
+.twilight-header { border-bottom-color: var(--border-soft); }
+.twilight-header h2 { color: var(--text-dark-ink); border: none; }
+.close-btn { color: var(--text-dark-ink); }
+.twilight-player-item:hover { background-color: rgba(0,0,0,0.08); }
+.twilight-footer { border-top-color: var(--border-soft); }
 
-/* --- VII. HIỆU ỨNG & OVERLAYS --- */
-#night-transition-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #000; color: var(--primary-gold); display: flex; justify-content: center; align-items: center; font-size: 2.5em; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease-in-out; }
-#night-transition-overlay.active { opacity: 1; }
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); }
+#rulebook-btn, #history-log-btn, #music-toggle-btn {
+    background-color: var(--text-dark-ink); color: var(--bg-parchment);
+    border: 2px solid var(--bg-parchment); width: 50px; height: 50px;
+    border-radius: 50%; box-shadow: var(--shadow-soft);
+    position: fixed; z-index: 1001;
 }
-.shake { animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both; }
+#rulebook-btn { top: 20px; right: 20px; }
+#history-log-btn { top: 80px; right: 20px; }
+#music-toggle-btn { top: 20px; left: 20px; }
 
-/* --- VIII. THIẾT KẾ ĐÁP ỨNG (RESPONSIVE) --- */
-@media (max-width: 1024px) {
-    body {
-        padding: 0;
-        /* Cho phép cuộn toàn trang nếu nội dung quá dài trên một số thiết bị */
-        overflow-y: auto; 
-    }
-
-    .container {
-        /* Cho phép container co giãn theo chiều cao nội dung */
-        height: auto; 
-        min-height: 100vh;
-        padding: 10px;
-        border-radius: 0;
-        border: none;
-    }
-
-    /* === [THAY ĐỔI CỐT LÕI] CHUYỂN TOÀN BỘ GAME SANG BỐ CỤC DỌC === */
-    #game-screen {
-        display: flex;
-        flex-direction: column; /* Xếp chồng mọi thứ lên nhau */
-        gap: 15px;
-    }
-
-    /* Biến các cột thành "vô hình" để các panel con được xếp chồng lên nhau */
-    #left-column, #center-column, #right-column {
-        display: contents;
-    }
-
-    /* === SẮP XẾP LẠI THỨ TỰ ƯU TIÊN CHO DI ĐỘNG BẰNG CSS `order` === */
-    /* Thứ tự hiển thị sẽ là: 1, 2, 3, 4, ... */
-    #phase-info { order: 1; text-align: center; }
-    #players-container { order: 2; }
-    #action-container { order: 3; }
-    #role-display { order: 4; }
-    #leaderboard { order: 5; }
-    #message-area { order: 6; }
-    #chat-container { order: 7; }
-
-    /* --- TÙY CHỈNH KÍCH THƯỚC CÁC PANEL --- */
-    .game-panel {
-        padding: 12px;
-    }
-
-    #phase-info h2 { font-size: 1.2em; }
-    #timer-display { font-size: 2.2em; }
-    
-    /* --- LƯỚI NGƯỜI CHƠI CHO DI ĐỘNG --- */
-    .players-grid {
-        /* Hiển thị tối đa 4 người một hàng */
-        grid-template-columns: repeat(4, 1fr); 
-        gap: 10px;
-        /* Giới hạn chiều cao và cho phép cuộn bên trong */
-        max-height: 35vh;
-        overflow-y: auto;
-        padding: 10px;
-    }
-
-    .player-avatar-card .avatar {
-        width: 55px;
-        height: 55px;
-        font-size: 1.8em;
-    }
-    .player-avatar-card .player-name {
-        font-size: 0.75em;
-    }
-
-    /* --- KHU VỰC HÀNH ĐỘNG --- */
-    .action-buttons-grid {
-        grid-template-columns: 1fr 1fr 1fr; /* 3 nút trên một hàng */
-    }
-    button {
-        padding: 10px 12px;
-        font-size: 0.9em;
-    }
-    
-    /* --- CÁC KHUNG THÔNG TIN KHÁC --- */
-    /* Cho phép các khung này có chiều cao cố định và tự cuộn */
-    #role-display, #leaderboard, #message-area, #chat-container {
-    max-height: 250px; /* Vẫn giữ chiều cao tối đa để không chiếm hết màn hình */
-    
-    /* [SỬA LỖI QUAN TRỌNG] */
-    overflow-y: auto; /* THAY ĐỔI từ 'hidden' thành 'auto' */
-    
-    display: flex; /* Thêm flex để quản lý nội dung bên trong tốt hơn */
-    flex-direction: column;
-}
-
-    
-
-
-/* === Tinh chỉnh thêm cho màn hình điện thoại rất nhỏ === */
-@media (max-width: 480px) {
-    .container {
-        padding: 5px;
-    }
-
-    .players-grid {
-        /* Hiển thị 3 người một hàng để avatar to hơn, dễ bấm hơn */
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    h1 {
-        font-size: 2.2em;
-    }
-}
-
-/* === IX. STYLE CHO SÁCH LUẬT DẠNG TRANG === */
+/* Sách Luật */
 .swal2-popup.rulebook-popup {
-    padding: 15px !important;
-    /* [SỬA LỖI] Quay lại màu nền gốc để đảm bảo độ tương phản */
-    background-color: var(--bg-medium) !important;
-    /* Giữ lại viền trang trí */
-    border: 2px solid var(--primary-gold);
+    background: var(--bg-parchment) url('/assets/images/parchment-texture.png') !important;
+    color: var(--text-dark-ink) !important; border: 4px solid var(--border-dark-wood);
 }
-.rulebook-title {
-    color: var(--primary-gold) !important;
-    text-align: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--bg-light);
-    padding-bottom: 15px;
-    font-size: 1.8em;
-}
-.rulebook-page p i {
-    color: var(--text-medium); /* Màu xám hơn một chút cho lời dẫn */
-    display: block;
-    margin-bottom: 1em;
-    border-left: 3px solid var(--primary-gold);
-    padding-left: 15px;
-    font-style: italic;
-}
-.rulebook-tabs {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--bg-light);
+.rulebook-title { color: var(--text-dark-ink) !important; border-bottom-color: var(--border-soft); }
+.rulebook-tab { color: rgba(0,0,0,0.5); border: none; }
+.rulebook-tab:hover { color: var(--text-dark-ink); }
+.rulebook-tab.active { color: var(--primary-gold); border-bottom: 3px solid var(--primary-gold); }
+.rulebook-page.active { color: var(--text-dark-ink); }
+
+/* --- IX. Thanh Cuộn Tùy Chỉnh --- */
+* { scrollbar-width: thin; scrollbar-color: var(--border-dark-wood) transparent; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+::-webkit-scrollbar-thumb { background: #8a7a5f; border-radius: 5px; border: 2px solid var(--bg-parchment); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-dark-wood); }
+
+/* --- X. Thiết Kế Đáp Ứng (Responsive) --- */
+@media (max-width: 1200px) {
+    #game-screen {
+        grid-template-columns: minmax(280px, 1.5fr) 4fr;
+        grid-template-areas: "left main" "right main";
+    }
+    #left-column { grid-area: left; }
+    #center-column { grid-area: main; }
+    #right-column { grid-area: right; }
 }
 
-
-.rulebook-tab {
-    background: none;
-    border: none;
-    /* [SỬA LỖI] Dùng màu chữ sáng mặc định */
-    color: var(--text-medium);
-    font-size: 1.1em;
-    padding: 10px 20px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 3px solid transparent;
-    font-family: var(--font-main);
-    font-weight: bold;
-}
-
-
-.rulebook-tab:hover {
-    color: var(--text-light);
-}
-
-.rulebook-tab.active {
-    color: var(--primary-gold);
-    border-bottom-color: var(--primary-gold);
-}
-
-
-.rulebook-page {
-    display: none;
-    animation: fadeIn 0.5s;
-    /* [SỬA LỖI] Đảm bảo nội dung bên trong trang có màu chữ sáng */
-    color: var(--text-light);
-}
-
-.rulebook-page.active {
-    display: block;
-}
-
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-.swal2-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-.swal2-table th, .swal2-table td {
-    border: 1px solid var(--bg-light);
-    padding: 8px 12px;
-    text-align: center;
-}
-.swal2-table th {
-    background-color: var(--bg-dark);
-    color: var(--primary-gold);
-}
-.swal2-table .success-text {
-    color: var(--success-green);
-    font-weight: bold;
-}
-.swal2-table .error-text {
-    color: var(--accent-red);
-    font-weight: bold;
-}
-.scrollable-page {
-    max-height: 50vh; /* Giới hạn chiều cao */
-    overflow-y: auto; /* Thêm thanh cuộn */
-    padding-right: 10px; /* Tạo khoảng trống cho thanh cuộn */
-}
-
-/* Style cho danh sách trong sách luật */
-.role-item, .decree-item {
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--bg-light);
-}
-.role-item h4, .decree-item h4 {
-    color: var(--primary-gold);
-    margin-bottom: 5px;
-}
-
-/* Style cho panel "Bể Vai Trò" trong game */
-#roles-in-game {
-    flex-grow: 1; 
-    min-height: 150px;
-    display: flex;
-    flex-direction: column;
-}
-#roles-in-game h4 {
-    flex-shrink: 0;
-    margin-bottom: 10px;
-}
-#roles-in-game-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    height: 100%;
-    overflow-y: auto;
-    padding-right: 5px;
-}
-.role-in-game-item details {
-    margin-bottom: 5px;
-    border-bottom: 1px solid var(--bg-light);
-    padding-bottom: 5px;
-}
-.role-in-game-item summary.role-name {
-    cursor: pointer;
-    font-weight: bold;
-    color: var(--primary-gold);
-    padding: 5px;
-    border-radius: 4px;
-    outline: none;
-    transition: background-color 0.2s;
-}
-.role-in-game-item summary.role-name:hover {
-    background-color: var(--bg-light);
-}
-.role-in-game-item p.role-detail {
-    font-size: 0.9em;
-    padding-left: 20px;
-    color: var(--text-medium);
-    margin: 5px 0;
-}
-#artifact-display {
-    flex-shrink: 0; /* Không cho co lại */
-}
-#artifact-name {
-    color: var(--primary-gold);
-    font-size: 1.1em;
-}
-#artifact-description {
-    font-size: 0.9em;
-    color: var(--text-medium);
-    margin: 5px 0 10px 0;
-}
-#use-artifact-btn {
-    width: 100%;
-}
-.artifact-detail-item {
-    margin-bottom: 25px; /* Tăng khoảng cách giữa các cổ vật */
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--bg-light);
-}
-
-.artifact-detail-item:last-child {
-    border-bottom: none;
-}
-
-.artifact-detail-item h4 {
-    color: var(--primary-gold);
-    font-size: 1.2em;
-    margin-bottom: 8px;
-}
-
-.artifact-flavor {
-    font-style: italic;
-    color: var(--text-medium);
-    margin-bottom: 12px;
-    padding-left: 15px;
-    border-left: 3px solid var(--accent-blue);
-}
-
-.artifact-specs {
-    list-style-type: none;
-    padding-left: 0;
-    margin-left: 5px;
-}
-
-.artifact-specs li {
-    margin-bottom: 8px;
-    line-height: 1.6;
-}
-
-.artifact-specs li strong {
-    color: var(--text-light);
+@media (max-width: 1024px) {
+    body { padding: 0; overflow-y: auto; }
+    .container { height: auto; min-height: 100vh; padding: 10px; border-radius: 0; border: none; }
+    #game-screen { display: flex; flex-direction: column; gap: 15px; }
+    .game-panel { min-height: 150px; }
+    #players-container.players-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); max-height: 30vh; }
+    .player-avatar-card .avatar { width: 60px; height: 60px; }
 }

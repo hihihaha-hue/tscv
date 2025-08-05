@@ -4,14 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thợ Săn Cổ Vật</title>
+    
     <link rel="icon" type="image/png" href="/assets/images/favicon-32x32.png">
+    
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <button id="music-toggle-btn">🎵</button>
+    
     <audio id="background-music" src="/assets/sounds/background.mp3" loop></audio>
-    <button id="rulebook-btn">?</button>
+    
+   <button id="rulebook-btn">?</button>
     <button id="history-log-btn">📜</button>
 
     <div class="container">
@@ -123,9 +128,6 @@
     <script src="/js/network.js"></script>
     <script src="/client.js"></script>
 
-    <!-- ======================================================= -->
-    <!-- SỬA LỖI: Thay thế <script> bằng <template> -->
-    <!-- ======================================================= -->
   <template id="rulebook-template">
     <div class="rulebook-container">
         <h2 class="rulebook-title">Di Cảo Của Ngôi Đền</h2>
@@ -134,13 +136,13 @@
             <button class="rulebook-tab active" data-target="page-foundation">Nền Tảng</button>
             <button class="rulebook-tab" data-target="page-mechanics">Cơ Chế</button>
             <button class="rulebook-tab" data-target="page-scoring">Phán Quyết</button>
-            <button class="rulebook-tab" data-target="page-artifacts">Cổ Vật</button> <!-- THÊM TAB MỚI -->
+            <button class="rulebook-tab" data-target="page-artifacts">Cổ Vật</button> 
             <button class="rulebook-tab" data-target="page-roles-overview">Tổng Quan Vai Trò</button>
             <button class="rulebook-tab" data-target="page-decrees-overview">Tổng Quan Tiếng Vọng</button>
         </div>
 
         <div class="rulebook-pages">
-            <!-- Trang 1: Nền Tảng (Giữ nguyên, bạn có thể giữ nội dung cũ của mình ở đây) -->
+            <!-- Trang 1: Nền Tảng -->
             <div id="page-foundation" class="rulebook-page active" style="text-align: left; line-height: 1.7;">
                 <h3>Mục Đích & Nền Tảng</h3>
                 <p><i>"Nơi đây không tồn tại thiện ác, chỉ có tham vọng. Ngươi không thuộc về một phe phái nào; ngươi là một cá nhân theo đuổi mục đích của riêng mình."</i></p>
@@ -153,7 +155,7 @@
                 <p><strong>Thất Bại:</strong> Nếu Tiến Độ của ngươi rơi xuống mốc âm đối nghịch (-15, -20, hoặc -25), linh hồn ngươi sẽ bị ngôi đền nuốt chửng.</p>
             </div>
 
-            <!-- Trang 2: Cơ Chế Mấu Chốt (ĐÃ CẬP NHẬT) -->
+            <!-- Trang 2: Cơ Chế Mấu Chốt -->
             <div id="page-mechanics" class="rulebook-page" style="text-align: left; line-height: 1.7;">
                 <h3>Hành Động & Tương Tác</h3>
                 <h4>Hành Động Bí Mật (Giai Đoạn Thám Hiểm):</h4>
@@ -179,7 +181,7 @@
                 <p>Vào Hoàng Hôn, ngươi có thể Vạch Trần hành động của mục tiêu: Đúng (Ngươi +2, Mục tiêu -2), Sai (Ngươi -2, Mục tiêu +2).</p>
             </div>
 
-            <!-- Trang 3: Phán Quyết Điểm (ĐÃ CẬP NHẬT) -->
+            <!-- Trang 3: Phán Quyết Điểm -->
             <div id="page-scoring" class="rulebook-page" style="text-align: left; line-height: 1.7;">
                 <h3>Phán Quyết Điểm Chi Tiết</h3>
                 <p><i>"Ngôi đền chỉ công nhận nỗ lực của phe có ít người hơn. Số đông thường dẫn đến sự tự mãn và thất bại."</i></p>
@@ -202,7 +204,7 @@
                 </ul>
             </div>
 
-            <!-- Trang 4 MỚI: Cổ Vật -->
+            <!-- Trang 4: Cổ Vật -->
             <div id="page-artifacts" class="rulebook-page scrollable-page" style="text-align: left; line-height: 1.7;">
                 <h3>Cổ Vật Bị Lãng Quên</h3>
                 <p><i>"Ẩn sâu trong các hành lang của ngôi đền là những Cổ vật mang quyền năng cổ xưa. Ngươi có thể tình cờ tìm thấy chúng khi thực hiện hành động Giải Mã hoặc Phá Hoại."</i></p>

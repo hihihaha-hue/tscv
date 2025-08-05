@@ -296,16 +296,19 @@ const ROLES = {
 // --- IV. EXPORTS ---
 const ALL_DECREE_IDS = Object.keys(DECREES);
 const ALL_ROLE_IDS = Object.keys(ROLES);
+const ALL_ARTIFACT_IDS = Object.keys(ARTIFACTS);
 
 module.exports = {
-    GAME_CONSTANTS, // <-- DÒNG QUAN TRỌNG NHẤT BỊ THIẾU
+    GAME_CONSTANTS,
     DECREES,
     ROLES,
     ARTIFACTS,
     ALL_DECREE_IDS,
     ALL_ROLE_IDS,
+    ALL_ARTIFACT_IDS, 
     SKILL_COSTS: [0, 1, 2, 3, 5, 10]
 };
+
 
 // --- V. CÁC HÀM TIỆN ÍCH NỘI BỘ (Không được export, chỉ dùng trong file này) ---
 // Đặt hàm này ở đây để DECREES có thể sử dụng nó, giữ cho logic.js sạch sẽ hơn.

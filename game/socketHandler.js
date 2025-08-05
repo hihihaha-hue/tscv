@@ -6,7 +6,7 @@
 
 // [SỬA LỖI] Đảm bảo dòng này tồn tại để import logic game
 const gameLogic = require('./logic.js');
-const { ROLES, DECREES, ARTIFACTS } = require('./config.js');
+const { ROLES, DECREES, ARTIFACTS, SKILL_COSTS } = require('./config.js');
 
 function initialize(io, rooms) {
     io.on('connection', (socket) => {
@@ -109,6 +109,7 @@ function initialize(io, rooms) {
         socket.on('startGame', (roomCode) => {
             const room = rooms[roomCode];
             const allReady = room?.players.filter(p => !p.isBot && p.id !== room.hostId).every(p => p.isReady);
+			let initialCost = SKILL_COSTS[0] ?? 0;
 
             if (room && socket.id === room.hostId && room.players.length >= 2 && allReady) {
                room.gameState = gameLogic.createGameState(room.players, io);
