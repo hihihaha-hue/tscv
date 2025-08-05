@@ -52,6 +52,7 @@ const UI = {
         useArtifactBtn: document.getElementById('use-artifact-btn'),
         nightTransitionOverlay: document.getElementById('night-transition-overlay'),
         nightTransitionText: document.getElementById('night-transition-text'),
+		mobileActionBar: document.getElementById('mobile-action-bar'),
     },
     audioCache: {},
     isMuted: false,
@@ -549,45 +550,108 @@ const UI = {
     },
    
     // [FIX] Thêm openTwilightBtn vào destructuring
-    setupPhaseUI(phaseName, options = {}) {
-        const { phaseTitle, phaseDescription, choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, twilightOverlay, playersContainer, openTwilightBtn } = this.gameElements;
+ setupPhaseUI(phaseName, options = {}) {
+        const isMobile = window.innerWidth <= 768;
+        const currentActionContainer = isMobile ? this.gameElements.mobileActionBar : this.gameElements.actionContainer;
+        
+        const { phaseTitle, phaseDescription, choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, playersContainer, openTwilightBtn } = this.gameElements;
         
         playersContainer.classList.remove('selecting-target');
-        [choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, openTwilightBtn].forEach(el => el.style.display = 'none');
         
-        if (this.typedInstance) this.typedInstance.destroy();
+        if (isMobile) {
+            currentActionContainer.innerHTML = ''; 
+        } else {
+            [choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, openTwilightBtn].forEach(el => {
+                if (el) el.style.display = 'none';
+            });
+        }
 
+        if (this.typedInstance) this.typedInstance.destroy();
         const titleText = options.title || this.getPhaseTitle(phaseName);
         this.typedInstance = new Typed(phaseTitle, { strings: [titleText], typeSpeed: 40, showCursor: false });
-        phaseDescription.innerHTML = '';
+
+        const createMobileButton = (id, text, className = '') => {
+            const btn = document.createElement('button');
+            btn.id = `mobile-${id}`;
+            btn.textContent = text;
+            if(className) btn.className = className;
+            btn.onclick = () => this.gameElements[id]?.click();
+            return btn;
+        };
         
+        const createMobileDescription = (text) => {
+            const p = document.createElement('p');
+            p.id = 'phase-description';
+            p.innerHTML = text;
+            return p;
+        };
+
+        const setupMobileChoiceButtons = () => {
+             const container = document.createElement('div');
+             container.className = 'action-buttons-grid';
+             const btn1 = createMobileButton('choice-giai-ma', '📜 Giải Mã', 'choice-buttons loyal');
+             btn1.onclick = () => choiceButtonsContainer.querySelector('[data-action="Giải Mã"]').click();
+             const btn2 = createMobileButton('choice-pha-hoai', '💣 Phá Hoại', 'choice-buttons corrupt');
+             btn2.onclick = () => choiceButtonsContainer.querySelector('[data-action="Phá Hoại"]').click();
+             const btn3 = createMobileButton('choice-quan-sat', '👁️ Quan Sát', 'choice-buttons blank');
+             btn3.onclick = () => choiceButtonsContainer.querySelector('[data-action="Quan Sát"]').click();
+             container.append(btn1, btn2, btn3);
+             return container;
+        }
+
         switch (phaseName) {
             case 'choice':
             case 'exploration': 
-                phaseDescription.innerHTML = 'Bí mật chọn hành động của bạn.';
-                choiceButtonsContainer.style.display = 'grid';
-                choiceButtonsContainer.querySelectorAll('button').forEach(btn => btn.disabled = false);
+                if (isMobile) {
+                    currentActionContainer.appendChild(createMobileDescription('Bí mật chọn hành động của bạn.'));
+                    currentActionContainer.appendChild(setupMobileChoiceButtons());
+                } else {
+                    phaseDescription.innerHTML = 'Bí mật chọn hành động của bạn.';
+                    choiceButtonsContainer.style.display = 'grid';
+                }
                 break;
             case 'coordination':
-                phaseDescription.innerHTML = 'Chọn người để Phối Hợp, hoặc hành động một mình.';
-                skipCoordinationBtn.style.display = 'inline-block';
                 playersContainer.classList.add('selecting-target');
+                if (isMobile) {
+                    currentActionContainer.appendChild(createMobileDescription('Chọn người để Phối Hợp, hoặc hành động một mình.'));
+                    currentActionContainer.appendChild(createMobileButton('skipCoordinationBtn', 'Hành động một mình'));
+                } else {
+                    phaseDescription.innerHTML = 'Chọn người để Phối Hợp, hoặc hành động một mình.';
+                    skipCoordinationBtn.style.display = 'inline-block';
+                }
                 break;
             case 'twilight':
-                phaseDescription.innerHTML = 'Mở bảng Vạch Trần để hành động hoặc chọn Nghỉ Ngơi.';
-                openTwilightBtn.style.display = 'inline-block';
                 this.showTwilightUI(state.players, state.myId);
+                 if (isMobile) {
+                    currentActionContainer.appendChild(createMobileDescription('Mở bảng Vạch Trần hoặc Nghỉ Ngơi.'));
+                    currentActionContainer.appendChild(createMobileButton('openTwilightBtn', 'Mở Bảng Vạch Trần'));
+                } else {
+                    phaseDescription.innerHTML = 'Mở bảng Vạch Trần để hành động hoặc chọn Nghỉ Ngơi.';
+                    openTwilightBtn.style.display = 'inline-block';
+                }
                 break;
             case 'wait':
-                phaseDescription.innerHTML = options.description || '<p>Đang chờ những người khác...</p>';
+                const waitText = options.description || 'Đang chờ những người khác...';
+                if (isMobile) {
+                     currentActionContainer.appendChild(createMobileDescription(waitText));
+                } else {
+                     phaseDescription.innerHTML = waitText;
+                }
                 break;
             case 'end_of_round':
-                phaseDescription.innerHTML = options.isHost ? 'Bắt đầu ngày tiếp theo?' : 'Đang chờ Trưởng Đoàn...';
-                if (options.isHost) nextDayBtn.style.display = 'inline-block';
+                const endText = options.isHost ? 'Bắt đầu ngày tiếp theo?' : 'Đang chờ Trưởng Đoàn...';
+                 if (isMobile) {
+                    currentActionContainer.appendChild(createMobileDescription(endText));
+                    if (options.isHost) {
+                        currentActionContainer.appendChild(createMobileButton('nextDayBtn', 'Bắt Đầu Ngày Tiếp Theo'));
+                    }
+                } else {
+                    phaseDescription.innerHTML = endText;
+                    if (options.isHost) nextDayBtn.style.display = 'inline-block';
+                }
                 break;
         }
     },
-    
     showTwilightUI(players, myId) {
         const { twilightOverlay, twilightPlayerList } = this.gameElements;
         if (!twilightOverlay || !twilightPlayerList) return;
