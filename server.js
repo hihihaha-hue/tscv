@@ -60,7 +60,7 @@ const server = http.createServer(app);
 
 // --- 6. EXPRESS MIDDLEWARE ---
 // Cung cấp các file tĩnh (HTML, CSS, JS client, ảnh...) từ thư mục 'public'
-const publicPath = path.join(__dirname, '../public'); // Sửa đường dẫn để trỏ ra ngoài thư mục game
+const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
 // Middleware để Express có thể đọc và hiểu dữ liệu JSON từ body của request API
 app.use(express.json());
