@@ -310,92 +310,94 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 
 /* ---- [MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
 @media (max-width: 768px) {
-    /* --- A. THIẾT LẬP NỀN TẢNG (Giữ nguyên) --- */
+    /* --- A. THIẾT LẬP NỀN TẢNG --- */
     body { padding: 0; overflow-y: hidden; }
     .container {
         height: 100vh; max-height: 100vh;
-        padding: 5px; padding-bottom: 90px;
+        padding: 5px;
+        /* Padding dưới cùng dành cho thanh hành động và tai thỏ (nếu có) */
+        padding-bottom: calc(90px + env(safe-area-inset-bottom));
         border-radius: 0; border: none;
         display: flex; flex-direction: column;
     }
-
-    /* --- B. ẨN DESKTOP, HIỆN MOBILE (Giữ nguyên) --- */
-    #left-column, #center-column, #right-column { display: none; }
-    #mobile-action-bar { display: flex; }
-    
-    /* === BẮT ĐẦU PHẦN SỬA LỖI LAYOUT MOBILE === */
-
-    /* Cải thiện #game-screen để hoạt động tốt hơn như một flex container */
     #game-screen {
-        display: flex;
-        flex-direction: column;
+        display: flex; /* BẮT BUỘC */
+        flex-direction: column; /* BẮT BUỘC */
         flex-grow: 1;
         overflow: hidden;
         gap: 0;
-        min-height: 0; /* QUAN TRỌNG: Ngăn flex item con tràn ra ngoài */
+        min-height: 0;
     }
 
-    /* 1. Sửa bộ chuyển tab */
+    /* --- B. ẨN DESKTOP, HIỆN MOBILE --- */
+    #left-column, #center-column, #right-column { display: none; }
+    #mobile-action-bar { display: flex; }
+
+    /* --- C. KHU VỰC ĐIỀU HƯỚNG MỚI (CÁC NÚT NHỎ) --- */
     #mobile-view-switcher {
         display: flex;
-        flex-direction: row; /* Ra lệnh rõ ràng là xếp theo hàng ngang */
-        flex-shrink: 0;      /* QUAN TRỌNG: Ngăn không cho nó bị co lại */
-        gap: 2px;
+        flex-direction: row;
+        flex-shrink: 0; /* Ngăn không cho co lại */
+        padding: 5px;
+        gap: 5px;
+        background-color: var(--bg-dark);
+        border-bottom: 1px solid var(--bg-light);
     }
-
-    /* 2. Sửa các nút tab */
     #mobile-view-switcher button {
         flex: 1;
-        padding: 12px 5px;
-        font-size: 0.9em;
+        padding: 8px 5px;
+        font-size: 0.8em;
         font-weight: bold;
         background-color: var(--bg-light);
         color: var(--text-medium);
         border: 1px solid var(--bg-light);
-        border-bottom: none;
-        border-radius: 6px 6px 0 0;
-        white-space: nowrap; /* QUAN TRỌNG: Ngăn chữ bị xuống dòng */
+        border-radius: 6px;
+        white-space: nowrap;
     }
     #mobile-view-switcher button.active {
-        background-color: var(--bg-medium);
-        color: var(--text-light);
+        background-color: var(--primary-gold);
+        color: var(--bg-dark);
         border-color: var(--primary-gold);
     }
 
-    /* 3. Sửa các vùng nội dung của tab */
-    #mobile-main-view, #mobile-personal-view, #mobile-log-view {
-        flex-grow: 1;      /* QUAN TRỌNG: Ra lệnh cho nó chiếm hết không gian còn lại */
-        overflow-y: auto;  /* Hiển thị thanh cuộn nếu cần */
+    /* --- D. KHU VỰC NỘI DUNG CUỘN DUY NHẤT --- */
+    #mobile-content-area {
+        flex-grow: 1; /* Chiếm hết không gian còn lại */
+        overflow-y: auto; /* Đây là phần sẽ cuộn */
         padding: 8px;
-        background-color: rgba(0,0,0,0.1);
-        border-radius: 0 0 8px 8px;
-        display: none;
-        min-height: 0;     /* QUAN TRỌNG: Hỗ trợ cho việc cuộn đúng cách */
     }
     
-    /* Các quy tắc hiển thị (giữ nguyên) */
-    #game-screen.view-main #mobile-main-view {
+    #mobile-content-area section {
+        margin-bottom: 20px;
+    }
+    
+    #mobile-content-area section h3 {
+        color: var(--primary-gold);
+        text-align: left;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+        border-bottom: 2px solid var(--bg-light);
+    }
+
+    /* --- E. BỐ CỤC CHO CÁC PANEL BÊN TRONG CÁC SECTION --- */
+    /* Chúng ta sử dụng grid để các panel tự sắp xếp đẹp mắt */
+    #mobile-section-main {
         display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     }
-    #game-screen.view-personal #mobile-personal-view {
-        display: grid; gap: 8px;
-    }
-    #game-screen.view-log #mobile-log-view {
-        display: flex; flex-direction: column; gap: 8px;
-    }
+     #mobile-section-main h3 { grid-column: 1 / -1; }
+    #mobile-section-main #phase-info { grid-column: 1 / -1; }
+    #mobile-section-main #players-container { grid-column: 1 / -1; }
+    #mobile-section-main #leaderboard { grid-column: 1 / 2; }
+    #mobile-section-main #roles-in-game { grid-column: 2 / 3; }
 
-    /* === KẾT THÚC PHẦN SỬA LỖI LAYOUT MOBILE === */
-
-    /* --- E. BỐ CỤC BÊN TRONG TỪNG VIEW (Giữ nguyên) --- */
-    #mobile-main-view #phase-info { grid-column: 1 / -1; }
-    #mobile-main-view #players-container { grid-column: 1 / -1; }
-    #mobile-main-view #leaderboard { grid-column: 1 / 2; }
-    #mobile-main-view #roles-in-game { grid-column: 2 / 3; }
-    #mobile-log-view #message-area, #mobile-log-view #chat-container {
-        flex: 1; min-height: 150px;
+    #mobile-section-personal { display: grid; gap: 8px; }
+    #mobile-section-log { display: flex; flex-direction: column; gap: 8px; }
+    #mobile-section-log #message-area,
+    #mobile-section-log #chat-container {
+        flex: 1; min-height: 200px;
     }
 
-    /* --- F. THANH HÀNH ĐỘNG CỐ ĐỊNH (Giữ nguyên) --- */
+    /* --- F. THANH HÀNH ĐỘNG CỐ ĐỊNH --- */
     #mobile-action-bar {
         flex-direction: column; gap: 8px; position: fixed;
         bottom: 0; left: 0; right: 0; background-color: var(--bg-dark);

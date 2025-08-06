@@ -638,27 +638,31 @@ displayRoomSettings(settings) {
     container.innerHTML = (html.includes('<li>')) ? html : '';
 },
  switchMobileView(viewName) {
-        const screen = this.gameElements.screen;
-        if (!screen || !this.isMobileLayoutSetup) return;
+    const screen = this.gameElements.screen;
+    if (!screen || !this.isMobileLayoutSetup) return;
 
-        // 1. Cập nhật trạng thái active cho các nút tab
-        const buttons = {
-            main: this.gameElements.showMainViewBtn,
-            personal: this.gameElements.showPersonalViewBtn,
-            log: this.gameElements.showLogViewBtn,
-        };
-        Object.values(buttons).forEach(btn => btn?.classList.remove('active'));
-        if (buttons[viewName]) {
-            buttons[viewName].classList.add('active');
-        }
-
-        // 2. Chuyển đổi class để CSS hiển thị đúng view
-        screen.classList.remove('view-main', 'view-personal', 'view-log');
-        screen.classList.add(`view-${viewName}`);
+    // 1. Cập nhật trạng thái active cho các nút tab
+    const buttons = {
+        main: this.gameElements.showMainViewBtn,
+        personal: this.gameElements.showPersonalViewBtn,
+        log: this.gameElements.showLogViewBtn,
+    };
+    Object.values(buttons).forEach(btn => btn?.classList.remove('active'));
+    const activeButton = buttons[viewName];
+    if (activeButton) {
+        activeButton.classList.add('active');
         
-        // 3. Cập nhật thanh hành động (Mobile Action Bar) một cách linh động
-        this.updateMobileActionBar(viewName);
-    },
+        // 2. Lấy section mục tiêu và cuộn đến đó
+        const targetId = activeButton.dataset.target;
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    
+    // 3. Cập nhật thanh hành động (giữ nguyên)
+    this.updateMobileActionBar(viewName);
+},
 
     updateMobileActionBar(currentView) {
         const actionBar = this.gameElements.mobileActionBar;
@@ -699,35 +703,37 @@ displayRoomSettings(settings) {
     },
 
     _setupMobileLayout() {
-        if (window.innerWidth > 768 || this.isMobileLayoutSetup) {
-            return;
-        }
+    if (window.innerWidth > 768 || this.isMobileLayoutSetup) {
+        return;
+    }
 
-        console.log("Setting up NEW mobile layout...");
+    console.log("Setting up SCROLLABLE mobile layout...");
 
-        const { mobileMainView, mobilePersonalView, mobileLogView } = this.gameElements;
+    // Lấy các vùng section mới
+    const mainSection = document.getElementById('mobile-section-main');
+    const personalSection = document.getElementById('mobile-section-personal');
+    const logSection = document.getElementById('mobile-section-log');
 
-        // Phân chia lại các panel vào đúng các tab
-        mobileMainView.append(
-            document.getElementById('phase-info'),
-            document.getElementById('players-container'),
-            document.getElementById('leaderboard'),
-            document.getElementById('roles-in-game')
-        );
+    // Di chuyển các panel vào đúng section của chúng
+    mainSection.append(
+        document.getElementById('phase-info'),
+        document.getElementById('players-container'),
+        document.getElementById('leaderboard'),
+        document.getElementById('roles-in-game')
+    );
 
-        mobilePersonalView.append(
-            document.getElementById('role-display'),
-            document.getElementById('artifact-display')
-        );
+    personalSection.append(
+        document.getElementById('role-display'),
+        document.getElementById('artifact-display')
+    );
 
-        mobileLogView.append(
-            document.getElementById('message-area'),
-            document.getElementById('chat-container')
-        );
+    logSection.append(
+        document.getElementById('message-area'),
+        document.getElementById('chat-container')
+    );
 
-        this.isMobileLayoutSetup = true;
-    },
-
+    this.isMobileLayoutSetup = true;
+},
     showScreen(screenName) {
         ['home-screen', 'room-screen', 'game-screen'].forEach(id => document.getElementById(id).style.display = 'none');
         const targetScreen = document.getElementById(`${screenName}-screen`);

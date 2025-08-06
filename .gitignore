@@ -35,3 +35,8 @@ node_modules
 # Các tệp log và rác của hệ điều hành
 npm-debug.log*
 .DS_Store
+# Bỏ qua các file bí mật
+.env
+
+# Bỏ qua các thư viện đã cài đặt
+node_modules/

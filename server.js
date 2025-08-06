@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 // QUAN TRỌNG: Bạn nên lưu các chuỗi bí mật này trong biến môi trường
 const JWT_SECRET = process.env.JWT_SECRET || 'chuoi-bi-mat-cua-ban';
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://gameuser:2A1vxKE2pQw0iFGN@cluster0.mescs24.mongodb.net/tho-san-co-vat?retryWrites=true&w=majority&appName=Cluster0';
+
 
 // --- 3. Server & App Initialization ---
 const app = express();
@@ -41,7 +41,7 @@ app.use(express.static(publicPath));
 app.use(express.json());
 
 // --- 5. Database Connection ---
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(MONGO_URI)
     .then(() => console.log('[DB] Kết nối MongoDB thành công.'))
     .catch(err => {
         console.error('[DB FATAL ERROR] Lỗi kết nối MongoDB! Server sẽ không thể hoạt động đúng.', err);
