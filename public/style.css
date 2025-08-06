@@ -308,63 +308,77 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     }
 }
 
-/* ---- [MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
+/* ---- [MOBILE OVERHAUL V3] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
 @media (max-width: 768px) {
     /* --- A. THIẾT LẬP NỀN TẢNG --- */
     body { padding: 0; overflow-y: hidden; }
     .container {
         height: 100vh; max-height: 100vh;
         padding: 5px;
-        /* Padding dưới cùng dành cho thanh hành động và tai thỏ (nếu có) */
         padding-bottom: calc(90px + env(safe-area-inset-bottom));
         border-radius: 0; border: none;
         display: flex; flex-direction: column;
+        position: relative; /* Thêm để định vị cụm nút */
     }
     #game-screen {
-        display: flex; /* BẮT BUỘC */
-        flex-direction: column; /* BẮT BUỘC */
+        display: flex;
+        flex-direction: column;
         flex-grow: 1;
         overflow: hidden;
         gap: 0;
         min-height: 0;
     }
 
-    /* --- B. ẨN DESKTOP, HIỆN MOBILE --- */
+    /* --- B. ẨN DESKTOP LAYOUT --- */
     #left-column, #center-column, #right-column { display: none; }
     #mobile-action-bar { display: flex; }
 
-    /* --- C. KHU VỰC ĐIỀU HƯỚNG MỚI (CÁC NÚT NHỎ) --- */
+    /* --- C. CỤM NÚT ĐIỀU HƯỚNG ICON TRÒN --- */
     #mobile-view-switcher {
+        position: absolute; /* Đặt chồng lên trên nội dung */
+        top: 10px;
+        right: 10px;
+        z-index: 50; /* Đảm bảo nó nổi lên trên */
         display: flex;
-        flex-direction: row;
-        flex-shrink: 0; /* Ngăn không cho co lại */
-        padding: 5px;
-        gap: 5px;
-        background-color: var(--bg-dark);
-        border-bottom: 1px solid var(--bg-light);
+        flex-direction: column; /* Xếp các nút theo chiều dọc */
+        gap: 10px;
+        background: none; /* Bỏ nền cũ */
+        border: none;
+        padding: 0;
     }
     #mobile-view-switcher button {
-        flex: 1;
-        padding: 8px 5px;
-        font-size: 0.8em;
-        font-weight: bold;
-        background-color: var(--bg-light);
-        color: var(--text-medium);
+        /* Biến các nút thành hình tròn */
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        
+        /* Căn giữa icon */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5em; /* Tăng cỡ chữ cho icon emoji */
+        
+        background-color: rgba(45, 55, 72, 0.8);
         border: 1px solid var(--bg-light);
-        border-radius: 6px;
-        white-space: nowrap;
+        backdrop-filter: blur(5px);
+        transition: all 0.2s ease;
+    }
+    #mobile-view-switcher button:hover {
+        transform: scale(1.1);
     }
     #mobile-view-switcher button.active {
-        background-color: var(--primary-gold);
-        color: var(--bg-dark);
+        /* Trạng thái active sẽ có viền vàng */
         border-color: var(--primary-gold);
+        box-shadow: 0 0 10px var(--primary-gold);
     }
 
     /* --- D. KHU VỰC NỘI DUNG CUỘN DUY NHẤT --- */
     #mobile-content-area {
-        flex-grow: 1; /* Chiếm hết không gian còn lại */
+        flex-grow: 1;
         overflow-y: auto; /* Đây là phần sẽ cuộn */
         padding: 8px;
+        /* Thêm padding-top để nội dung không bị các nút icon che mất */
+        padding-top: 60px;
     }
     
     #mobile-content-area section {
@@ -379,22 +393,20 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         border-bottom: 2px solid var(--bg-light);
     }
 
-    /* --- E. BỐ CỤC CHO CÁC PANEL BÊN TRONG CÁC SECTION --- */
-    /* Chúng ta sử dụng grid để các panel tự sắp xếp đẹp mắt */
-    #mobile-section-main {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    /* --- E. BỐ CỤC BÊN TRONG CÁC SECTION --- */
+    #mobile-section-main, #mobile-section-personal, #mobile-section-log {
+        display: grid;
+        gap: 8px;
     }
-     #mobile-section-main h3 { grid-column: 1 / -1; }
-    #mobile-section-main #phase-info { grid-column: 1 / -1; }
-    #mobile-section-main #players-container { grid-column: 1 / -1; }
-    #mobile-section-main #leaderboard { grid-column: 1 / 2; }
-    #mobile-section-main #roles-in-game { grid-column: 2 / 3; }
-
-    #mobile-section-personal { display: grid; gap: 8px; }
-    #mobile-section-log { display: flex; flex-direction: column; gap: 8px; }
-    #mobile-section-log #message-area,
-    #mobile-section-log #chat-container {
-        flex: 1; min-height: 200px;
+     #mobile-section-main h3, #mobile-section-personal h3, #mobile-section-log h3 {
+        grid-column: 1 / -1;
+     }
+    #mobile-section-main {
+        grid-template-columns: 1fr 1fr;
+    }
+    #mobile-section-main #phase-info,
+    #mobile-section-main #players-container {
+        grid-column: 1 / -1;
     }
 
     /* --- F. THANH HÀNH ĐỘNG CỐ ĐỊNH --- */
@@ -414,19 +426,9 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     .game-panel { min-height: auto; padding: 10px; }
     #phase-info { text-align: center; }
     #timer-display { font-size: 2.2em; }
-    #phase-description { font-size: 1em; margin-bottom: 5px; color: var(--text-medium); }
-    #players-container { 
-        grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); 
-        gap: 10px; padding: 8px; max-height: none;
-    }
+    #players-container { grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 10px; padding: 8px; max-height: none; }
     .player-avatar-card .avatar { width: 55px; height: 55px; font-size: 1.8em; }
     .player-avatar-card .player-name { font-size: 0.75em; }
-    #rulebook-btn, #history-log-btn, #music-toggle-btn {
-        width: 45px; height: 45px; font-size: 1.3em;
-    }
-    #rulebook-btn { top: 10px; right: 10px; }
-    #history-log-btn { top: 65px; right: 10px; }
-    #music-toggle-btn { top: 10px; left: 10px; }
 }
 
 .custom-swal-popup {
