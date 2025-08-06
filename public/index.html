@@ -24,26 +24,63 @@
     <button id="history-log-btn">📜</button>
 
     <!-- Container chính của ứng dụng -->
-    <div class="container">
-        <!-- MÀN HÌNH CHÍNH (HOME) -->
-        <div id="home-screen">
-            <h1>Thợ Săn Cổ Vật</h1>
-            <input type="text" id="player-name-input" placeholder="NHẬP TÊN THỢ SĂN..." maxlength="15">
-            <button id="create-room-btn">Mở Cuộc Thám Hiểm Mới</button>
-            <hr>
-            <input type="text" id="room-code-input" placeholder="NHẬP MÃ ĐOÀN..." maxlength="4" style="text-transform:uppercase">
-            <button id="join-room-btn">Tham Gia Đoàn</button>
-        </div>
+	 <div class="container">
+    <div id="home-screen">
+    <h1>Thợ Săn Cổ Vật</h1>
+    
+    <!-- Vùng chứa form xác thực -->
+   <div id="auth-container">
+    <!-- Form Đăng Nhập -->
+    <div id="login-form">
+        <h3>Đăng Nhập</h3>
+        <input type="text" id="login-username" placeholder="TÊN ĐĂNG NHẬP..." autocomplete="username">
+        <input type="password" id="login-password" placeholder="MẬT KHẨU..." autocomplete="current-password">
+        <button id="login-btn">Vào Đền</button>
+        <p>Chưa có tài khoản? <a href="#" id="show-register-link">Đăng ký ngay</a></p>
+    </div>
 
-        <!-- MÀN HÌNH PHÒNG CHỜ (ROOM) -->
-        <div id="room-screen" style="display: none;">
-            <h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
-            <ul id="player-list"></ul>
-            <div id="host-controls" class="controls-wrapper">
+    <!-- Form Đăng Ký -->
+    <div id="register-form" style="display: none;">
+        <h3>Đăng Ký Tài Khoản</h3>
+        <input type="text" id="register-username" placeholder="TÊN ĐĂNG NHẬP MỚI..." autocomplete="username">
+        <input type="password" id="register-password" placeholder="MẬT KHẨU MỚI..." autocomplete="new-password">
+        <button id="register-btn">Tạo Tài Khoản</button>
+        <p>Đã có tài khoản? <a href="#" id="show-login-link">Đăng nhập</a></p>
+    </div>
+</div>
+
+    <!-- Vùng chứa các hành động chính (ẩn khi chưa đăng nhập) -->
+    <div id="main-actions-container" style="display: none;">
+         <div id="user-display"></div>
+         <input type="text" id="player-name-input" placeholder="NHẬP TÊN THỢ SĂN..." maxlength="15">
+         <button id="create-room-btn">Mở Cuộc Thám Hiểm Mới</button>
+         <hr>
+         <input type="text" id="room-code-input" placeholder="NHẬP MÃ ĐOÀN..." maxlength="4" style="text-transform:uppercase">
+         <button id="join-room-btn">Tham Gia Đoàn</button>
+    </div>
+</div>
+ <div id="room-screen" style="display: none;">
+            <h2>Đoàn Thám Hiểm: <span id="room-code-display" title="Nhấn để sao chép"></span></h2>
+            <p>Đang chờ những người khác tham gia...</p>
+            
+            <ul id="player-list">
+                <!-- Danh sách người chơi sẽ được JS chèn vào đây -->
+            </ul>
+
+            <!-- Điều khiển dành cho Host -->
+            <div id="host-controls" style="display: none;">
+                <hr>
+                <h4>Công Cụ Trưởng Đoàn</h4>
                 <button id="add-bot-btn">Thêm AI</button>
-                <button id="start-game-btn" disabled>Bắt Đầu</button>
+				<button id="room-settings-btn">Cài đặt Phòng ⚙️</button><h2>Đoàn Thám Hiểm: <span id="room-code-display"></span></h2>
+				<div id="custom-rules-display"></div> <!-- <<< THÊM DÒNG NÀY -->
+<ul id="player-list"></ul>
+                <button id="start-game-btn" disabled>Bắt Đầu Ván Đấu</button>
             </div>
-            <div id="player-controls" class="controls-wrapper">
+
+            <!-- Điều khiển dành cho người chơi thường -->
+            <div id="player-controls" style="display: none;">
+                 <hr>
                 <button id="ready-btn">Sẵn Sàng</button>
             </div>
         </div>
@@ -134,7 +171,7 @@
     <div id="mobile-action-bar">
         <!-- Nội dung của thanh này sẽ được JavaScript điều khiển -->
     </div>
-
+</div> 
     <!-- OVERLAY HOÀNG HÔN -->
     <div id="twilight-overlay" style="display: none;">
         <div id="twilight-meeting-ui">
@@ -160,9 +197,9 @@
     <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
 
     <!-- CÁC FILE JAVASCRIPT CỦA GAME -->
-    <script src="/js/ui.js"></script>
-    <script src="/js/network.js"></script>
-    <script src="/client.js"></script>
+     <script src="/js/network.js"></script> 
+    <script src="/js/ui.js"></script>      
+    <script src="/client.js"></script>  
 
     <!-- TEMPLATE CHO SÁCH LUẬT -->
     <template id="rulebook-template">

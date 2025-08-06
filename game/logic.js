@@ -6,6 +6,7 @@
 
 const config = require('./config.js');
 const { ROLES, DECREES, SKILL_COSTS, GAME_CONSTANTS, ARTIFACTS } = config;
+const User = require('./models/User');
 
 // Đối tượng chứa logic ra quyết định cho các Bot
 const BotAI = {
@@ -167,6 +168,9 @@ const BotAI = {
 // --- HÀM CHO CHỨC NĂNG CHƠI LẠI ---
 function resetRoomForRematch(room) {
     if (!room) return;
+	 if (room.gameState) {
+        room.players = room.gameState.players.filter(p => !p.disconnected);
+    }
     room.gameState = null;
     room.players.forEach(player => {
         if (!player.isBot) {
@@ -293,67 +297,117 @@ function initializeSpecialRoles(gs, io) {
         }
     });
 }
-function createGameState(players, io) {
+function createGameState(players, io, settings = {}) {
+    console.log('[GameState] Đang tạo ván đấu mới với các cài đặt:', settings);
+
+    // --- BƯỚC 1: THIẾT LẬP CÁC THAM SỐ CƠ BẢN CỦA GAME ---
+    // Tích hợp các tùy chỉnh của Host hoặc sử dụng giá trị mặc định.
+
     const numPlayers = players.length;
-    let winScore, loseScore;
-    if (numPlayers <= 4) { winScore = 15; loseScore = -15; }
-    else if (numPlayers <= 8) { winScore = 20; loseScore = -20; }
-    else { winScore = 25; loseScore = -25; }
 
-    // === BẮT ĐẦU NÂNG CẤP: GÁN VAI TRÒ DUY NHẤT ===
-    // 1. Tạo một bản sao của danh sách tất cả các ID vai trò
-    const rolesToAssign = [...config.ALL_ROLE_IDS];
+    // Sử dụng điểm thắng từ settings, nếu không có thì tính theo số người chơi.
+    // Việc giới hạn (clamp) điểm số giúp tránh các giá trị bất thường.
+    const winScore = settings.winScore 
+        ? Math.max(5, Math.min(50, settings.winScore)) 
+        : (numPlayers <= 4 ? 15 : (numPlayers <= 8 ? 20 : 25));
+    
+    const loseScore = -winScore;
 
-    // 2. Sử dụng thuật toán Fisher-Yates để xáo trộn danh sách này một cách ngẫu nhiên.
-    for (let i = rolesToAssign.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [rolesToAssign[i], rolesToAssign[j]] = [rolesToAssign[j], rolesToAssign[i]];
+    // Lấy danh sách các vai trò và tiếng vọng bị cấm từ settings.
+    const bannedRoles = settings.bannedRoles || [];
+    const bannedDecrees = settings.bannedDecrees || [];
+    
+    // --- BƯỚC 2: GÁN VAI TRÒ ĐỘC NHẤT (ĐÃ LỌC CÁC VAI TRÒ BỊ CẤM) ---
+    // Đây là phần cốt lõi của tính năng "Cấm Vai Trò".
+
+    // 1. Lọc ra danh sách các vai trò có thể sử dụng.
+    const availableRoles = config.ALL_ROLE_IDS.filter(id => !bannedRoles.includes(id));
+
+    // 2. Kiểm tra một trường hợp đặc biệt: Nếu Host cấm quá nhiều vai trò.
+    if (availableRoles.length < numPlayers) {
+        console.error(`[GameState Error] Không đủ vai trò để chia! Cần ${numPlayers} nhưng chỉ có ${availableRoles.length} sau khi lọc.`);
+        // Trong một môi trường production, bạn nên gửi lỗi về cho client.
+        // Ở đây, chúng ta sẽ tiếp tục nhưng có thể sẽ gây lỗi.
     }
 
-    // 3. Lấy đúng số lượng vai trò cần thiết từ đầu danh sách đã được xáo trộn.
-    // Dòng này đảm bảo rolesInThisGame sẽ là một danh sách các vai trò duy nhất.
-    const rolesInThisGame = rolesToAssign.slice(0, numPlayers);
-  
+    // 3. Xáo trộn danh sách vai trò khả dụng bằng thuật toán Fisher-Yates.
+    for (let i = availableRoles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availableRoles[i], availableRoles[j]] = [availableRoles[j], availableRoles[i]];
+    }
+
+    // 4. Lấy đúng số lượng vai trò cần thiết từ đầu danh sách đã xáo trộn.
+    const rolesInThisGame = availableRoles.slice(0, numPlayers);
+    
+    // --- BƯỚC 3: KHỞI TẠO ĐỐI TƯỢNG GAMESTATE HOÀN CHỈNH ---
+    // Đây là "Single Source of Truth" cho toàn bộ ván đấu.
+
     const gameState = {
         players: players.map((p, index) => ({
             ...p,
-            score: 0,
-            chosenAction: null,
-			sabotageTargetId: null,
-           roleId: rolesInThisGame[index],
-            skillUses: 0, 
+          score: 0,
+            roleId: rolesInThisGame[index], // Gán vai trò đã được xáo trộn và lọc
             artifacts: [],
-            consecutiveSuccessAccusations: 0,
-            hauntSuccessCount: 0,
-            hasReached7: false,
-            hasReachedMinus7: false,
-            loneWolfWins: 0,
-            bountyTargetId: null,
-            mimicTargetId: null,
-			canMimicSkill: false, 
-            isBlessed: false,
-            blessedById: null,
+            
+            // Trạng thái theo dõi tiến trình dài hạn (cho điều kiện thắng riêng)
+            skillUses: 0,
+            consecutiveSuccessAccusations: 0, // cho Prophet
+            hauntSuccessCount: 0,              // cho Phantom
+            hasReached7: false,                // cho Gambler
+            hasReachedMinus7: false,           // cho Gambler
+            loneWolfWins: 0,                   // cho Rebel
+            bountyTargetId: null,              // cho Assassin
+            mimicTargetId: null,               // cho Mimic
+            canMimicSkill: false,              // cho Mimic
+            
+            // Trạng thái tạm thời, được reset mỗi vòng
+            chosenAction: null,
+            sabotageTargetId: null,
+            isBlessed: false,                  // bởi Priest
             skillUsedThisRound: false,
-            skillTargetId: null, 
-            skillActive: false,
             isSkillDisabled: false,
-            hasTripleVote: false,
-			 rolesInGame: rolesInThisGame, 
+            hasTripleVote: false,              // bởi Cultist
+            
+            // Đảm bảo các thuộc tính kết nối được khởi tạo
+            disconnected: p.disconnected || false,
+            disconnectTime: p.disconnectTime || null,
         })),
-       currentRound: 0,
-        winScore, loseScore,
-        phase: 'waiting',
-        roundData: {},
-        decreeDeck: [], decreeDiscard: [],
-        consecutiveDraws: 0,
-        rolesInGame: rolesInThisGame,
-        nextDecreeChooser: null,
-        failedAccusationsThisRound: 0,
-        artifactPool: [...config.ALL_ARTIFACT_IDS],
+      currentRound: 0,
+        winScore,       // Điểm thắng đã được tùy chỉnh
+        loseScore,      // Điểm thua tương ứng
+        phase: 'waiting', // Trạng thái ban đầu
+        roundData: {},    // Dữ liệu tạm thời của mỗi vòng
+        
+        // Các bộ bài và cài đặt
+        decreeDeck: [],   // Sẽ được khởi tạo ở bước 4
+        decreeDiscard: [],
+        artifactPool: [...config.ALL_ARTIFACT_IDS], // Bể cổ vật chung
+        rolesInGame: rolesInThisGame, // Lưu lại các vai trò có trong game này
+        settings: settings, // Lưu lại các cài đặt đã được sử dụng cho ván đấu
+        
+        // Các biến theo dõi khác
+        consecutiveDraws: 0, // cho Peacemaker
+        nextDecreeChooser: null, // cho Di Sản Kẻ Tiên Phong
+        failedAccusationsThisRound: 0, // cho Mind Breaker
     };
 
+    // --- BƯỚC 4: KHỞI TẠO CÁC BỘ BÀI VÀ VAI TRÒ ĐẶC BIỆT ---
+    
+    // 1. Khởi tạo bộ bài Tiếng Vọng, lọc các lá bị cấm và xáo trộn.
+    const availableDecrees = config.ALL_DECREE_IDS.filter(id => !bannedDecrees.includes(id));
+    for (let i = availableDecrees.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availableDecrees[i], availableDecrees[j]] = [availableDecrees[j], availableDecrees[i]];
+    }
+    gameState.decreeDeck = availableDecrees;
+    
+    // 2. Gọi các hàm khởi tạo cho những vai trò cần thiết lập ban đầu (VD: Assassin, Mimic).
+    // Hàm này sẽ duyệt qua người chơi và gọi hàm khởi tạo tương ứng với vai trò của họ.
     initializeSpecialRoles(gameState, io);
-    shuffleDecreeDeck(gameState);
+
+    console.log('[GameState] Tạo GameState thành công.');
+    
+    // --- BƯỚC 5: TRẢ VỀ ĐỐI TƯỢNG GAMESTATE HOÀN CHỈNH ---
     return gameState;
 }
 
@@ -373,18 +427,13 @@ function startNewRound(roomCode, rooms, io) {
     gs.currentRound++;
     gs.phase = 'exploration';
       gs.roundData = { decrees: [], coordinationVotes: [], actedInTwilight: new Set(), failedAccusationsThisRound: 0, linkedPlayers: [] };
+	   const RECONNECT_WINDOW_MS = 120000; // 2 phút
     gs.players.forEach(p => {
-        if (!p.isDefeated) {
-            p.chosenAction = null;
-            p.sabotageTargetId = null;
-            p.isBlessed = false;
-            p.blessedById = null;
-            p.skillUsedThisRound = false;
-            p.skillActive = false;
-            p.skillTargetId = null;
-            p.isSkillDisabled = false;
-            p.hasTripleVote = false;
-            p.skillUses = 0; 
+        if (p.disconnected && (Date.now() - p.disconnectTime > RECONNECT_WINDOW_MS)) {
+            if (!p.isDefeated) {
+                p.isDefeated = true; // Đánh dấu là đã thua
+                io.to(roomCode).emit('logMessage', { type: 'error', message: `${p.name} đã ngắt kết nối quá lâu và bị loại.` });
+            }
         }
     });
 
@@ -815,10 +864,39 @@ function handleTwilightAction(roomCode, initiatorId, targetId, actionType, guess
         endTwilightPhase("Tất cả Thợ Săn đã quyết định hành động trong hoàng hôn.", roomCode, rooms, io);
     }
 }
+async function updatePlayerStats(playerObject, didWin, xpGained) {
+    // Không cập nhật cho Bot hoặc người chơi không có ID trong database (khách)
+    if (playerObject.isBot || !playerObject.dbId) {
+        return;
+    }
 
-function handlePostRoundEvents(roomCode, rooms, io) {
-    const gs = rooms[roomCode].gameState;
-    
+    try {
+        const update = {
+            $inc: {
+                'stats.gamesPlayed': 1,
+                'stats.wins': didWin ? 1 : 0,
+                'xp': xpGained
+            }
+        };
+        // Tìm và cập nhật người dùng dựa trên dbId đã được lưu khi họ tham gia phòng
+        await User.findByIdAndUpdate(playerObject.dbId, update);
+        
+        console.log(`[Stats] Đã cập nhật chỉ số cho người dùng: ${playerObject.username}.`);
+        
+        // Nâng cao: Thêm logic kiểm tra và lên cấp ở đây nếu cần
+        // const updatedUser = await User.findById(playerObject.dbId);
+        // if (updatedUser.xp >= calculateXpForNextLevel(updatedUser.level)) { ... }
+
+    } catch (error) {
+        console.error(`[Stats Error] Lỗi cập nhật chỉ số cho người chơi ${playerObject.name}:`, error);
+    }
+}
+
+async function handlePostRoundEvents(roomCode, rooms, io) {
+    const gs = rooms[roomCode]?.gameState;
+    if (!gs) return;
+
+    // --- BƯỚC 1: CẬP NHẬT TIẾN TRÌNH VAI TRÒ DÀI HẠN (GIỮ NGUYÊN) ---
     gs.players.forEach(p => {
         if (!p.isDefeated) {
             if (p.score >= 7) p.hasReached7 = true;
@@ -829,20 +907,77 @@ function handlePostRoundEvents(roomCode, rooms, io) {
         }
     });
 
+    // --- BƯỚC 2: XÁC ĐỊNH TRẠNG THÁI KẾT THÚC GAME ---
+    const allWinners = [];
+    let gameEndReason = null;
+    
+    // Ưu tiên 1: Thắng bằng Thiên Mệnh (Vai trò)
     const winnerByRole = checkRoleVictory(gs);
+    if (winnerByRole) {
+        allWinners.push(winnerByRole);
+        gameEndReason = `đã hoàn thành Thiên Mệnh "${ROLES[winnerByRole.roleId].name}"!`;
+    }
+
+    // Ưu tiên 2: Thắng/Thua bằng Điểm số
+    // (Chỉ kiểm tra nếu chưa có ai thắng bằng vai trò, hoặc cho phép nhiều người cùng thắng)
     const winnersByScore = gs.players.filter(p => p.score >= gs.winScore);
     const losersByScore = gs.players.filter(p => p.score <= gs.loseScore);
 
-    if (winnerByRole || winnersByScore.length > 0 || losersByScore.length > 0) {
-        gs.phase = 'gameover';
-        let winner = winnerByRole || winnersByScore[0];
-        let loser = losersByScore[0];
-        let reason = "Trò chơi kết thúc.";
-        if (winner) reason = `Người chiến thắng là ${winner.name}! Lý do: ` + (winnerByRole ? `đã hoàn thành Thiên Mệnh "${ROLES[winner.roleId].name}"!` : `đạt ${gs.winScore} điểm.`);
-        else if(loser) reason = `Người thua cuộc là ${loser.name} vì đạt ${gs.loseScore} điểm!`;
-        io.to(roomCode).emit('gameOver', { winner: winner ? {name: winner.name, reason: reason} : null, loser: loser ? {name: loser.name, reason: reason} : null });
+    if (winnersByScore.length > 0) {
+        winnersByScore.forEach(winner => {
+            if (!allWinners.some(w => w.id === winner.id)) {
+                allWinners.push(winner);
+            }
+        });
+        if (!gameEndReason) {
+             gameEndReason = `đạt ${gs.winScore} điểm.`;
+        }
     }
+    
+    const isGameOver = allWinners.length > 0 || losersByScore.length > 0;
+
+    // --- BƯỚC 3: XỬ LÝ KHI GAME KẾT THÚC ---
+    if (isGameOver) {
+        gs.phase = 'gameover';
+        
+        const winnerNames = allWinners.map(w => w.name).join(', ');
+        const finalReason = allWinners.length > 0 
+            ? `Người chiến thắng là ${winnerNames}! Lý do: ${gameEndReason}`
+            : `Trò chơi kết thúc vì ${losersByScore[0].name} đạt ${gs.loseScore} điểm.`;
+
+        // Gửi thông báo kết thúc game cho client
+        io.to(roomCode).emit('gameOver', { 
+            winners: allWinners.map(w => ({ name: w.name, id: w.id })),
+            losers: losersByScore.map(l => ({ name: l.name, id: l.id })),
+            reason: finalReason 
+        });
+
+        // --- BƯỚC 4: CẬP NHẬT DATABASE (LOGIC QUAN TRỌNG) ---
+        const allLosers = gs.players.filter(p => !allWinners.some(w => w.id === p.id));
+        const updates = []; // Mảng chứa các promise cập nhật
+
+        allWinners.forEach(winner => {
+            updates.push(updatePlayerStats(winner, true, 50)); // Thắng được 50 XP
+        });
+        
+        allLosers.forEach(loser => {
+            updates.push(updatePlayerStats(loser, false, 15)); // Thua được 15 XP
+        });
+        
+        // Thực thi tất cả các cập nhật một cách song song để tăng hiệu suất
+        try {
+            await Promise.all(updates);
+            console.log('[Stats] Hoàn tất cập nhật chỉ số cho tất cả người chơi.');
+        } catch (error) {
+            console.error('[Stats Error] Đã xảy ra lỗi khi cập nhật song song:', error);
+        }
+        
+    } 
+    // Nếu game chưa kết thúc, không làm gì cả, chờ Host bắt đầu vòng mới.
 }
+
+
+
 
 function checkRoleVictory(gs) {
     for (const player of gs.players) {

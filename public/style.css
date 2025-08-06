@@ -310,44 +310,51 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 
 /* ---- [MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
 @media (max-width: 768px) {
-    /* --- A. THIẾT LẬP NỀN TẢNG --- */
+    /* --- A. THIẾT LẬP NỀN TẢNG (Giữ nguyên) --- */
     body { padding: 0; overflow-y: hidden; }
     .container {
-        height: 100vh;
-        max-height: 100vh;
-        padding: 5px;
-        padding-bottom: 90px;
+        height: 100vh; max-height: 100vh;
+        padding: 5px; padding-bottom: 90px;
         border-radius: 0; border: none;
         display: flex; flex-direction: column;
     }
+
+    /* --- B. ẨN DESKTOP, HIỆN MOBILE (Giữ nguyên) --- */
+    #left-column, #center-column, #right-column { display: none; }
+    #mobile-action-bar { display: flex; }
+    
+    /* === BẮT ĐẦU PHẦN SỬA LỖI LAYOUT MOBILE === */
+
+    /* Cải thiện #game-screen để hoạt động tốt hơn như một flex container */
     #game-screen {
-        display: flex; flex-direction: column;
+        display: flex;
+        flex-direction: column;
         flex-grow: 1;
         overflow: hidden;
         gap: 0;
+        min-height: 0; /* QUAN TRỌNG: Ngăn flex item con tràn ra ngoài */
     }
 
-    /* --- B. ẨN DESKTOP, HIỆN MOBILE --- */
-    /* QUAN TRỌNG: Ẩn các cột của desktop */
-    #left-column, #center-column, #right-column {
-        display: none;
-    }
-    /* QUAN TRỌNG: Hiển thị các thành phần của mobile */
-    #mobile-view-switcher, #mobile-action-bar {
-        display: flex; /* Dùng flex cho các container này */
-    }
-
-    /* --- C. STYLING BỘ CHUYỂN TAB --- */
+    /* 1. Sửa bộ chuyển tab */
     #mobile-view-switcher {
+        display: flex;
+        flex-direction: row; /* Ra lệnh rõ ràng là xếp theo hàng ngang */
+        flex-shrink: 0;      /* QUAN TRỌNG: Ngăn không cho nó bị co lại */
         gap: 2px;
-        flex-shrink: 0;
     }
+
+    /* 2. Sửa các nút tab */
     #mobile-view-switcher button {
         flex: 1;
-        padding: 12px 5px; font-size: 0.9em;
-        font-weight: bold; background-color: var(--bg-light);
-        color: var(--text-medium); border: 1px solid var(--bg-light);
-        border-bottom: none; border-radius: 6px 6px 0 0;
+        padding: 12px 5px;
+        font-size: 0.9em;
+        font-weight: bold;
+        background-color: var(--bg-light);
+        color: var(--text-medium);
+        border: 1px solid var(--bg-light);
+        border-bottom: none;
+        border-radius: 6px 6px 0 0;
+        white-space: nowrap; /* QUAN TRỌNG: Ngăn chữ bị xuống dòng */
     }
     #mobile-view-switcher button.active {
         background-color: var(--bg-medium);
@@ -355,12 +362,18 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         border-color: var(--primary-gold);
     }
 
-    /* --- D. LOGIC HIỂN THỊ CÁC VIEW TAB --- */
+    /* 3. Sửa các vùng nội dung của tab */
     #mobile-main-view, #mobile-personal-view, #mobile-log-view {
-        flex-grow: 1; overflow-y: auto;
-        padding: 8px; background-color: rgba(0,0,0,0.1);
-        border-radius: 0 0 8px 8px; display: none;
+        flex-grow: 1;      /* QUAN TRỌNG: Ra lệnh cho nó chiếm hết không gian còn lại */
+        overflow-y: auto;  /* Hiển thị thanh cuộn nếu cần */
+        padding: 8px;
+        background-color: rgba(0,0,0,0.1);
+        border-radius: 0 0 8px 8px;
+        display: none;
+        min-height: 0;     /* QUAN TRỌNG: Hỗ trợ cho việc cuộn đúng cách */
     }
+    
+    /* Các quy tắc hiển thị (giữ nguyên) */
     #game-screen.view-main #mobile-main-view {
         display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     }
@@ -371,7 +384,9 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         display: flex; flex-direction: column; gap: 8px;
     }
 
-    /* --- E. BỐ CỤC BÊN TRONG TỪNG VIEW --- */
+    /* === KẾT THÚC PHẦN SỬA LỖI LAYOUT MOBILE === */
+
+    /* --- E. BỐ CỤC BÊN TRONG TỪNG VIEW (Giữ nguyên) --- */
     #mobile-main-view #phase-info { grid-column: 1 / -1; }
     #mobile-main-view #players-container { grid-column: 1 / -1; }
     #mobile-main-view #leaderboard { grid-column: 1 / 2; }
@@ -380,25 +395,18 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         flex: 1; min-height: 150px;
     }
 
-    /* --- F. THANH HÀNH ĐỘNG CỐ ĐỊNH --- */
+    /* --- F. THANH HÀNH ĐỘNG CỐ ĐỊNH (Giữ nguyên) --- */
     #mobile-action-bar {
-        flex-direction: column; gap: 8px;
-        position: fixed; bottom: 0; left: 0; right: 0;
-        background-color: var(--bg-dark);
+        flex-direction: column; gap: 8px; position: fixed;
+        bottom: 0; left: 0; right: 0; background-color: var(--bg-dark);
         padding: 10px; border-top: 1px solid var(--bg-light);
         box-shadow: 0 -5px 15px rgba(0,0,0,0.3); z-index: 100;
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
         flex-shrink: 0;
     }
-    #mobile-action-bar button {
-        width: 100%; font-size: 1.1em; padding: 14px;
-    }
-    #mobile-action-bar .action-buttons-grid {
-        display: flex; flex-direction: row; gap: 8px;
-    }
-     #mobile-action-bar .action-buttons-grid button {
-        flex: 1; padding: 12px 5px;
-    }
+    #mobile-action-bar button { width: 100%; font-size: 1.1em; padding: 14px; }
+    #mobile-action-bar .action-buttons-grid { display: flex; flex-direction: row; gap: 8px; }
+    #mobile-action-bar .action-buttons-grid button { flex: 1; padding: 12px 5px; }
 
     /* --- G. TINH CHỈNH CÁC THÀNH PHẦN KHÁC --- */
     .game-panel { min-height: auto; padding: 10px; }
@@ -417,4 +425,39 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
     #rulebook-btn { top: 10px; right: 10px; }
     #history-log-btn { top: 65px; right: 10px; }
     #music-toggle-btn { top: 10px; left: 10px; }
+}
+
+.custom-swal-popup {
+    background: var(--bg-medium) !important;
+    color: var(--text-light) !important;
+}
+.swal-settings-container {
+    text-align: left;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 15px;
+}
+.swal-setting-item {
+    margin-bottom: 20px;
+}
+.swal-setting-item strong {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--primary-gold);
+}
+.swal-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+.swal2-checkbox-label {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-light);
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.swal2-checkbox-label input {
+    margin-right: 10px;
 }
