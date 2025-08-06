@@ -1,6 +1,5 @@
 
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -89,23 +88,16 @@
         <div id="game-screen" style="display: none;">
             <!-- === BẮT ĐẦU NÂNG CẤP MOBILE === -->
             <div id="mobile-view-switcher">
-                <button id="show-main-view-btn" class="active">Trận Đấu</button>
-                <button id="show-personal-view-btn">Cá Nhân</button>
-                <button id="show-log-view-btn">Nhật Ký</button> 
-            </div>
+            <button id="show-main-view-btn" class="active" data-target="mobile-section-main">Trận Đấu</button>
+            <button id="show-personal-view-btn" data-target="mobile-section-personal">Cá Nhân</button>
+            <button id="show-log-view-btn" data-target="mobile-section-log">Nhật Ký</button> 
+        </div>
 
-            <div id="mobile-main-view">
-                <!-- Các panel của view "Trận Đấu" sẽ được JS chuyển vào đây -->
-            </div>
-
-            <div id="mobile-personal-view">
-                <!-- Các panel của view "Cá Nhân" sẽ được JS chuyển vào đây -->
-            </div>
-            
-            <div id="mobile-log-view">
-                <!-- Vùng chứa mới cho Log và Chat trên mobile -->
-            </div>
-            <!-- === KẾT THÚC NÂNG CẤP MOBILE === -->
+        <div id="mobile-content-area">
+            <section id="mobile-section-main"><h3>Trận Đấu</h3></section>
+            <section id="mobile-section-personal"><h3>Cá Nhân</h3></section>
+            <section id="mobile-section-log"><h3>Nhật Ký</h3></section>
+        </div>
 
             <!-- CÁC CỘT CHO DESKTOP (sẽ chứa các panel gốc) -->
             <div id="left-column">
