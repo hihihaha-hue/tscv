@@ -289,7 +289,7 @@ const ROLES = {
         description: {
             win: "Thắng khi đạt điểm cơ bản (15, 20...).",
             passive: "Không tự chọn hành động, mà tự động sao chép hành động của 1 người ngẫu nhiên (bạn biết đó là ai).",
-            skill: "Nếu người bạn bắt chước có kỹ năng kích hoạt, bạn có thể trả 2 điểm để dùng ké kỹ năng của họ."
+            skill:  "Nếu người bạn bắt chước có kỹ năng kích hoạt, bạn có thể trả một khoản phí Tiến Độ (tăng dần sau mỗi lần sử dụng) để dùng ké kỹ năng của họ."
         }, hasActiveSkill: true, skillName: "Đánh Cắp Năng Lực"
     },
 };

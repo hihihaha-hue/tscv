@@ -67,48 +67,114 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 #game-screen {
     display: grid;
     grid-template-columns: 320px 1fr 350px;
-    grid-template-rows: minmax(0, 1fr); 
+    grid-template-rows: 1fr;
     gap: 15px;
     width: 100%;
     flex-grow: 1;
     overflow: hidden; 
 }
 
-.game-panel { background-color: rgba(45, 55, 72, 0.85); border: 1px solid var(--bg-light); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; }
+.game-panel {
+    background-color: rgba(45, 55, 72, 0.85);
+    border: 1px solid var(--bg-light);
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
 
 /* Cấu trúc chung cho các cột */
 #left-column, #center-column, #right-column {
-    display: flex; 
-    flex-direction: column; 
+    display: grid;
     gap: 15px;
     min-height: 0; 
 }
 
+/* === BẮT ĐẦU PHẦN SỬA LỖI LAYOUT CỘT TRÁI === */
+
 /* Cột Trái: Vai trò, Cổ vật, Chat */
-#role-display { flex: 4 1 0; min-height: 0; overflow-y: auto; }
-#artifact-display { flex: 1 1 0; min-height: 0; overflow-y: auto; }
-#chat-container { flex: 2 1 0; min-height: 0; display: flex; flex-direction: column; }
-#chat-messages { flex-grow: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 8px; display: flex; flex-direction: column; }
-.chat-message { margin-top: auto; }
-#chat-input-area { flex-shrink: 0; margin-top: 10px; display: flex; gap: 5px; }
-#chat-input { width: 100%; margin: 0; }
-#send-chat-btn { width: auto; }
+#left-column {
+    /* Chia cột trái thành các hàng với tỷ lệ 5 phần : 2 phần : 3 phần */
+    grid-template-rows: 5fr 2fr 3fr; 
+}
+
+/* Đảm bảo các panel con có thể cuộn nội dung bên trong */
+#role-display,
+#artifact-display {
+    overflow-y: auto; /* Cho phép cuộn nếu nội dung dài hơn panel */
+}
+
+/* Đặc biệt xử lý cho thẻ bài vai trò để phần mô tả cuộn được */
+.role-card-back {
+    overflow-y: auto; /* Chỉ phần mặt sau của thẻ bài mới cuộn */
+}
+
+#chat-container {
+    min-height: 0;
+}
+#chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+    padding: 8px;
+}
 
 /* Cột Giữa: Log sự kiện, Người chơi, Hành động */
-#message-area { flex: 2 1 0; min-height: 150px; overflow-y: auto; }
-.log-message { margin-top: auto; }
-#players-container { flex: 3 1 0; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); grid-auto-rows: min-content; gap: 15px; padding: 15px; }
-#action-container { flex-shrink: 0; min-height: 140px; justify-content: center; }
+#center-column {
+     grid-template-rows: 2fr 3fr auto;
+}
+#message-area { 
+    flex-grow: 1;
+   overflow-y: auto;
+}
+#players-container {
+   overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 15px;
+    padding: 15px;
+}
+#action-container { 
+    justify-content: center;
+    align-items: center;
+}
 
-/* Cột Phải: BXH, Vai trò, Giai đoạn */
-#leaderboard { flex-shrink: 0; }
-#roles-in-game { flex-grow: 1; min-height: 0; overflow-y: auto; }
-#phase-info { flex-shrink: 0; }
 
-/* Mặc định, ẩn thanh hành động mobile trên desktop */
-#mobile-action-bar, #mobile-view-switcher, #mobile-main-view, #mobile-personal-view {
+/* Cột Phải: BXH, Vai trò trong game, Giai đoạn */
+#right-column {
+    grid-template-rows: auto 1fr auto;
+}
+#roles-in-game {
+    min-height: 0;
+}
+#roles-in-game-list {
+    overflow-y: auto;
+}
+
+/* Thêm style cho phần chi tiết vai trò trong panel bên phải */
+.role-in-game-item .role-full-details {
+    padding-left: 15px;
+    border-left: 2px solid var(--bg-light);
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: var(--text-medium);
+}
+.role-in-game-item .role-full-details p {
+    margin: 5px 0;
+}
+
+/* QUAN TRỌNG: Ẩn tất cả các thành phần chỉ dành cho mobile ở chế độ desktop */
+#mobile-view-switcher,
+#mobile-main-view,
+#mobile-personal-view,
+#mobile-log-view,
+#mobile-action-bar {
     display: none;
 }
+
 
 /* --- VI. Các Thành Phần Giao Diện Chi Tiết --- */
 #phase-info #timer-display { font-size: 3em; color: var(--primary-gold); font-weight: bold; }
@@ -215,64 +281,73 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
 #night-transition-overlay.active h2 { transform: scale(1); opacity: 1; }
 
 
-/* --- XI. Thiết Kế Đáp Ứng (Responsive) (Giữ nguyên) --- */
-/* ---- Dành cho Máy tính bảng (chiều rộng dưới 1200px) ---- */
+/*======================================================================*/
+/* XI. Thiết Kế Đáp Ứng (Responsive)                                   */
+/* Tối ưu hóa giao diện cho các kích thước màn hình khác nhau.          */
+/*======================================================================*/
+
+/* ---- Dành cho Máy tính bảng & Màn hình nhỏ (chiều rộng dưới 1200px) ---- */
+
 @media (max-width: 1200px) {
     #game-screen {
-        grid-template-columns: 300px 1fr;
-        grid-template-areas: "left center";
+        grid-template-columns: 300px 1fr; 
+        grid-template-areas: "left center"; 
         overflow-y: auto;
     }
-    #left-column { grid-area: left; }
-    #center-column { grid-area: center; }
-    #right-column { display: none; }
+    
+    #left-column { 
+        grid-area: left; 
+        display: grid; /* Vẫn giữ lại grid để ổn định */
+    }
+    #center-column { 
+        grid-area: center; 
+        display: grid; /* Vẫn giữ lại grid để ổn định */
+    }
+    #right-column {
+        display: none;
+    }
 }
-/* ---- [TAB MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
+
+/* ---- [MOBILE OVERHAUL] Dành cho Điện thoại (chiều rộng dưới 768px) ---- */
 @media (max-width: 768px) {
-    body { padding: 0; overflow-y: hidden; /* Chống cuộn toàn bộ trang */ }
+    /* --- A. THIẾT LẬP NỀN TẢNG --- */
+    body { padding: 0; overflow-y: hidden; }
     .container {
-        height: 100vh; /* Chiếm toàn bộ chiều cao màn hình */
+        height: 100vh;
+        max-height: 100vh;
         padding: 5px;
-        padding-bottom: 90px; /* Chừa không gian cho thanh hành động */
+        padding-bottom: 90px;
         border-radius: 0; border: none;
         display: flex; flex-direction: column;
     }
-    
-    /* Chuyển sang layout một cột để chứa các view */
     #game-screen {
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1; /* Cho phép game-screen co giãn */
-        overflow: hidden; /* Ngăn cuộn bên trong game-screen */
-        gap: 0; /* Không cần khoảng cách giữa các thành phần con nữa */
+        display: flex; flex-direction: column;
+        flex-grow: 1;
+        overflow: hidden;
+        gap: 0;
     }
 
-    /* Ẩn hoàn toàn các cột desktop */
+    /* --- B. ẨN DESKTOP, HIỆN MOBILE --- */
+    /* QUAN TRỌNG: Ẩn các cột của desktop */
     #left-column, #center-column, #right-column {
         display: none;
     }
-
-    /* Hiển thị các vùng chứa và Tab của mobile */
-    #mobile-view-switcher, #mobile-main-view, #mobile-personal-view, #mobile-log-view {
-        display: block; /* Hoặc flex/grid tùy vào container */
+    /* QUAN TRỌNG: Hiển thị các thành phần của mobile */
+    #mobile-view-switcher, #mobile-action-bar {
+        display: flex; /* Dùng flex cho các container này */
     }
 
-    /* Style cho bộ chuyển Tab */
+    /* --- C. STYLING BỘ CHUYỂN TAB --- */
     #mobile-view-switcher {
-        display: flex;
         gap: 2px;
-        flex-shrink: 0; /* Không co lại */
+        flex-shrink: 0;
     }
     #mobile-view-switcher button {
         flex: 1;
-        padding: 12px 5px;
-        font-size: 0.9em;
-        font-weight: bold;
-        background-color: var(--bg-light);
-        color: var(--text-medium);
-        border: 1px solid var(--bg-light);
-        border-bottom: none;
-        border-radius: 6px 6px 0 0;
+        padding: 12px 5px; font-size: 0.9em;
+        font-weight: bold; background-color: var(--bg-light);
+        color: var(--text-medium); border: 1px solid var(--bg-light);
+        border-bottom: none; border-radius: 6px 6px 0 0;
     }
     #mobile-view-switcher button.active {
         background-color: var(--bg-medium);
@@ -280,106 +355,62 @@ input[type="text"]:focus { outline: none; border-color: var(--primary-gold); box
         border-color: var(--primary-gold);
     }
 
-    /* Bố cục chung cho các tab view */
+    /* --- D. LOGIC HIỂN THỊ CÁC VIEW TAB --- */
     #mobile-main-view, #mobile-personal-view, #mobile-log-view {
-        flex-grow: 1; /* Cho phép các view co giãn lấp đầy không gian */
-        overflow-y: auto; /* Chỉ cho phép cuộn bên trong view */
-        padding: 8px;
-        background-color: rgba(0,0,0,0.1);
-        border-radius: 0 0 8px 8px;
+        flex-grow: 1; overflow-y: auto;
+        padding: 8px; background-color: rgba(0,0,0,0.1);
+        border-radius: 0 0 8px 8px; display: none;
+    }
+    #game-screen.view-main #mobile-main-view {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    #game-screen.view-personal #mobile-personal-view {
+        display: grid; gap: 8px;
+    }
+    #game-screen.view-log #mobile-log-view {
+        display: flex; flex-direction: column; gap: 8px;
     }
 
-    /* -- LOGIC HIỂN THỊ TAB -- */
-    /* Mặc định hiển thị tab Trận Đấu */
-    #mobile-personal-view, #mobile-log-view { display: none; }
-    
-    /* Khi .view-personal active */
-    #game-screen.view-personal #mobile-main-view, 
-    #game-screen.view-personal #mobile-log-view { display: none; }
-    #game-screen.view-personal #mobile-personal-view { display: grid; gap: 8px; }
-    
-    /* Khi .view-log active */
-    #game-screen.view-log #mobile-main-view, 
-    #game-screen.view-log #mobile-personal-view { display: none; }
-    /* Sử dụng flexbox cho tab log để quản lý không gian dọc tốt hơn */
-    #game-screen.view-log #mobile-log-view { display: flex; flex-direction: column; gap: 8px; }
-
-    
-    /* -- BỐ CỤC BÊN TRONG TỪNG TAB -- */
-
-    /* 1. Bố cục cho Tab "Trận Đấu" */
-    #mobile-main-view {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-    }
+    /* --- E. BỐ CỤC BÊN TRONG TỪNG VIEW --- */
     #mobile-main-view #phase-info { grid-column: 1 / -1; }
     #mobile-main-view #players-container { grid-column: 1 / -1; }
     #mobile-main-view #leaderboard { grid-column: 1 / 2; }
     #mobile-main-view #roles-in-game { grid-column: 2 / 3; }
+    #mobile-log-view #message-area, #mobile-log-view #chat-container {
+        flex: 1; min-height: 150px;
+    }
 
-    /* 2. Bố cục cho Tab "Cá Nhân" (đã định nghĩa ở trên) */
-    
-    /* 3. Bố cục cho Tab "Nhật Ký" */
-    #mobile-log-view #message-area { 
-        flex: 1; /* Co giãn theo không gian còn lại */
-        min-height: 150px;
-    }
-    #mobile-log-view #chat-container { 
-        flex: 1; /* Co giãn theo không gian còn lại */
-        min-height: 200px;
-    }
-    
-    /* Thanh hành động cố định - Đã được làm sạch */
+    /* --- F. THANH HÀNH ĐỘNG CỐ ĐỊNH --- */
     #mobile-action-bar {
-        display: flex;
-        flex-direction: column; /* Xếp các nút theo chiều dọc */
-        gap: 8px;
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
+        flex-direction: column; gap: 8px;
+        position: fixed; bottom: 0; left: 0; right: 0;
         background-color: var(--bg-dark);
-        padding: 10px;
-        border-top: 1px solid var(--bg-light);
-        box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
-        z-index: 100;
+        padding: 10px; border-top: 1px solid var(--bg-light);
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.3); z-index: 100;
         padding-bottom: calc(10px + env(safe-area-inset-bottom));
-        flex-shrink: 0; /* Không co lại */
+        flex-shrink: 0;
     }
-    
     #mobile-action-bar button {
-        width: 100%;
-        font-size: 1.1em;
-        padding: 14px; /* Nút to hơn, dễ nhấn hơn */
+        width: 100%; font-size: 1.1em; padding: 14px;
     }
-    
-    /* Hoàn toàn loại bỏ mô tả khỏi thanh hành động */
-    #mobile-action-bar #phase-description {
-        display: none;
+    #mobile-action-bar .action-buttons-grid {
+        display: flex; flex-direction: row; gap: 8px;
     }
-
-    /* Tinh chỉnh kích thước & bố cục cho từng panel trên mobile */
-    .game-panel { 
-        min-height: auto;
-        padding: 10px;
+     #mobile-action-bar .action-buttons-grid button {
+        flex: 1; padding: 12px 5px;
     }
 
+    /* --- G. TINH CHỈNH CÁC THÀNH PHẦN KHÁC --- */
+    .game-panel { min-height: auto; padding: 10px; }
     #phase-info { text-align: center; }
     #timer-display { font-size: 2.2em; }
     #phase-description { font-size: 1em; margin-bottom: 5px; color: var(--text-medium); }
-
-    .action-buttons-grid { display: flex; flex-direction: column; gap: 8px; }
-    .action-buttons-grid button { width: 100%; font-size: 1.1em; padding: 12px; }
-
     #players-container { 
         grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); 
-        gap: 10px;
-        padding: 8px;
-        max-height: none; /* Bỏ giới hạn chiều cao để nó tự co giãn */
+        gap: 10px; padding: 8px; max-height: none;
     }
     .player-avatar-card .avatar { width: 55px; height: 55px; font-size: 1.8em; }
     .player-avatar-card .player-name { font-size: 0.75em; }
-    
-    /* Tinh chỉnh các nút nổi */
     #rulebook-btn, #history-log-btn, #music-toggle-btn {
         width: 45px; height: 45px; font-size: 1.3em;
     }

@@ -233,6 +233,13 @@ const App = {
         Network.on('logMessage', (data) => UI.addLogMessage(data));
         Network.on('newMessage', (data) => UI.addChatMessage(data.senderName, data.message));
         Network.on('privateInfo', (data) => Swal.fire({ title: data.title, html: data.text, icon: 'info' }));
+
+        // === BẮT ĐẦU SỬA LỖI ===
+        // Lắng nghe lệnh đóng overlay từ server
+        Network.on('forceCloseTwilightOverlay', () => {
+            // Gọi hàm trong UI để thực hiện việc đóng
+            UI.hideTwilightOverlay();
+        });
     }
 };
 

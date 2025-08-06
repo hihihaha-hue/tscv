@@ -25,7 +25,7 @@ const UI = {
         playerControls: document.getElementById('player-controls'),
         readyBtn: document.getElementById('ready-btn'),
     },
-    gameElements: {
+   gameElements: {
         screen: document.getElementById('game-screen'),
         roleDisplay: document.getElementById('role-display'),
         phaseTitle: document.getElementById('phase-title'),
@@ -53,14 +53,17 @@ const UI = {
         useArtifactBtn: document.getElementById('use-artifact-btn'),
         nightTransitionOverlay: document.getElementById('night-transition-overlay'),
         nightTransitionText: document.getElementById('night-transition-text'),
-        mobileLogView: document.getElementById('mobile-log-view'),
-        showLogViewBtn: document.getElementById('show-log-view-btn'),
+        
+        // === BẮT ĐẦU NÂNG CẤP MOBILE ===
+        mobileLogView: document.getElementById('mobile-log-view'), // Vùng chứa mới
+        showLogViewBtn: document.getElementById('show-log-view-btn'), // Nút tab mới
         mobileActionBar: document.getElementById('mobile-action-bar'),
         mobileViewSwitcher: document.getElementById('mobile-view-switcher'),
         mobileMainView: document.getElementById('mobile-main-view'),
         mobilePersonalView: document.getElementById('mobile-personal-view'),
         showMainViewBtn: document.getElementById('show-main-view-btn'),
         showPersonalViewBtn: document.getElementById('show-personal-view-btn'),
+        // === KẾT THÚC NÂNG CẤP MOBILE ===
     },
     audioCache: {},
     isMuted: false,
@@ -84,10 +87,9 @@ const UI = {
     // ======================================================================
 
     initEventListeners() {
-		const showMainViewBtn = document.getElementById('show-main-view-btn');
-        const showPersonalViewBtn = document.getElementById('show-personal-view-btn');
-        const showLogViewBtn = document.getElementById('show-log-view-btn');
-		 if (showMainViewBtn) {
+        // === BẮT ĐẦU NÂNG CẤP MOBILE ===
+        const { showMainViewBtn, showPersonalViewBtn, showLogViewBtn } = this.gameElements;
+        if (showMainViewBtn) {
             showMainViewBtn.addEventListener('click', () => this.switchMobileView('main'));
         }
         if (showPersonalViewBtn) {
@@ -487,23 +489,62 @@ const UI = {
 
    switchMobileView(viewName) {
         const screen = this.gameElements.screen;
-        if (!screen) return;
+        if (!screen || !this.isMobileLayoutSetup) return;
 
+        // 1. Cập nhật trạng thái active cho các nút tab
         const buttons = {
-            main: document.getElementById('show-main-view-btn'),
-            personal: document.getElementById('show-personal-view-btn'),
-            log: document.getElementById('show-log-view-btn'),
+            main: this.gameElements.showMainViewBtn,
+            personal: this.gameElements.showPersonalViewBtn,
+            log: this.gameElements.showLogViewBtn,
         };
+        Object.values(buttons).forEach(btn => btn?.classList.remove('active'));
+        if (buttons[viewName]) {
+            buttons[viewName].classList.add('active');
+        }
 
-        Object.values(buttons).forEach(btn => {
-            if (btn) btn.classList.remove('active');
-        });
-
+        // 2. Chuyển đổi class để CSS hiển thị đúng view
         screen.classList.remove('view-main', 'view-personal', 'view-log');
         screen.classList.add(`view-${viewName}`);
         
-        if (buttons[viewName]) {
-            buttons[viewName].classList.add('active');
+        // 3. Cập nhật thanh hành động (Mobile Action Bar) một cách linh động
+        this.updateMobileActionBar(viewName);
+    },
+
+    updateMobileActionBar(currentView) {
+        const actionBar = this.gameElements.mobileActionBar;
+        if (!actionBar) return;
+        actionBar.innerHTML = ''; // Xóa sạch các nút cũ
+
+        switch (currentView) {
+            case 'main':
+                // Khi ở tab "Trận Đấu", thanh hành động sẽ chứa các nút của giai đoạn hiện tại
+                // Chúng ta sẽ gọi lại setupPhaseUI để nó tự điền vào
+                this.setupPhaseUI(state.gamePhase, { 
+                    isHost: state.myId === state.currentHostId, 
+                    title: this.getPhaseTitle(state.gamePhase) 
+                });
+                break;
+            case 'personal':
+                // Khi ở tab "Cá Nhân", ưu tiên hiển thị nút kỹ năng và cổ vật
+                const skillBtn = document.getElementById('skill-btn');
+                if (skillBtn && !skillBtn.disabled) {
+                    const mobileSkillBtn = skillBtn.cloneNode(true);
+                    mobileSkillBtn.id = 'mobile-skill-btn';
+                    mobileSkillBtn.onclick = () => skillBtn.click();
+                    actionBar.appendChild(mobileSkillBtn);
+                }
+
+                const artifactBtn = this.gameElements.useArtifactBtn;
+                if (artifactBtn && artifactBtn.style.display !== 'none' && !artifactBtn.disabled) {
+                    const mobileArtifactBtn = artifactBtn.cloneNode(true);
+                    mobileArtifactBtn.id = 'mobile-artifact-btn';
+                    mobileArtifactBtn.onclick = () => artifactBtn.click();
+                    actionBar.appendChild(mobileArtifactBtn);
+                }
+                break;
+            case 'log':
+                // Tab "Nhật Ký" thường không có hành động, thanh action bar sẽ trống
+                break;
         }
     },
 
@@ -514,24 +555,22 @@ const UI = {
 
         console.log("Setting up NEW mobile layout...");
 
-        const mainView = this.gameElements.mobileMainView;
-        const personalView = this.gameElements.mobilePersonalView;
-        const logView = this.gameElements.mobileLogView;
+        const { mobileMainView, mobilePersonalView, mobileLogView } = this.gameElements;
 
-        // Phân chia lại các panel
-        mainView.append(
+        // Phân chia lại các panel vào đúng các tab
+        mobileMainView.append(
             document.getElementById('phase-info'),
             document.getElementById('players-container'),
             document.getElementById('leaderboard'),
             document.getElementById('roles-in-game')
         );
 
-        personalView.append(
+        mobilePersonalView.append(
             document.getElementById('role-display'),
             document.getElementById('artifact-display')
         );
 
-        logView.append(
+        mobileLogView.append(
             document.getElementById('message-area'),
             document.getElementById('chat-container')
         );
@@ -631,21 +670,25 @@ const UI = {
         }).join('');
     },
 
-    updateLeaderboard(players) {
+  updateLeaderboard(players) {
         const list = this.gameElements.leaderboardList;
         if (!list) return;
         const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
         list.innerHTML = sortedPlayers.map(p => `<li><span>${p.name}</span><span>${p.score}</span></li>`).join('');
     },
 
-    displayRolesInGame(rolesInThisGame) {
+  displayRolesInGame(rolesInThisGame) {
         const container = this.gameElements.rolesInGameList;
         if (!container) return;
         container.innerHTML = rolesInThisGame.map(role => `
             <li class="role-in-game-item">
                 <details>
                     <summary class="role-name">${role.name}</summary>
-                    <p class="role-detail"><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
+                    <div class="role-full-details">
+                        <p><strong>Thiên Mệnh:</strong> ${role.description.win}</p>
+                        <p><strong>Nội Tại:</strong> ${role.description.passive}</p>
+                        <p><strong>Kỹ Năng:</strong> ${role.description.skill}</p>
+                    </div>
                 </details>
             </li>`).join('');
     },
@@ -671,39 +714,47 @@ const UI = {
     },
 
     setupPhaseUI(phaseName, options = {}) {
+        // === BẮT ĐẦU SỬA LỖI NÚT BẤM DESKTOP ===
         const isMobile = window.innerWidth <= 768;
-        const currentActionContainer = isMobile ? this.gameElements.mobileActionBar : this.gameElements.actionContainer;
-        const { phaseTitle, phaseDescription, choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, playersContainer, openTwilightBtn } = this.gameElements;
+        const { 
+            phaseTitle, phaseDescription, choiceButtonsContainer, 
+            skipCoordinationBtn, nextDayBtn, playersContainer, openTwilightBtn, 
+            mobileActionBar 
+        } = this.gameElements;
 
         playersContainer.classList.remove('selecting-target');
 
+        // Logic được tách biệt hoàn toàn
         if (isMobile) {
-            currentActionContainer.innerHTML = '';
+            // 1. Dành cho Mobile: Xóa sạch thanh hành động để chuẩn bị tạo nút mới.
+            if (mobileActionBar) mobileActionBar.innerHTML = '';
         } else {
-            [choiceButtonsContainer, skipCoordinationBtn, nextDayBtn, openTwilightBtn].forEach(el => {
-                if (el) el.style.display = 'none';
-            });
+            // 2. Dành cho Desktop: Ẩn tất cả các nút/container hành động.
+            // Chúng ta không xóa chúng, chỉ ẩn đi để có thể hiện lại sau.
+            if (choiceButtonsContainer) choiceButtonsContainer.style.display = 'none';
+            if (skipCoordinationBtn) skipCoordinationBtn.style.display = 'none';
+            if (nextDayBtn) nextDayBtn.style.display = 'none';
+            if (openTwilightBtn) openTwilightBtn.style.display = 'none';
         }
-
+        
+        // Cập nhật tiêu đề giai đoạn (giữ nguyên)
         if (this.typedInstance) this.typedInstance.destroy();
         const titleText = options.title || this.getPhaseTitle(phaseName);
         this.typedInstance = new Typed(phaseTitle, { strings: [titleText], typeSpeed: 40, showCursor: false });
 
         const setPhaseDescription = (text) => {
-            if (phaseDescription) {
-                phaseDescription.innerHTML = text;
-            }
+            if (phaseDescription) phaseDescription.innerHTML = text;
         };
 
+        // Hàm tạo nút cho mobile (giữ nguyên)
         const createMobileButton = (id, text, className = '') => {
             const btn = document.createElement('button');
             btn.id = `mobile-${id}`;
-            btn.textContent = text;
+            btn.innerHTML = text;
             if (className) btn.className = className;
-
-            const originalButton = this.gameElements[id.replace(/-/g, '_')] || document.getElementById(id); // Handle different naming conventions
+            const originalButton = document.getElementById(id);
             if (originalButton) {
-                 btn.onclick = () => originalButton.click();
+                btn.onclick = () => originalButton.click();
             } else {
                 console.warn(`Original button for mobile action '${id}' not found.`);
             }
@@ -713,73 +764,75 @@ const UI = {
         const setupMobileChoiceButtons = () => {
              const container = document.createElement('div');
              container.className = 'action-buttons-grid';
-             const btn1 = document.createElement('button');
-             btn1.innerHTML = '📜 Giải Mã';
-             btn1.className = 'choice-buttons loyal';
-             btn1.onclick = () => this.gameElements.choiceButtonsContainer.querySelector('[data-action="Giải Mã"]').click();
+             container.appendChild(createMobileButton('choice-loyal', '📜 Giải Mã', 'choice-buttons loyal'));
+             container.appendChild(createMobileButton('choice-corrupt', '💣 Phá Hoại', 'choice-buttons corrupt'));
+             container.appendChild(createMobileButton('choice-blank', '👁️ Quan Sát', 'choice-buttons blank'));
+             
+             // Gán sự kiện click cho các nút mới tạo
+             container.querySelector('#mobile-choice-loyal').onclick = () => this.gameElements.choiceButtonsContainer.querySelector('[data-action="Giải Mã"]').click();
+             container.querySelector('#mobile-choice-corrupt').onclick = () => this.gameElements.choiceButtonsContainer.querySelector('[data-action="Phá Hoại"]').click();
+             container.querySelector('#mobile-choice-blank').onclick = () => this.gameElements.choiceButtonsContainer.querySelector('[data-action="Quan Sát"]').click();
 
-             const btn2 = document.createElement('button');
-             btn2.innerHTML = '💣 Phá Hoại';
-             btn2.className = 'choice-buttons corrupt';
-             btn2.onclick = () => this.gameElements.choiceButtonsContainer.querySelector('[data-action="Phá Hoại"]').click();
-
-             const btn3 = document.createElement('button');
-             btn3.innerHTML = '👁️ Quan Sát';
-             btn3.className = 'choice-buttons blank';
-             btn3.onclick = () => this.gameElements.choiceButtonsContainer.querySelector('[data-action="Quan Sát"]').click();
-
-             container.append(btn1, btn2, btn3);
              return container;
         };
 
-        switch (phaseName) {
+        // Chỉ điền nút vào action bar nếu đang ở đúng tab 'main' hoặc là desktop
+      const shouldFillActionBar = !isMobile || (isMobile && document.getElementById('show-main-view-btn').classList.contains('active'));
+	  if (state.myRole?.id === 'MIMIC' && (phaseName === 'choice' || phaseName === 'exploration')) {
+            setPhaseDescription('Bạn sẽ tự động sao chép hành động của người khác. Hãy chờ xem...');
+            // Không hiển thị bất kỳ nút hành động nào cho Kẻ Bắt Chước
+            return; // Dừng hàm tại đây
+        }
+
+           switch (phaseName) {
             case 'choice':
             case 'exploration':
                 setPhaseDescription('Bí mật chọn hành động của bạn.');
                 if (isMobile) {
-                    currentActionContainer.appendChild(setupMobileChoiceButtons());
+                    if (shouldFillActionBar) currentActionContainer.appendChild(setupMobileChoiceButtons());
                 } else {
                     if (choiceButtonsContainer) choiceButtonsContainer.style.display = 'grid';
                 }
                 break;
+
             case 'coordination':
                 playersContainer.classList.add('selecting-target');
                 setPhaseDescription('Chọn người để Phối Hợp, hoặc hành động một mình.');
                 if (isMobile) {
-                    currentActionContainer.appendChild(createMobileButton('skip-coordination-btn', 'Hành động một mình'));
+                    if (shouldFillActionBar) currentActionContainer.appendChild(createMobileButton('skip-coordination-btn', 'Hành động một mình'));
                 } else {
-                    if(skipCoordinationBtn) skipCoordinationBtn.style.display = 'inline-block';
+                    if (skipCoordinationBtn) skipCoordinationBtn.style.display = 'inline-block';
                 }
                 break;
-            case 'twilight':
-        // === BẮT ĐẦU PHẦN THÊM MỚI ===
-        if (state.hasActedInTwilight) {
-            this.setupPhaseUI('wait', { description: 'Đã hành động. Đang chờ những người khác...' });
-            return; // Dừng hàm tại đây, không hiển thị nút nữa
-        }
-        // === KẾT THÚC PHẦN THÊM MỚI ===
 
-        this.showTwilightUI(state.players, state.myId);
-        setPhaseDescription('Mở bảng Vạch Trần để hành động hoặc chọn Nghỉ Ngơi.');
-        if (isMobile) {
-            currentActionContainer.appendChild(createMobileButton('open-twilight-btn', 'Mở Bảng Vạch Trần'));
-        } else {
-            if (openTwilightBtn) openTwilightBtn.style.display = 'inline-block';
-        }
-        break;
+            case 'twilight':
+                if (state.hasActedInTwilight) {
+                    this.setupPhaseUI('wait', { description: 'Đã hành động. Đang chờ những người khác...' });
+                    return;
+                }
+                this.showTwilightUI(state.players, state.myId);
+                setPhaseDescription('Mở bảng Vạch Trần để hành động hoặc chọn Nghỉ Ngơi.');
+                if (isMobile) {
+                     if (shouldFillActionBar) currentActionContainer.appendChild(createMobileButton('open-twilight-btn', 'Mở Bảng Vạch Trần'));
+                } else {
+                    if (openTwilightBtn) openTwilightBtn.style.display = 'inline-block';
+                }
+                break;
+
             case 'wait':
                 const waitText = options.description || 'Đang chờ những người khác...';
                 setPhaseDescription(waitText);
                 break;
+
             case 'end_of_round':
                 const endText = options.isHost ? 'Bắt đầu ngày tiếp theo?' : 'Đang chờ Trưởng Đoàn...';
                 setPhaseDescription(endText);
-                if (isMobile) {
-                    if (options.isHost) {
-                        currentActionContainer.appendChild(createMobileButton('next-day-btn', 'Bắt Đầu Ngày Tiếp Theo'));
+                if (options.isHost) {
+                    if (isMobile) {
+                        if (shouldFillActionBar) currentActionContainer.appendChild(createMobileButton('next-day-btn', 'Bắt Đầu Ngày Tiếp Theo'));
+                    } else {
+                        if (nextDayBtn) nextDayBtn.style.display = 'inline-block';
                     }
-                } else {
-                    if (options.isHost && nextDayBtn) nextDayBtn.style.display = 'inline-block';
                 }
                 break;
         }
@@ -819,7 +872,26 @@ const UI = {
             let totalChange = player.newScore - player.oldScore;
             let changeClass = totalChange > 0 ? 'success-text' : (totalChange < 0 ? 'error-text' : '');
             let changeText = totalChange > 0 ? `+${totalChange}` : (totalChange === 0 ? '0' : totalChange);
-            let details = player.changes.map(c => `${c.reason}: ${c.amount > 0 ? '+' : ''}${c.amount}`).join('<br>') || 'Không đổi';
+            
+            // === BẮT ĐẦU LOGIC DỊCH LÝ DO ===
+          let details = player.changes.map(c => {
+            let reasonText = c.reason;
+            const originalReason = c.reason.toLowerCase(); // Chuyển sang chữ thường để dễ so sánh
+
+            // Các từ khóa nhận diện Nội tại hoặc Kỹ năng
+            const skillKeywords = ['kỹ năng', 'đầu tư', 'móc túi', 'tất tay', 'khiêu khích', 'ám quẻ', 'phán quyết', 'tái phân bố'];
+            const passiveKeywords = ['nội tại', 'hòa bình', 'đánh cược', 'tài phiệt', 'kẻ trộm', 'tẩy não', 'hai mang', 'bóng ma'];
+
+            if (skillKeywords.some(keyword => originalReason.includes(keyword))) {
+                reasonText = 'Kỹ năng bí ẩn';
+            } else if (passiveKeywords.some(keyword => originalReason.includes(keyword))) {
+                reasonText = 'Nội tại bí ẩn';
+            }
+            // Các lý do cơ bản như "Thuộc phe thắng", "Hòa cuộc", "May mắn khi Giải Mã" sẽ được giữ nguyên.
+            
+            return `${reasonText}: ${c.amount > 0 ? '+' : ''}${c.amount}`;
+        }).join('<br>') || 'Không đổi';
+          
             let actionText = player.chosenAction;
             if (player.actionWasNullified) {
                 actionText = `<s style="color: #a0aec0;" title="Hành động bị vô hiệu hóa">${player.chosenAction}</s>`;
